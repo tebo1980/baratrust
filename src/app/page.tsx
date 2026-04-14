@@ -43,10 +43,13 @@ export default function HomePage() {
                 <div className="proof-item"><span className="proof-check">&#10003;</span> 10 AI Agents Working 24/7</div>
                 <div className="proof-item"><span className="proof-check">&#10003;</span> No Setup Fee — First 10 Clients</div>
               </div>
+              <a href="#about" className="hero-story-link" onClick={(e) => { e.preventDefault(); document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }) }}>
+                Read Todd&apos;s story &rarr;
+              </a>
             </div>
 
-            {/* CALCULATOR */}
-            <div className="hero-right fade-up" style={{ animationDelay: '0.2s' }}>
+            {/* CALCULATOR — desktop only */}
+            <div className="hero-right hero-calc-desktop fade-up" style={{ animationDelay: '0.2s' }}>
               <div className="calc-card">
                 <div className="calc-label">Revenue Left Behind — Live Calculator</div>
 
@@ -107,6 +110,31 @@ export default function HomePage() {
                 <button className="calc-cta" onClick={() => window.open('https://calendly.com/tebo1980/baratrust-consultation', '_blank')}>Stop Leaving Money Behind — Book Free Call</button>
               </div>
             </div>
+
+            {/* MOBILE STAT BLOCK — shown below 768px instead of calculator */}
+            <div className="hero-right hero-mobile-stats fade-up" style={{ animationDelay: '0.2s' }}>
+              <div className="mobile-stat-grid">
+                <div className="mobile-stat-card">
+                  <div className="mobile-stat-num">90</div>
+                  <div className="mobile-stat-label">Day Prove It Guarantee</div>
+                </div>
+                <div className="mobile-stat-card">
+                  <div className="mobile-stat-num">10</div>
+                  <div className="mobile-stat-label">AI Agents Working 24/7</div>
+                </div>
+                <div className="mobile-stat-card">
+                  <div className="mobile-stat-num">7</div>
+                  <div className="mobile-stat-label">Day Full Presence Live</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SCROLL INDICATOR */}
+          <div className="scroll-indicator" onClick={() => document.getElementById('fear')?.scrollIntoView({ behavior: 'smooth' })}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--cream)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
           </div>
         </div>
       </section>
@@ -537,6 +565,7 @@ export default function HomePage() {
         <div className="footer-seal">&#x1F9AB;</div>
         <div className="footer-text">© 2026 BaraTrust. New Albany, Indiana.</div>
         <div className="footer-links">
+          <a href="#about">Our Story</a>
           <a href="/terms">Terms</a>
           <a href="/health-score">Health Score</a>
           <a href="https://nightwatch.baratrust.com" target="_blank" rel="noopener noreferrer">AI Staff Portal</a>

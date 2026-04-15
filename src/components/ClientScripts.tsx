@@ -78,11 +78,19 @@ export default function ClientScripts() {
       }
 
       try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 15000)
+
         const res = await fetch('https://nightwatch.baratrust.com/api/agent-demo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agent: agentName, input: text })
+          body: JSON.stringify({ agent: agentName, input: text }),
+          signal: controller.signal,
         })
+        clearTimeout(timeout)
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
         const data = await res.json()
         if (resp) {
           resp.className = 'agent-response active'
@@ -91,7 +99,7 @@ export default function ClientScripts() {
       } catch {
         if (resp) {
           resp.className = 'agent-response active'
-          resp.textContent = 'Unable to connect to the agent right now. Please try again shortly.'
+          resp.textContent = 'The AI Staff Portal is currently being updated. Please try again in a few minutes or contact Todd directly at 502-431-3285.'
         }
       }
 
@@ -127,19 +135,55 @@ export default function ClientScripts() {
 
     document.querySelectorAll('.fade-up').forEach(el => observer.observe(el))
 
-    // FORMSPREE
+    // FORMSPREE — handle form submission directly via fetch
     const formEl = document.getElementById('contact-form') as HTMLFormElement
     if (formEl) {
-      ;(window as any).formspree = (window as any).formspree || function(...args: any[]) {
-        ((window as any).formspree.q = (window as any).formspree.q || []).push(args)
-      }
-      ;(window as any).formspree('initForm', { formElement: '#contact-form', formId: 'xzdkqaap' })
+      formEl.addEventListener('submit', async (e) => {
+        e.preventDefault()
 
-      // Load Formspree script
-      const script = document.createElement('script')
-      script.src = 'https://unpkg.com/@formspree/ajax@1'
-      script.defer = true
-      document.body.appendChild(script)
+        const submitBtn = formEl.querySelector('[type="submit"]') as HTMLButtonElement
+        const successEl = formEl.parentElement?.querySelector('[data-fs-success]') as HTMLElement
+        const errorEl = formEl.parentElement?.querySelector('[data-fs-error]') as HTMLElement
+
+        if (submitBtn) {
+          submitBtn.disabled = true
+          submitBtn.textContent = 'Sending...'
+        }
+
+        try {
+          const formData = new FormData(formEl)
+          const data: Record<string, string> = {}
+          formData.forEach((value, key) => { data[key] = value.toString() })
+
+          const res = await fetch('https://formspree.io/f/xzdkqaap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(data),
+          })
+
+          if (res.ok) {
+            if (successEl) successEl.style.display = 'block'
+            if (errorEl) errorEl.style.display = 'none'
+            formEl.reset()
+          } else {
+            const result = await res.json()
+            if (errorEl) {
+              errorEl.style.display = 'block'
+              errorEl.textContent = result.errors?.map((err: { message: string }) => err.message).join(', ') || 'Something went wrong. Please try again.'
+            }
+          }
+        } catch {
+          if (errorEl) {
+            errorEl.style.display = 'block'
+            errorEl.textContent = 'Unable to send message. Please try again or call 502-431-3285.'
+          }
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = false
+          submitBtn.textContent = 'Send Message →'
+        }
+      })
     }
 
     return () => {

@@ -402,8 +402,18 @@ export default function HomePage() {
           <div className="fade-up" style={{ textAlign: 'center' }}>
             <div className="section-tag">Simple Pricing</div>
             <h2 className="section-title">Two Options. No Confusion.</h2>
-            <p className="section-sub" style={{ margin: '0 auto 60px' }}>No setup fee for the first 10 clients. If you&apos;re reading this and we still have spots — this is the time.</p>
+            <p className="section-sub" style={{ margin: '0 auto 40px' }}>No setup fee for the first 10 clients. If you&apos;re reading this and we still have spots — this is the time.</p>
           </div>
+
+          {/* STACKCHECK CALLOUT */}
+          <div className="fade-up stackcheck-callout" style={{ animationDelay: '0.05s' }}>
+            <div className="stackcheck-text">
+              <div className="stackcheck-heading">Not sure what BaraTrust replaces in your current setup?</div>
+              <div className="stackcheck-body">Take 3 minutes. Find out exactly what your business software is costing you and what BaraTrust replaces for less.</div>
+            </div>
+            <a href="https://getstackcheck.com" target="_blank" rel="noopener noreferrer" className="stackcheck-btn">Check My Stack Free &rarr;</a>
+          </div>
+
           <div className="pricing-grid fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="pricing-card">
               <div className="pricing-tier">BaraTrust Starter</div>
@@ -433,6 +443,8 @@ export default function HomePage() {
               <ul className="pricing-features">
                 <li>Everything in Starter</li>
                 <li>Google Ads management</li>
+                <li>Local Service Ads setup and management (Google Guaranteed badge)</li>
+                <li>AI Search Optimization — we make sure your business appears in Google AI Overviews for local service searches</li>
                 <li>Customer Intelligence CRM</li>
                 <li>Job profitability tracking</li>
                 <li>The Money Map dashboard</li>
@@ -448,13 +460,14 @@ export default function HomePage() {
               <div className="pricing-setup">$0 setup fee — first 10 clients</div>
             </div>
           </div>
-          {/* AGENTS ONLY TIER */}
-          <div className="fade-up" style={{ animationDelay: '0.2s', maxWidth: '900px', margin: '20px auto 0' }}>
-            <div className="pricing-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '24px', alignItems: 'center', padding: '28px 36px' }}>
+          {/* AI STAFF ONLY TIER */}
+          <div className="fade-up ai-staff-only-wrap" style={{ animationDelay: '0.2s' }}>
+            <div className="pricing-card ai-staff-only-card">
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--cream-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '6px' }}>Just want the AI staff?</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$399<span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--cream-muted)' }}>/mo</span></div>
-                <div style={{ fontSize: '12px', color: 'var(--cream-muted)', marginTop: '4px' }}>Agents Only · 12-month agreement</div>
+                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '8px', lineHeight: 1.5 }}>Already have a website and ads running? Add our AI staff to handle leads, reviews, follow-ups, and back-office work — automatically.</div>
+                <div style={{ fontSize: '12px', color: 'var(--cream-muted)', marginTop: '8px' }}>AI Staff Only · 12-month agreement</div>
               </div>
               <div>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' as const, gap: '7px' }}>
@@ -465,7 +478,7 @@ export default function HomePage() {
                 </ul>
               </div>
               <div style={{ textAlign: 'right' as const, minWidth: '200px' }}>
-                <a href="https://buy.stripe.com/fZu5kwcO4bNPc5Ncsx5ZC19" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', whiteSpace: 'nowrap' as const }}>Get Agents Only</a>
+                <a href="https://buy.stripe.com/fZu5kwcO4bNPc5Ncsx5ZC19" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', whiteSpace: 'nowrap' as const }}>Get AI Staff Only</a>
                 <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '10px', lineHeight: 1.5 }}>Already have a website<br />and ads running?<br />This is the tier for you.</div>
               </div>
             </div>

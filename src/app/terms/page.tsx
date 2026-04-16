@@ -53,7 +53,7 @@ export default function TermsPage() {
       {/* CONTENT */}
       <div className="terms-content">
         <TermsSection id="services" num="01" title="Services Provided">
-          <p>BaraTrust agrees to provide the services outlined in the selected subscription tier — Starter, Agents Only, or Complete — as described at the time of enrollment and as detailed on the BaraTrust website at baratrust.com.</p>
+          <p>BaraTrust agrees to provide the services outlined in the selected subscription tier — Starter, AI Staff Only, or Complete — as described at the time of enrollment and as detailed on the BaraTrust website at baratrust.com.</p>
           <p>Services are delivered on a monthly basis beginning within <strong>seven business days</strong> of signed agreement and payment receipt. This seven day launch commitment is BaraTrust&apos;s promise to every client and is not subject to negotiation or extension except in cases where the client fails to provide required business information within the first 48 hours of signing.</p>
           <p>BaraTrust reserves the right to update or expand service offerings over time. Existing clients will not have services removed without written notice of at least 30 days.</p>
         </TermsSection>
@@ -79,7 +79,7 @@ export default function TermsPage() {
           <p>Current standard monthly rates are as follows:</p>
           <ul>
             <li><strong>BaraTrust Starter</strong> — $299 per month on a twelve month agreement</li>
-            <li><strong>BaraTrust Agents Only</strong> — $399 per month on a twelve month agreement</li>
+            <li><strong>BaraTrust AI Staff Only</strong> — $399 per month on a twelve month agreement</li>
             <li><strong>BaraTrust Complete</strong> — $599 per month on a twelve month agreement</li>
             <li><strong>BaraTrust Complete — Twenty Four Month</strong> — $539 per month, price locked for full term</li>
           </ul>

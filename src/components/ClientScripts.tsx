@@ -81,7 +81,7 @@ export default function ClientScripts() {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 15000)
 
-        const res = await fetch('https://nightwatch.baratrust.com/api/agent-demo', {
+        const res = await fetch('/api/agent-demo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ agent: agentName, input: text }),

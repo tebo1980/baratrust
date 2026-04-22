@@ -258,6 +258,8 @@ export default function HomePage() {
             <AgentCard name="river" emoji="&#x1F4C5;" title="River" role="Appointments & Reminders" desc="Manages appointment confirmations, sends reminders to both you and the customer, and proactively pings providers when schedules change. No more no-shows." placeholder="Try: 'Appointment tomorrow 9am, customer hasn't confirmed'" />
             {/* BOLT */}
             <AgentCard name="bolt" emoji="&#x26A1;" title="Bolt" role="Restaurant & Retail Intelligence" desc="Specialized intelligence for restaurants and retail businesses. Menu performance, peak hour analysis, seasonal trends, and competitive insights specific to food service and retail." placeholder="Try: 'Slow Tuesday lunches, down 30% vs last year'" />
+            {/* BRIX */}
+            <AgentCard name="brix" emoji="&#x1F4D0;" title="Brix" role="Bidding Intelligence Agent" desc="Helps contractors build accurate job bids fast and flags problem clients before they waste time on a quote. Asks one question at a time, generates a complete bid breakdown, and tells you what to watch out for." placeholder="Try: 'Need to bid a bathroom remodel, about 150 sq ft, full gut'" />
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '36px' }}>
@@ -400,89 +402,135 @@ export default function HomePage() {
       <section id="pricing">
         <div className="container">
           <div className="fade-up" style={{ textAlign: 'center' }}>
-            <div className="section-tag">Simple Pricing</div>
-            <h2 className="section-title">Two Options. No Confusion.</h2>
-            <p className="section-sub" style={{ margin: '0 auto 40px' }}>No setup fee for the first 10 clients. If you&apos;re reading this and we still have spots — this is the time.</p>
+            <div className="section-tag">Transparent Pricing</div>
+            <h2 className="section-title">Pick What You Need.</h2>
+            <p className="section-sub" style={{ margin: '0 auto 40px' }}>One-time productions. Monthly content. White label. No retainers required.</p>
           </div>
 
-          {/* STACKCHECK CALLOUT */}
-          <div className="fade-up stackcheck-callout" style={{ animationDelay: '0.05s' }}>
-            <div className="stackcheck-text">
-              <div className="stackcheck-heading">Not sure what BaraTrust replaces in your current setup?</div>
-              <div className="stackcheck-body">Take 3 minutes. Find out exactly what your business software is costing you and what BaraTrust replaces for less.</div>
+          {/* ONE-TIME PRODUCTIONS */}
+          <div className="fade-up" style={{ marginBottom: '60px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--cream)', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)', letterSpacing: '0.02em' }}>One-Time Productions</h3>
+            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px' }}>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Sizzle Reel</div>
+                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>One 8-second cinematic reel personalized to your business. 48-hour delivery. One revision included.</div>
+                </div>
+                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$199</div>
+                  <a href="https://buy.stripe.com/eVqcMY29q4ln9XF1NT5ZC1i" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Now</a>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Social Starter Pack</div>
+                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>Three reels, three different scenes. Cut for Facebook, Instagram, and TikTok. One week delivery.</div>
+                </div>
+                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$399</div>
+                  <a href="https://buy.stripe.com/00w7sE9BS2df8TB6495ZC1j" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Now</a>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Full Commercial</div>
+                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>One 30-second commercial from multiple scenes with voiceover, music, lower thirds, business name and phone number. Two weeks delivery.</div>
+                </div>
+                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$599</div>
+                  <a href="https://buy.stripe.com/bJecMY29q2df5Hp6495ZC1k" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Now</a>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
+                <div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Radio Spot</div>
+                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>Radio ad script plus AI voice delivered as MP3.</div>
+                </div>
+                <div style={{ textAlign: 'right' as const, flexShrink: 0, display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$149 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--cream-muted)' }}>· 30-second</span></div>
+                    <a href="https://buy.stripe.com/cNi4gs6pGaJL6Lt6495ZC1l" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '8px', whiteSpace: 'nowrap' as const }}>Order 30-Second</a>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$198 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--cream-muted)' }}>· 60-second</span></div>
+                    <a href="https://buy.stripe.com/eVq7sE3dubNP7Pxcsx5ZC1m" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '8px', whiteSpace: 'nowrap' as const }}>Order 60-Second</a>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--forest)', border: '1px solid var(--sage)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--sage)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '4px' }}>Best Value</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Commercial + Radio Bundle</div>
+                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>Full 30-second commercial AND a 30-second radio spot. Everything you need to run in market.</div>
+                </div>
+                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$699</div>
+                  <div style={{ fontSize: '11px', color: 'var(--sage)', marginTop: '2px' }}>saves $49 vs. buying separate</div>
+                  <a href="https://buy.stripe.com/7sY4gsdS819bfhZfEJ5ZC1n" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Bundle</a>
+                </div>
+              </div>
+
             </div>
-            <a href="https://getstackcheck.com" target="_blank" rel="noopener noreferrer" className="stackcheck-btn">Check My Stack Free &rarr;</a>
           </div>
 
-          <div className="pricing-grid fade-up" style={{ animationDelay: '0.1s' }}>
-            <div className="pricing-card">
-              <div className="pricing-tier">BaraTrust Starter</div>
-              <div className="pricing-price">$299<span>/mo</span></div>
-              <div className="pricing-term">12-month initial agreement</div>
-              <ul className="pricing-features">
-                <li>Website built and maintained</li>
-                <li>Google Business Profile optimization</li>
-                <li>Basic SEO and directory listings</li>
-                <li>Facebook Ads management</li>
-                <li>CallRail call tracking</li>
-                <li>Live Looker Studio dashboard</li>
-                <li>Monthly report and walkthrough call</li>
-                <li>Business Health Score</li>
-                <li>Missed call text-back</li>
-                <li>90-Day Prove It Guarantee</li>
-                <li>Nova + Rex + Iris AI agents</li>
-              </ul>
-              <a href="https://buy.stripe.com/dRm9AM4hy19bgm35055ZC17" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center', padding: '14px' }}>Get Started — $299/mo</a>
-              <div className="pricing-setup">$0 setup fee — first 10 clients</div>
-            </div>
-            <div className="pricing-card pricing-card-featured">
-              <div className="pricing-badge">Most Popular</div>
-              <div className="pricing-tier">BaraTrust Complete</div>
-              <div className="pricing-price">$599<span>/mo</span></div>
-              <div className="pricing-term">12-month · save 10% at 24 months ($539/mo)</div>
-              <ul className="pricing-features">
-                <li>Everything in Starter</li>
-                <li>Google Ads management</li>
-                <li>Local Service Ads setup and management (Google Guaranteed badge)</li>
-                <li>AI Search Optimization — we make sure your business appears in Google AI Overviews for local service searches</li>
-                <li>Customer Intelligence CRM</li>
-                <li>Job profitability tracking</li>
-                <li>The Money Map dashboard</li>
-                <li>Expense and revenue intelligence</li>
-                <li>Review management and generation</li>
-                <li>Social media scheduling</li>
-                <li>Quarterly strategy roadmap</li>
-                <li>All 10 AI Agents active</li>
-                <li>Automated lead follow-up sequences</li>
-                <li>Payment reminder automation</li>
-              </ul>
-              <a href="https://buy.stripe.com/9B6dR26pG8BD1r9akp5ZC18" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'block', textAlign: 'center', padding: '14px' }}>Get Started — $599/mo</a>
-              <div className="pricing-setup">$0 setup fee — first 10 clients</div>
+          {/* RECURRING MONTHLY */}
+          <div className="fade-up" style={{ animationDelay: '0.1s', marginBottom: '60px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--cream)', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)', letterSpacing: '0.02em' }}>Recurring Monthly</h3>
+            <div className="pricing-grid">
+              <div className="pricing-card">
+                <div className="pricing-tier">Content Subscription</div>
+                <div className="pricing-price">$299<span>/mo</span></div>
+                <div className="pricing-term">Fresh content delivered every month</div>
+                <ul className="pricing-features">
+                  <li>Two new reels per month</li>
+                  <li>Fresh angles, seasonal content, and promotional spots</li>
+                  <li>Content tailored to your business and market</li>
+                </ul>
+                <div style={{ fontSize: '12px', color: 'var(--sage)', fontWeight: 600, padding: '12px 0', borderTop: '1px solid var(--border)', marginTop: '12px', lineHeight: 1.5 }}>BaraTrust Complete clients receive Content Subscription free for the first 90 days.</div>
+                <a href="https://buy.stripe.com/6oU8wI9BS2dfedV9gl5ZC1o" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '4px' }}>Subscribe — $299/mo</a>
+              </div>
+              <div className="pricing-card">
+                <div className="pricing-tier">Social Management Add-On</div>
+                <div className="pricing-price">$149<span>/mo</span></div>
+                <div className="pricing-term">Add on to any plan</div>
+                <ul className="pricing-features">
+                  <li>Post and schedule content across Facebook, Instagram, and TikTok</li>
+                  <li>Caption writing for every post</li>
+                  <li>Monthly one-page performance report</li>
+                </ul>
+                <a href="https://buy.stripe.com/3cIfZa9BSf017Px9gl5ZC1p" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '16px' }}>Add On — $149/mo</a>
+              </div>
             </div>
           </div>
-          {/* AI STAFF ONLY TIER */}
+
+          {/* WHITE LABEL */}
           <div className="fade-up ai-staff-only-wrap" style={{ animationDelay: '0.2s' }}>
             <div className="pricing-card ai-staff-only-card">
               <div>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--cream-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '6px' }}>Just want the AI staff?</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$399<span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--cream-muted)' }}>/mo</span></div>
-                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '8px', lineHeight: 1.5 }}>Already have a website and ads running? Add our AI staff to handle leads, reviews, follow-ups, and back-office work — automatically.</div>
-                <div style={{ fontSize: '12px', color: 'var(--cream-muted)', marginTop: '8px' }}>AI Staff Only · 12-month agreement</div>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--cream-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '6px' }}>White Label</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$499<span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--cream-muted)' }}>/mo</span></div>
+                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '8px', lineHeight: 1.5 }}>License the production workflow under your own brand. You produce. They bill their clients.</div>
+                <div style={{ fontSize: '12px', color: 'var(--cream-muted)', marginTop: '8px' }}>Agency Tier · Monthly</div>
               </div>
               <div>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' as const, gap: '7px' }}>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>All 10 AI agents deployed to your business</li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>Nova, Rex, Iris, Max, Della, Sage, Flynn, Cole, River, Bolt</li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>Works alongside your existing marketing setup</li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--cream-muted)', fontWeight: 700, flexShrink: 0 }}>—</span>No website, ads, or dashboard included</li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>Full production workflow licensed under your brand</li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>Produce for your clients, bill at your rates</li>
+                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>White label deliverables — no BaraTrust branding</li>
                 </ul>
               </div>
               <div style={{ textAlign: 'right' as const, minWidth: '200px' }}>
-                <a href="https://buy.stripe.com/fZu5kwcO4bNPc5Ncsx5ZC19" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', whiteSpace: 'nowrap' as const }}>Get AI Staff Only</a>
-                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '10px', lineHeight: 1.5 }}>Already have a website<br />and ads running?<br />This is the tier for you.</div>
+                <a href="https://buy.stripe.com/28E28keWc7xzb1JfEJ5ZC1q" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', whiteSpace: 'nowrap' as const }}>Get Agency Tier</a>
+                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '10px', lineHeight: 1.5 }}>Run your own production<br />business on our workflow.</div>
               </div>
             </div>
           </div>
+
         </div>
       </section>
 

@@ -703,6 +703,7 @@ h1 em {
 .agent-river::before { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
 .agent-bolt::before { background: linear-gradient(90deg, #EC4899, #F472B6); }
 .agent-brix::before { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+.agent-shield::before { background: linear-gradient(90deg, #1E3A8A, #2563EB); }
 
 .agent-header {
   display: flex;
@@ -733,6 +734,7 @@ h1 em {
 .agent-river .agent-avatar { background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.3); }
 .agent-bolt .agent-avatar { background: rgba(236,72,153,0.2); border: 1px solid rgba(236,72,153,0.3); }
 .agent-brix .agent-avatar { background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.3); }
+.agent-shield .agent-avatar { background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.3); }
 
 .agent-info { flex: 1; min-width: 0; }
 

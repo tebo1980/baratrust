@@ -76,20 +76,26 @@ export default function TermsPage() {
         </TermsSection>
 
         <TermsSection id="pricing" num="03" title="Pricing and Payment">
-          <p>Current standard monthly rates are as follows:</p>
+          <p>Current one-time production rates are as follows:</p>
           <ul>
-            <li><strong>BaraTrust Starter</strong> — $299 per month on a twelve month agreement</li>
-            <li><strong>BaraTrust AI Staff Only</strong> — $399 per month on a twelve month agreement</li>
-            <li><strong>BaraTrust Complete</strong> — $599 per month on a twelve month agreement</li>
-            <li><strong>BaraTrust Complete — Twenty Four Month</strong> — $539 per month, price locked for full term</li>
+            <li><strong>Sizzle Reel</strong> — $199</li>
+            <li><strong>Social Starter Pack</strong> — $399</li>
+            <li><strong>Full Commercial</strong> — $599</li>
+            <li><strong>Radio Spot</strong> — $149 (30-second); $198 (60-second)</li>
+            <li><strong>Commercial + Radio Bundle</strong> — $699</li>
           </ul>
-          <p>Payment is due on the same date each month corresponding to the client&apos;s start date. BaraTrust uses Stripe for all payment processing.</p>
-          <p><strong>No setup fee is charged to the first ten BaraTrust clients.</strong></p>
+          <p>Current recurring monthly rates are as follows:</p>
+          <ul>
+            <li><strong>Content Subscription</strong> — $299 per month</li>
+            <li><strong>Social Management Add-On</strong> — $149 per month</li>
+            <li><strong>Agency Tier (White Label)</strong> — $499 per month</li>
+          </ul>
+          <p>Payment is due on the same date each month for recurring services. One-time productions are billed in full at time of order. BaraTrust uses Stripe for all payment processing.</p>
         </TermsSection>
 
         <TermsSection id="etf" num="04" title="Early Termination Fee">
           <p>Clients who terminate their agreement before the end of their contracted term are subject to an Early Termination Fee equal to <strong>fifty percent of the remaining monthly payments</strong> on their contract.</p>
-          <div className="example-box"><strong>Example Calculation</strong>A client on a twelve month BaraTrust Complete agreement at $599 per month who cancels after month four has eight months remaining. Their Early Termination Fee is 50% of 8 payments: 8 × $599 × 50% = <strong>$2,396</strong>.</div>
+          <div className="example-box"><strong>Example Calculation</strong>A client on a twelve month Agency Tier agreement at $499 per month who cancels after month four has eight months remaining. Their Early Termination Fee is 50% of 8 payments: 8 × $499 × 50% = <strong>$1,996</strong>.</div>
           <p>The Early Termination Fee is due within 30 days of the cancellation date.</p>
           <div className="highlight-box"><p>Clients who receive a free month under the 90 Day Prove It Guarantee are not eligible for early termination without payment of the full ETF.</p></div>
           <p>ETF is waived in the event of the client&apos;s verified permanent business closure.</p>

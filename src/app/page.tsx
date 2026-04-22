@@ -260,6 +260,8 @@ export default function HomePage() {
             <AgentCard name="bolt" emoji="&#x26A1;" title="Bolt" role="Restaurant & Retail Intelligence" desc="Specialized intelligence for restaurants and retail businesses. Menu performance, peak hour analysis, seasonal trends, and competitive insights specific to food service and retail." placeholder="Try: 'Slow Tuesday lunches, down 30% vs last year'" />
             {/* BRIX */}
             <AgentCard name="brix" emoji="&#x1F4D0;" title="Brix" role="Bidding Intelligence Agent" desc="Helps contractors build accurate job bids fast and flags problem clients before they waste time on a quote. Asks one question at a time, generates a complete bid breakdown, and tells you what to watch out for." placeholder="Try: 'Need to bid a bathroom remodel, about 150 sq ft, full gut'" />
+            {/* SHIELD */}
+            <AgentCard name="shield" emoji="&#x1F6E1;&#xFE0F;" title="Shield" role="Small Business Insurance Navigator" desc="Helps local service business owners understand what coverage they actually need, what they can skip, and whether what they have makes sense — in plain English. No jargon, no sales pitch." placeholder="Try: 'I run a 4-person plumbing company, we work in client homes'" />
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '36px' }}>

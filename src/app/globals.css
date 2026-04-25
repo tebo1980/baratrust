@@ -1192,6 +1192,46 @@ h1 em {
   margin-right: auto;
 }
 
+.pricing-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 40px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .pricing-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .pricing-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-callout-primary {
+  max-width: 860px;
+  margin: 32px auto 16px;
+  background: linear-gradient(135deg, rgba(201,168,76,0.10), rgba(201,168,76,0.05));
+  border: 1px solid rgba(201,168,76,0.32);
+  border-radius: 16px;
+  padding: 24px 32px;
+  text-align: center;
+}
+
+.pricing-callout-secondary {
+  max-width: 860px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 32px;
+  text-align: center;
+}
+
 .pricing-card {
   background: var(--bg-card);
   border: 1px solid var(--border);

@@ -21,14 +21,14 @@ export default function HvacMarketingLouisville() {
         { icon: '\u2B50', title: 'Review Management', text: 'Rex monitors your Google reviews every 6 hours. Drafts professional responses to every review — good or bad — in your voice.' },
         { icon: '\uD83C\uDFAF', title: 'Get Found Locally', text: 'Website, Google Business Profile, Bing, Apple Maps, directories — every place a Louisville homeowner searches for HVAC, you show up.' },
         { icon: '\uD83D\uDCCA', title: 'Live Dashboard', text: 'See every call, every ad dollar, your Business Health Score — updated in real time. Check it from your phone between jobs.' },
-        { icon: '\uD83E\uDD16', title: '10 AI Agents', text: 'Nova captures leads, Rex manages reviews, Iris runs follow-ups, Max handles invoices — all working 24/7 while you\'re on the job.' },
+        { icon: '\uD83E\uDD16', title: '12 AI Agents', text: 'Nova captures leads, Rex manages reviews, Iris runs follow-ups, Max handles invoices, Cole tracks costs, Brix builds bids — all working 24/7 while you\'re on the job.' },
         { icon: '\uD83D\uDCB0', title: '90-Day Guarantee', text: '10 tracked calls in 90 days or your fourth month is free. Every call is in your dashboard. Nothing to argue about.' },
       ]}
       stats={[
         { num: '90', label: 'Day Prove It Guarantee' },
-        { num: '10', label: 'AI agents working for your HVAC business' },
+        { num: '12', label: 'AI agents working for your HVAC business' },
         { num: '7', label: 'Day launch — full presence live in one week' },
-        { num: '$299', label: 'Per month starting — no setup fee' },
+        { num: '$499', label: 'Per month starting — no setup fee' },
       ]}
       closingHeadline="Ready to stop losing HVAC jobs to missed calls?"
     />

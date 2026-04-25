@@ -7,18 +7,17 @@ export default function HomePage() {
     <>
       {/* NAV */}
       <nav>
-        <a href="#" className="nav-logo">
+        <a href="/" className="nav-logo">
           <div className="nav-logo-mark">&#x1F9AB;</div>
           BaraTrust
         </a>
         <ul className="nav-links">
-          <li><a href="#agents">AI Staff</a></li>
-          <li><a href="#how">How It Works</a></li>
+          <li><a href="#agents">AI Agents</a></li>
+          <li><a href="#stack">The Stack</a></li>
           <li><a href="#pricing">Pricing</a></li>
-          <li><a href="#guarantee">Guarantee</a></li>
           <li><a href="#about">About</a></li>
-          <li><a href="/health-score">Health Score</a></li>
-          <li><a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="nav-cta">Free Consultation</a></li>
+          <li><a href="https://nightwatch.baratrust.com" target="_blank" rel="noopener noreferrer">Sign In</a></li>
+          <li><a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="nav-cta">Get Free Consultation</a></li>
         </ul>
       </nav>
 
@@ -29,18 +28,18 @@ export default function HomePage() {
             <div className="hero-left fade-up">
               <div className="hero-badge">
                 <span className="hero-badge-dot"></span>
-                5 AI Agents Working 24/7
+                12 AI AGENTS WORKING 24/7
               </div>
               <h1>You can<br /><em>stop looking.</em></h1>
-              <p className="hero-fear">We know you&apos;ve been burned before. So have we. That&apos;s exactly why we built this differently.</p>
-              <p className="hero-sub">BaraTrust puts an <strong>AI staff in your service business</strong> — handling leads, reviews, follow-ups, and back office work while you&apos;re on the job. Guaranteed in 90 days.</p>
+              <p className="hero-sub">The <strong>operating layer for local businesses</strong>. Intelligence, operations, and automation in one platform. An AI staff that runs the back half of your business so you can focus on the front half.</p>
+              <p className="hero-fear">BaraTrust is not a marketing agency, a CRM, or a bookkeeping service. It&apos;s the intelligence platform that connects all three — built for contractors, salons, restaurants, gyms, auto shops, chiropractors, cleaners, and any local business where customers walk in or call.</p>
               <div className="hero-buttons">
                 <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="btn-primary">Get Free Consultation</a>
-                <a href="#agents" className="btn-secondary">Meet the AI Staff</a>
+                <a href="#agents" className="btn-secondary">Meet the AI Agents</a>
               </div>
               <div className="hero-proof">
                 <div className="proof-item"><span className="proof-check">&#10003;</span> 90-Day Prove It Guarantee</div>
-                <div className="proof-item"><span className="proof-check">&#10003;</span> 10 AI Agents Working 24/7</div>
+                <div className="proof-item"><span className="proof-check">&#10003;</span> 12 AI Agents Working 24/7</div>
                 <div className="proof-item"><span className="proof-check">&#10003;</span> No Setup Fee — First 10 Clients</div>
               </div>
               <a href="#about" className="hero-story-link" onClick={(e) => { e.preventDefault(); document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }) }}>
@@ -51,7 +50,7 @@ export default function HomePage() {
             {/* CALCULATOR — desktop only */}
             <div className="hero-right hero-calc-desktop fade-up" style={{ animationDelay: '0.2s' }}>
               <div className="calc-card">
-                <div className="calc-label">Revenue Left Behind — Live Calculator</div>
+                <div className="calc-label">Revenue Intelligence Preview — Live Calculator</div>
 
                 <div className="slider-row">
                   <div className="slider-header">
@@ -60,7 +59,7 @@ export default function HomePage() {
                   </div>
                   <div className="slider-track">
                     <div className="slider-fill" id="calls-fill" style={{ width: '16%' }}></div>
-                    <input type="range" className="slider-input" id="calls-slider" min={1} max={30} defaultValue={5} />
+                    <input type="range" className="slider-input" id="calls-slider" min={1} max={30} defaultValue={5} aria-label="Missed calls per week" />
                   </div>
                 </div>
 
@@ -71,7 +70,7 @@ export default function HomePage() {
                   </div>
                   <div className="slider-track">
                     <div className="slider-fill" id="job-fill" style={{ width: '17%' }}></div>
-                    <input type="range" className="slider-input" id="job-slider" min={100} max={2000} step={50} defaultValue={350} />
+                    <input type="range" className="slider-input" id="job-slider" min={100} max={2000} step={50} defaultValue={350} aria-label="Average job value" />
                   </div>
                 </div>
 
@@ -82,7 +81,7 @@ export default function HomePage() {
                   </div>
                   <div className="slider-track">
                     <div className="slider-fill" id="close-fill" style={{ width: '63%' }}></div>
-                    <input type="range" className="slider-input" id="close-slider" min={10} max={90} step={5} defaultValue={60} />
+                    <input type="range" className="slider-input" id="close-slider" min={10} max={90} step={5} defaultValue={60} aria-label="Your close rate" />
                   </div>
                 </div>
 
@@ -111,7 +110,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* MOBILE STAT BLOCK — shown below 768px instead of calculator */}
+            {/* MOBILE STAT BLOCK */}
             <div className="hero-right hero-mobile-stats fade-up" style={{ animationDelay: '0.2s' }}>
               <div className="mobile-stat-grid">
                 <div className="mobile-stat-card">
@@ -119,7 +118,7 @@ export default function HomePage() {
                   <div className="mobile-stat-label">Day Prove It Guarantee</div>
                 </div>
                 <div className="mobile-stat-card">
-                  <div className="mobile-stat-num">10</div>
+                  <div className="mobile-stat-num">12</div>
                   <div className="mobile-stat-label">AI Agents Working 24/7</div>
                 </div>
                 <div className="mobile-stat-card">
@@ -141,36 +140,35 @@ export default function HomePage() {
 
       <div className="section-divider"></div>
 
-      {/* FEAR */}
+      {/* THREE PROBLEMS */}
       <section id="fear">
         <div className="container">
           <div className="fear-grid">
             <div className="fear-text fade-up">
               <h2>We know what <span>keeps you up</span> at 2am.</h2>
-              <p>You took the leap. You left the steady paycheck and bet on yourself. And now some days you wonder if you made the biggest mistake of your life.</p>
-              <p>You&apos;ve tried to get help before. You paid someone to promote your business and they disappeared. You built a website and the phone still didn&apos;t ring. Nobody delivered what they promised.</p>
-              <p><strong>And now you&apos;re gun shy about spending another dollar.</strong> We know. We&apos;ve been there. That&apos;s exactly why we built BaraTrust the way we did.</p>
+              <p>You took the leap. You built something real. And some days you wonder if you have any idea what&apos;s actually happening inside your own business. The revenue is there — or it isn&apos;t. The phone rings — or it doesn&apos;t. The money comes in and goes out and you&apos;re making decisions on gut because that&apos;s all you have time for.</p>
+              <p><strong>That&apos;s not your fault. Nobody built the tools that would tell you.</strong></p>
             </div>
             <div className="fear-cards fade-up" style={{ animationDelay: '0.15s' }}>
               <div className="fear-card">
-                <div className="fear-icon">&#x1F4B8;</div>
+                <div className="fear-icon">&#x1F32B;&#xFE0F;</div>
                 <div>
-                  <div className="fear-card-title">Getting burned again</div>
-                  <div className="fear-card-text">Another agency that talks a good game but vanishes when results don&apos;t show up. We built the 90-day guarantee specifically because we refused to be another broken promise.</div>
+                  <div className="fear-card-title">Flying blind on your own business</div>
+                  <div className="fear-card-text">You know your revenue. You don&apos;t know your profit per customer, per service, per month. You&apos;re making decisions from gut because nobody built a platform that would actually show you what&apos;s working.</div>
                 </div>
               </div>
               <div className="fear-card">
-                <div className="fear-icon">&#x1F4F5;</div>
+                <div className="fear-icon">&#x2699;&#xFE0F;</div>
                 <div>
-                  <div className="fear-card-title">Missing calls while on the job</div>
-                  <div className="fear-card-text">You&apos;re under a sink or on a roof. Your phone rings. Nobody answers. That lead calls the next guy on the list. Nova catches every one of those calls automatically.</div>
+                  <div className="fear-card-title">Doing four jobs you didn&apos;t sign up for</div>
+                  <div className="fear-card-text">Marketing. Admin. Customer service. Bookkeeping. All work you do instead of the thing you actually love — and instead of the thing that actually makes you money.</div>
                 </div>
               </div>
               <div className="fear-card">
-                <div className="fear-icon">&#x1F311;</div>
+                <div className="fear-icon">&#x1F4A7;</div>
                 <div>
-                  <div className="fear-card-title">Not knowing if anything is working</div>
-                  <div className="fear-card-text">Your live dashboard shows every call tracked, every ad dollar accounted for, your Business Health Score — updated in real time. No more guessing.</div>
+                  <div className="fear-card-title">Watching money leak with no idea where</div>
+                  <div className="fear-card-text">The job that lost money. The vendor that quietly raised prices. The customer who costs more than they pay. All invisible until someone shows you. BaraTrust shows you.</div>
                 </div>
               </div>
             </div>
@@ -189,38 +187,38 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* REVENUE LOOP */}
+      {/* INTELLIGENCE LOOP */}
       <section id="loop">
         <div className="container">
           <div className="fade-up">
             <div className="section-tag">The BaraTrust System</div>
-            <h2 className="section-title">The Revenue Loop</h2>
-            <p className="section-sub">Every BaraTrust client goes through the same four-step system. Every step feeds the next one. It runs continuously — not just in month one.</p>
+            <h2 className="section-title">The Intelligence Loop</h2>
+            <p className="section-sub">Every BaraTrust client goes through the same four-step system. Intelligence feeds operations. Operations feed marketing. Marketing feeds back into intelligence. The whole loop runs continuously.</p>
           </div>
           <div className="loop-steps fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="loop-step">
-              <div className="loop-step-icon">&#x1F3AF;</div>
-              <div className="loop-num">01</div>
-              <div className="loop-step-title">Get Found</div>
-              <div className="loop-step-text">Complete local presence built from the ground up. Website, Google Business Profile, Bing, Apple Maps, directories. Every place a customer looks — you&apos;re there.</div>
-            </div>
-            <div className="loop-step">
-              <div className="loop-step-icon">&#x1F4DE;</div>
-              <div className="loop-num">02</div>
-              <div className="loop-step-title">Capture Every Lead</div>
-              <div className="loop-step-text">When your phone rings we track it. When you miss a call an instant text goes back automatically so they don&apos;t call the next guy on the list.</div>
-            </div>
-            <div className="loop-step">
               <div className="loop-step-icon">&#x1F4CA;</div>
-              <div className="loop-num">03</div>
-              <div className="loop-step-title">Prove What Works</div>
-              <div className="loop-step-text">Your live BaraTrust dashboard shows exactly what&apos;s happening in real time. Which channels produce calls. Which ads are working. Check it anytime from your phone.</div>
+              <div className="loop-num">01</div>
+              <div className="loop-step-title">Know What&apos;s Happening</div>
+              <div className="loop-step-text">Your live dashboard shows every call tracked, every ad dollar accounted for, every lead captured, and your Business Health Score — updated in real time. No more guessing. No more end-of-month surprises. You open your phone and see exactly what&apos;s going on.</div>
             </div>
             <div className="loop-step">
               <div className="loop-step-icon">&#x1F4B0;</div>
-              <div className="loop-num">04</div>
+              <div className="loop-num">02</div>
               <div className="loop-step-title">Know What&apos;s Profitable</div>
-              <div className="loop-step-text">We tell you which customers are your best ones, which jobs actually made you money, and which ones cost you more than they were worth. That&apos;s not marketing — that&apos;s a business partner.</div>
+              <div className="loop-step-text">We tell you which customers are your best ones, which jobs made you money, which services carry the best margin, and which vendors are quietly raising prices. That&apos;s not marketing — that&apos;s a business partner showing you where the money actually is.</div>
+            </div>
+            <div className="loop-step">
+              <div className="loop-step-icon">&#x1F916;</div>
+              <div className="loop-num">03</div>
+              <div className="loop-step-title">Automate What&apos;s Repetitive</div>
+              <div className="loop-step-text">12 AI agents work in the background — capturing leads, responding to reviews, drafting social posts, sending follow-ups, tracking fleet costs, generating bids, running your back office. Work that used to take 20 hours a week happens without you lifting a finger.</div>
+            </div>
+            <div className="loop-step">
+              <div className="loop-step-icon">&#x1F4C8;</div>
+              <div className="loop-num">04</div>
+              <div className="loop-step-title">Grow What&apos;s Working</div>
+              <div className="loop-step-text">Once we know what&apos;s profitable and what&apos;s automated, marketing becomes amplification — not guessing. We invest your ad dollars into the customers and services that already make you money. Every dollar spent is tied to a metric you can see.</div>
             </div>
           </div>
         </div>
@@ -231,41 +229,44 @@ export default function HomePage() {
         <div className="container">
           <div className="agents-header fade-up">
             <div className="agents-header-text">
-              <div className="section-tag">Your AI Staff</div>
-              <h2 className="section-title" style={{ marginBottom: '8px' }}>10 Agents. Working 24/7.<br />While You&apos;re on the Job.</h2>
-              <p className="agents-subtext">Type something into any agent below and watch them work. This is what&apos;s running in your business the moment you sign up.</p>
+              <div className="section-tag">Your AI Agents</div>
+              <h2 className="section-title" style={{ marginBottom: '8px' }}>12 Agents. Working 24/7.<br />While You&apos;re Running Your Business.</h2>
+              <p className="agents-subtext">Type something into any agent below and watch them work. This is what&apos;s running in your business the moment you sign up. Intelligence agents come first — the ones that tell you what&apos;s happening. Operations agents next — the ones that do the work. Marketing agents last — the ones that amplify what&apos;s already working.</p>
             </div>
           </div>
 
-          <div className="bento-grid fade-up" style={{ animationDelay: '0.1s' }}>
-            {/* NOVA — wide featured card */}
-            <AgentCard name="nova" emoji="&#x1F31F;" title="Nova" role="Lead Capture & Website Intelligence" desc="Nova handles every website visitor and inbound lead — responding instantly, qualifying prospects, and making sure no opportunity slips through while you're on a job. She's the first voice your customers hear." placeholder="Try: 'Hi I need a quote for a roof repair in New Albany'" wide />
-            {/* REX */}
-            <AgentCard name="rex" emoji="&#x2B50;" title="Rex" role="Review Manager" desc="Monitors Google and Yelp every 6 hours. Drafts professional responses to every review — good or bad — in your voice." placeholder="Try: '1 star — technician was late and didn't fix the problem'" />
-            {/* IRIS */}
-            <AgentCard name="iris" emoji="&#x1F504;" title="Iris" role="Follow-Up Sequences" desc="Runs 3-touch follow-up sequences over 7 days. Prospects who didn't book get a second chance automatically — without you lifting a finger." placeholder="Try: 'Customer asked for a quote 3 days ago, no response'" />
-            {/* MAX */}
-            <AgentCard name="max" emoji="&#x2699;&#xFE0F;" title="Max" role="Back Office Automation" desc="Sends review requests after completed jobs, payment reminders for outstanding invoices, and keeps your back office running while you focus on the work." placeholder="Try: 'Job completed for Johnson residence, invoice unpaid 14 days'" />
-            {/* DELLA */}
-            <AgentCard name="della" emoji="&#x2709;&#xFE0F;" title="Della" role="Email Secretary" desc="Handles 10 email types — estimates, confirmations, thank-yous, appointment reminders, and more. Professional emails out the door without you typing a word." placeholder="Try: 'Write a thank you email after completing a furnace installation'" />
-            {/* SAGE */}
-            <AgentCard name="sage" emoji="&#x1F4F1;" title="Sage" role="Social Media Drafting" desc="Turns your completed jobs into social media content. Facebook posts, Google Business updates, Instagram captions — all written and ready to post." placeholder="Try: 'Replaced water heater for family in Louisville, same-day service'" />
-            {/* FLYNN */}
-            <AgentCard name="flynn" emoji="&#x1F69B;" title="Flynn" role="Fleet & Vehicle Intelligence" desc="Tracks vehicle maintenance schedules, mileage logs for tax purposes, and fuel costs. Makes sure your fleet is always job-ready and your deductions are maximized." placeholder="Try: 'F-250, 87,000 miles, last oil change at 84,500'" />
-            {/* COLE */}
+          <div className="agents-group-label fade-up" style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--cream-muted)', margin: '32px 0 16px' }}>
+            Intelligence
+          </div>
+          <div className="bento-grid fade-up" style={{ animationDelay: '0.05s' }}>
             <AgentCard name="cole" emoji="&#x1F4E6;" title="Cole" role="Cost & Inventory Intelligence" desc="Tracks cost of goods, monitors vendor pricing changes, and alerts you when materials are cutting into your margins. Know your real job profitability." placeholder="Try: 'Copper pipe up 18% this month, affects 60% of jobs'" />
-            {/* RIVER */}
-            <AgentCard name="river" emoji="&#x1F4C5;" title="River" role="Appointments & Reminders" desc="Manages appointment confirmations, sends reminders to both you and the customer, and proactively pings providers when schedules change. No more no-shows." placeholder="Try: 'Appointment tomorrow 9am, customer hasn't confirmed'" />
-            {/* BOLT */}
-            <AgentCard name="bolt" emoji="&#x26A1;" title="Bolt" role="Restaurant & Retail Intelligence" desc="Specialized intelligence for restaurants and retail businesses. Menu performance, peak hour analysis, seasonal trends, and competitive insights specific to food service and retail." placeholder="Try: 'Slow Tuesday lunches, down 30% vs last year'" />
-            {/* BRIX */}
+            <AgentCard name="flynn" emoji="&#x1F69B;" title="Flynn" role="Fleet & Vehicle Intelligence" desc="Tracks vehicle maintenance schedules, mileage logs for tax purposes, and fuel costs. Makes sure your fleet is always job-ready and your deductions are maximized." placeholder="Try: 'F-250, 87,000 miles, last oil change at 84,500'" />
             <AgentCard name="brix" emoji="&#x1F4D0;" title="Brix" role="Bidding Intelligence Agent" desc="Helps contractors build accurate job bids fast and flags problem clients before they waste time on a quote. Asks one question at a time, generates a complete bid breakdown, and tells you what to watch out for." placeholder="Try: 'Need to bid a bathroom remodel, about 150 sq ft, full gut'" />
-            {/* SHIELD */}
             <AgentCard name="shield" emoji="&#x1F6E1;&#xFE0F;" title="Shield" role="Small Business Insurance Navigator" desc="Helps local service business owners understand what coverage they actually need, what they can skip, and whether what they have makes sense — in plain English. No jargon, no sales pitch." placeholder="Try: 'I run a 4-person plumbing company, we work in client homes'" />
+            <AgentCard name="bolt" emoji="&#x26A1;" title="Bolt" role="Restaurant & Retail Intelligence" desc="Specialized intelligence for restaurants and retail businesses. Menu performance, peak hour analysis, seasonal trends, and competitive insights specific to food service and retail." placeholder="Try: 'Slow Tuesday lunches, down 30% vs last year'" />
+          </div>
+
+          <div className="agents-group-label fade-up" style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--cream-muted)', margin: '40px 0 16px' }}>
+            Operations
+          </div>
+          <div className="bento-grid fade-up" style={{ animationDelay: '0.05s' }}>
+            <AgentCard name="max" emoji="&#x2699;&#xFE0F;" title="Max" role="Back Office Automation" desc="Sends review requests after completed jobs, payment reminders for outstanding invoices, and keeps your back office running while you focus on the work." placeholder="Try: 'Job completed for Johnson residence, invoice unpaid 14 days'" />
+            <AgentCard name="della" emoji="&#x2709;&#xFE0F;" title="Della" role="Email Secretary" desc="Handles 10 email types — estimates, confirmations, thank-yous, appointment reminders, and more. Professional emails out the door without you typing a word." placeholder="Try: 'Write a thank you email after completing a furnace installation'" />
+            <AgentCard name="river" emoji="&#x1F4C5;" title="River" role="Appointments & Reminders" desc="Manages appointment confirmations, sends reminders to both you and the customer, and proactively pings providers when schedules change. No more no-shows." placeholder="Try: 'Appointment tomorrow 9am, customer hasn't confirmed'" />
+          </div>
+
+          <div className="agents-group-label fade-up" style={{ fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--cream-muted)', margin: '40px 0 16px' }}>
+            Marketing
+          </div>
+          <div className="bento-grid fade-up" style={{ animationDelay: '0.05s' }}>
+            <AgentCard name="nova" emoji="&#x1F31F;" title="Nova" role="Lead Capture & Website Intelligence" desc="Nova handles every website visitor and inbound lead — responding instantly, qualifying prospects, and making sure no opportunity slips through while you're on a job. She's the first voice your customers hear." placeholder="Try: 'Hi I need a quote for a roof repair in New Albany'" wide />
+            <AgentCard name="rex" emoji="&#x2B50;" title="Rex" role="Review Manager" desc="Monitors Google and Yelp every 6 hours. Drafts professional responses to every review — good or bad — in your voice." placeholder="Try: '1 star — technician was late and didn't fix the problem'" />
+            <AgentCard name="iris" emoji="&#x1F504;" title="Iris" role="Follow-Up Sequences" desc="Runs 3-touch follow-up sequences over 7 days. Prospects who didn't book get a second chance automatically — without you lifting a finger." placeholder="Try: 'Customer asked for a quote 3 days ago, no response'" />
+            <AgentCard name="sage" emoji="&#x1F4F1;" title="Sage" role="Social Media Drafting" desc="Turns your completed jobs into social media content. Facebook posts, Google Business updates, Instagram captions — all written and ready to post." placeholder="Try: 'Replaced water heater for family in Louisville, same-day service'" />
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '36px' }}>
-            <a href="https://nightwatch.baratrust.com" target="_blank" rel="noopener noreferrer" className="btn-secondary">View Full AI Staff Portal →</a>
+            <a href="https://nightwatch.baratrust.com" target="_blank" rel="noopener noreferrer" className="btn-secondary">View Full AI Agent Portal →</a>
           </div>
         </div>
       </section>
@@ -282,12 +283,12 @@ export default function HomePage() {
             <div className="timeline-step">
               <div className="timeline-day">Day 1</div>
               <div className="timeline-title">Call Tracking Live</div>
-              <div className="timeline-text">Your CallRail tracking number goes live and your dashboard connects. You can see it working before we&apos;ve built a single page. Proof before we start.</div>
+              <div className="timeline-text">Your CallRail tracking number goes live, your dashboard connects, and 12 AI agents activate. You can see it working before we&apos;ve built a single page. Proof before we start.</div>
             </div>
             <div className="timeline-step">
               <div className="timeline-day">Days 2–7</div>
               <div className="timeline-title">Full Presence Built</div>
-              <div className="timeline-text">Website live. Google Business Profile optimized. Bing and Apple Maps claimed. Directories submitted. All 10 AI agents activated. Missed call text-back running.</div>
+              <div className="timeline-text">Website live. Google Business Profile optimized. Bing and Apple Maps claimed. Directories submitted. All 12 AI agents running. Missed call text-back active.</div>
             </div>
             <div className="timeline-step">
               <div className="timeline-day">Day 30</div>
@@ -313,7 +314,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROOF */}
+      {/* PROOF — MONEY MAP DASHBOARD */}
       <section id="proof">
         <div className="container">
           <div className="fade-up">
@@ -347,7 +348,6 @@ export default function HomePage() {
               <div className="dashboard-bar"><div className="dashboard-bar-fill" style={{ width: '40%' }}></div></div>
             </div>
 
-            {/* HEALTH SCORE */}
             <div className="dashboard-card health-score-card">
               <div className="health-score-main">
                 <div className="health-score-num">74</div>
@@ -386,6 +386,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* THE STACK — bundled with Complete */}
+      <section id="stack">
+        <div className="container">
+          <div className="fade-up" style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div className="section-tag">What&apos;s Included in Complete</div>
+            <h2 className="section-title">Complete is more than a platform.<br />It&apos;s a stack.</h2>
+            <p className="section-sub" style={{ margin: '0 auto' }}>Three additional services bundled into BaraTrust Complete that no other agency offers — and you&apos;d pay thousands for separately.</p>
+          </div>
+
+          <div className="stack-grid fade-up" style={{ animationDelay: '0.1s', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div className="stack-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '28px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '32px', marginBottom: '14px' }}>&#x1F3AC;</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '8px' }}>BaraTrust Ads</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--cream)', marginBottom: '12px', lineHeight: 1.25 }}>AI-Generated Cinematic Commercials</h3>
+              <p style={{ fontSize: '14px', color: 'var(--cream-dim)', lineHeight: 1.7, flex: 1, marginBottom: '16px' }}>One professionally produced commercial per quarter, free with annual Complete. AI-generated B-roll, avatar spokesperson, professional editing. The kind of commercial that used to cost $3,000 to produce, now part of your subscription.</p>
+              <div style={{ fontSize: '12px', color: 'var(--cream-muted)', borderTop: '1px solid var(--border)', paddingTop: '14px', lineHeight: 1.6 }}>$499 per commercial as a standalone service. Free quarterly with annual Complete.</div>
+            </div>
+
+            <div className="stack-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '28px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '32px', marginBottom: '14px' }}>&#x1F4DA;</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '8px' }}>VisionToSOP</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--cream)', marginBottom: '12px', lineHeight: 1.25 }}>Custom Training & SOP Generator</h3>
+              <p style={{ fontSize: '14px', color: 'var(--cream-dim)', lineHeight: 1.7, flex: 1, marginBottom: '16px' }}>Generate complete training courses and documented SOPs for your team in 60 seconds. Type the procedure, get back modules, quizzes, field missions, and certifications. Up to 10 employee seats included.</p>
+              <div style={{ fontSize: '12px', color: 'var(--cream-muted)', borderTop: '1px solid var(--border)', paddingTop: '14px', lineHeight: 1.6 }}>$199/month standalone. Bundled with Complete. <a href="https://visiontosop.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Learn more →</a></div>
+            </div>
+
+            <div className="stack-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '28px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: '32px', marginBottom: '14px' }}>&#x1F4B0;</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '8px' }}>FundsFetch</div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, color: 'var(--cream)', marginBottom: '12px', lineHeight: 1.25 }}>Capital Strategy & Funding Discovery</h3>
+              <p style={{ fontSize: '14px', color: 'var(--cream-dim)', lineHeight: 1.7, flex: 1, marginBottom: '16px' }}>Annual Capital Strategy Session plus ongoing monitoring of grants, loans, and capital programs you qualify for. Find the money most business owners leave on the table.</p>
+              <div style={{ fontSize: '12px', color: 'var(--cream-muted)', borderTop: '1px solid var(--border)', paddingTop: '14px', lineHeight: 1.6 }}>$199-799/month standalone. Annual session plus Discovery monitoring bundled with Complete. <a href="https://fundsfetch.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'none' }}>Learn more →</a></div>
+            </div>
+          </div>
+
+          <p className="fade-up" style={{ animationDelay: '0.2s', textAlign: 'center', fontSize: '13px', color: 'var(--cream-muted)', maxWidth: '720px', margin: '32px auto 0', lineHeight: 1.7 }}>
+            <a href="https://visiontosop.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--cream-muted)', textDecoration: 'underline' }}>VisionToSOP</a> and <a href="https://fundsfetch.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--cream-muted)', textDecoration: 'underline' }}>FundsFetch</a> are independent businesses with their own websites and direct customer bases. BaraTrust Complete clients receive bundled access as part of the Complete subscription.
+          </p>
+        </div>
+      </section>
+
       {/* GUARANTEE */}
       <section id="guarantee">
         <div className="container">
@@ -405,132 +446,115 @@ export default function HomePage() {
         <div className="container">
           <div className="fade-up" style={{ textAlign: 'center' }}>
             <div className="section-tag">Transparent Pricing</div>
-            <h2 className="section-title">Pick What You Need.</h2>
-            <p className="section-sub" style={{ margin: '0 auto 40px' }}>One-time productions. Monthly content. White label. No retainers required.</p>
+            <h2 className="section-title">Three Tiers. One System.<br />No Setup Fees for First 10 Clients.</h2>
+            <p className="section-sub" style={{ margin: '0 auto 48px' }}>Pick the tier that fits where you are right now. Move up as your business grows. Every tier includes the 90-day Prove It Guarantee.</p>
           </div>
 
-          {/* ONE-TIME PRODUCTIONS */}
-          <div className="fade-up" style={{ marginBottom: '60px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--cream)', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)', letterSpacing: '0.02em' }}>One-Time Productions</h3>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '12px' }}>
+          <div className="pricing-grid-3 fade-up">
 
-              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Sizzle Reel</div>
-                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>One 8-second cinematic reel personalized to your business. 48-hour delivery. One revision included.</div>
-                </div>
-                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$199</div>
-                  <a href="https://buy.stripe.com/eVqcMY29q4ln9XF1NT5ZC1i" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Now</a>
-                </div>
+            {/* FOUNDATION */}
+            <div className="pricing-card">
+              <div className="pricing-tier">Foundation</div>
+              <div className="pricing-price">$499<span>/mo</span></div>
+              <div className="pricing-term">Best for: solo operators and small teams</div>
+              <p style={{ fontSize: '13px', color: 'var(--cream-dim)', lineHeight: 1.6, marginBottom: '24px' }}>The full AI agent staff and the dashboard you need to start running your business with intelligence.</p>
+              <ul className="pricing-features">
+                <li>Full AI agent staff (12 agents, all current and future)</li>
+                <li>Basic dashboard with call tracking</li>
+                <li>Email and review monitoring</li>
+                <li>Missed call text-back automation</li>
+                <li>Standard reporting</li>
+                <li>90-Day Prove It Guarantee</li>
+                <li>Email support</li>
+              </ul>
+              <a href="https://buy.stripe.com/7sYbIU6pG5pr7PxeAF5ZC1C" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '28px' }}>Start Foundation</a>
+              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'center' }}>
+                <a href="https://buy.stripe.com/eVq00c29q6tvgm30JP5ZC1F" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--cream-muted)', textDecoration: 'none' }}>Save 10% — 12 month commitment ($449/mo) →</a>
+                <a href="https://buy.stripe.com/9B614g7tKaJL4Dl78d5ZC1G" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--cream-muted)', textDecoration: 'none' }}>Save 15% — 24 month commitment ($424/mo) →</a>
               </div>
-
-              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Social Starter Pack</div>
-                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>Three reels, three different scenes. Cut for Facebook, Instagram, and TikTok. One week delivery.</div>
-                </div>
-                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$399</div>
-                  <a href="https://buy.stripe.com/00w7sE9BS2df8TB6495ZC1j" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Now</a>
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Full Commercial</div>
-                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>One 30-second commercial from multiple scenes with voiceover, music, lower thirds, business name and phone number. Two weeks delivery.</div>
-                </div>
-                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$599</div>
-                  <a href="https://buy.stripe.com/bJecMY29q2df5Hp6495ZC1k" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Now</a>
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
-                <div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Radio Spot</div>
-                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>Radio ad script plus AI voice delivered as MP3.</div>
-                </div>
-                <div style={{ textAlign: 'right' as const, flexShrink: 0, display: 'flex', flexDirection: 'column' as const, gap: '10px' }}>
-                  <div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$149 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--cream-muted)' }}>· 30-second</span></div>
-                    <a href="https://buy.stripe.com/cNi4gs6pGaJL6Lt6495ZC1l" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '8px', whiteSpace: 'nowrap' as const }}>Order 30-Second</a>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$198 <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--cream-muted)' }}>· 60-second</span></div>
-                    <a href="https://buy.stripe.com/eVq7sE3dubNP7Pxcsx5ZC1m" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '8px', whiteSpace: 'nowrap' as const }}>Order 60-Second</a>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ background: 'var(--forest)', border: '1px solid var(--sage)', borderRadius: '12px', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' as const, gap: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--sage)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '4px' }}>Best Value</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--cream)' }}>Commercial + Radio Bundle</div>
-                  <div style={{ fontSize: '13px', color: 'var(--cream-muted)', marginTop: '4px', maxWidth: '500px', lineHeight: 1.6 }}>Full 30-second commercial AND a 30-second radio spot. Everything you need to run in market.</div>
-                </div>
-                <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$699</div>
-                  <div style={{ fontSize: '11px', color: 'var(--sage)', marginTop: '2px' }}>saves $49 vs. buying separate</div>
-                  <a href="https://buy.stripe.com/7sY4gsdS819bfhZfEJ5ZC1n" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', marginTop: '10px', whiteSpace: 'nowrap' as const }}>Order Bundle</a>
-                </div>
-              </div>
-
             </div>
+
+            {/* OPERATIONS */}
+            <div className="pricing-card pricing-card-featured">
+              <div className="pricing-badge">Most Popular</div>
+              <div className="pricing-tier">Operations</div>
+              <div className="pricing-price">$899<span>/mo</span></div>
+              <div className="pricing-term">Best for: growing local businesses</div>
+              <p style={{ fontSize: '13px', color: 'var(--cream-dim)', lineHeight: 1.6, marginBottom: '24px' }}>Everything in Foundation plus the full local presence build, ad management, and live performance dashboard.</p>
+              <ul className="pricing-features">
+                <li>Everything in Foundation</li>
+                <li>Full local presence build (website, GBP, directories)</li>
+                <li>Bing and Apple Maps optimization</li>
+                <li>Google Ads management</li>
+                <li>Facebook Ads management</li>
+                <li>Live performance dashboard</li>
+                <li>Monthly reports and walkthrough call</li>
+                <li>Business Health Score</li>
+                <li>Review management and generation</li>
+                <li>Social media scheduling</li>
+              </ul>
+              <a href="https://buy.stripe.com/eVq4gs9BSaJL1r91NT5ZC1D" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '28px' }}>Start Operations</a>
+              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'center' }}>
+                <a href="https://buy.stripe.com/7sYeV6aFWbNP5Hpcsx5ZC1H" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--cream-muted)', textDecoration: 'none' }}>Save 10% — 12 month commitment ($809/mo) →</a>
+                <a href="https://buy.stripe.com/9B6eV67tKdVX1r9dwB5ZC1I" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--cream-muted)', textDecoration: 'none' }}>Save 15% — 24 month commitment ($764/mo) →</a>
+              </div>
+            </div>
+
+            {/* COMPLETE */}
+            <div className="pricing-card">
+              <div className="pricing-tier">Complete</div>
+              <div className="pricing-price">$1,499<span>/mo</span></div>
+              <div className="pricing-term">Best for: established operations · Worth $5,500+ standalone</div>
+              <p style={{ fontSize: '13px', color: 'var(--cream-dim)', lineHeight: 1.6, marginBottom: '24px' }}>Everything in Operations plus the Money Map, Customer Intelligence CRM, and the full bundled stack: BaraTrust Ads, VisionToSOP, FundsFetch.</p>
+              <ul className="pricing-features">
+                <li>Everything in Operations</li>
+                <li>Money Map profitability dashboard</li>
+                <li>Customer Intelligence CRM (Gold list to Blacklist)</li>
+                <li>Job and customer profitability tracking</li>
+                <li>Vendor cost monitoring and alerts</li>
+                <li>Expense and revenue intelligence</li>
+                <li>OpportunityWatch lead generation</li>
+                <li>BaraTrust Ads (1 commercial per quarter, free)</li>
+                <li>VisionToSOP Team access (10 employee seats)</li>
+                <li>FundsFetch Capital access (Annual Strategy Session + Discovery monitoring)</li>
+                <li>Quarterly roadmap deliverable</li>
+                <li>Direct phone access to your strategist</li>
+              </ul>
+              <a href="https://buy.stripe.com/28EdR24hy9FHd9R3W15ZC1E" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '28px' }}>Start Complete</a>
+              <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px', textAlign: 'center' }}>
+                <a href="https://buy.stripe.com/bJe14geWc7xz2vd5055ZC1J" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--cream-muted)', textDecoration: 'none' }}>Save 10% — 12 month commitment ($1,349/mo) →</a>
+                <a href="https://buy.stripe.com/8x214g7tKbNP9XFbot5ZC1K" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: 'var(--cream-muted)', textDecoration: 'none' }}>Save 15% — 24 month commitment ($1,274/mo) →</a>
+              </div>
+            </div>
+
           </div>
 
-          {/* RECURRING MONTHLY */}
-          <div className="fade-up" style={{ animationDelay: '0.1s', marginBottom: '60px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--cream)', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid var(--border)', letterSpacing: '0.02em' }}>Recurring Monthly</h3>
-            <div className="pricing-grid">
-              <div className="pricing-card">
-                <div className="pricing-tier">Content Subscription</div>
-                <div className="pricing-price">$299<span>/mo</span></div>
-                <div className="pricing-term">Fresh content delivered every month</div>
-                <ul className="pricing-features">
-                  <li>Two new reels per month</li>
-                  <li>Fresh angles, seasonal content, and promotional spots</li>
-                  <li>Content tailored to your business and market</li>
-                </ul>
-                <div style={{ fontSize: '12px', color: 'var(--sage)', fontWeight: 600, padding: '12px 0', borderTop: '1px solid var(--border)', marginTop: '12px', lineHeight: 1.5 }}>BaraTrust Complete clients receive Content Subscription free for the first 90 days.</div>
-                <a href="https://buy.stripe.com/6oU8wI9BS2dfedV9gl5ZC1o" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '4px' }}>Subscribe — $299/mo</a>
-              </div>
-              <div className="pricing-card">
-                <div className="pricing-tier">Social Management Add-On</div>
-                <div className="pricing-price">$149<span>/mo</span></div>
-                <div className="pricing-term">Add on to any plan</div>
-                <ul className="pricing-features">
-                  <li>Post and schedule content across Facebook, Instagram, and TikTok</li>
-                  <li>Caption writing for every post</li>
-                  <li>Monthly one-page performance report</li>
-                </ul>
-                <a href="https://buy.stripe.com/3cIfZa9BSf017Px9gl5ZC1p" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ display: 'block', textAlign: 'center' as const, padding: '14px', marginTop: '16px' }}>Add On — $149/mo</a>
-              </div>
-            </div>
+          {/* TERMS SUMMARY */}
+          <div className="fade-up pricing-callout-secondary" style={{ animationDelay: '0.1s' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: 700, color: 'var(--cream)', marginBottom: '12px', letterSpacing: '0.04em' }}>All tiers include:</div>
+            <ul style={{ fontSize: '13px', color: 'var(--cream-muted)', lineHeight: 1.85, listStyle: 'none', padding: 0, margin: 0 }}>
+              <li>· 6-month minimum initial term at standard rate</li>
+              <li>· 12-month commitment available at 10% off (Foundation $449/mo, Operations $809/mo, Complete $1,349/mo)</li>
+              <li>· 24-month commitment available at 15% off (Foundation $424/mo, Operations $764/mo, Complete $1,274/mo)</li>
+              <li>· No setup fee for first 10 clients (any tier, any term)</li>
+              <li>· Month-to-month available exclusively as a loyalty option after completing your first term</li>
+            </ul>
           </div>
 
-          {/* WHITE LABEL */}
-          <div className="fade-up ai-staff-only-wrap" style={{ animationDelay: '0.2s' }}>
-            <div className="pricing-card ai-staff-only-card">
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--cream-muted)', letterSpacing: '0.1em', textTransform: 'uppercase' as const, marginBottom: '6px' }}>White Label</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: 900, color: 'var(--cream)', lineHeight: 1 }}>$499<span style={{ fontSize: '14px', fontWeight: 400, color: 'var(--cream-muted)' }}>/mo</span></div>
-                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '8px', lineHeight: 1.5 }}>License the production workflow under your own brand. You produce. They bill their clients.</div>
-                <div style={{ fontSize: '12px', color: 'var(--cream-muted)', marginTop: '8px' }}>Agency Tier · Monthly</div>
-              </div>
-              <div>
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column' as const, gap: '7px' }}>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>Full production workflow licensed under your brand</li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>Produce for your clients, bill at your rates</li>
-                  <li style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '12px', color: 'var(--cream-dim)' }}><span style={{ color: 'var(--sage)', fontWeight: 700, flexShrink: 0 }}>&#10003;</span>White label deliverables — no BaraTrust branding</li>
-                </ul>
-              </div>
-              <div style={{ textAlign: 'right' as const, minWidth: '200px' }}>
-                <a href="https://buy.stripe.com/28E28keWc7xzb1JfEJ5ZC1q" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'inline-block', whiteSpace: 'nowrap' as const }}>Get Agency Tier</a>
-                <div style={{ fontSize: '11px', color: 'var(--cream-muted)', marginTop: '10px', lineHeight: 1.5 }}>Run your own production<br />business on our workflow.</div>
-              </div>
+          {/* SETUP FEE CALLOUT */}
+          <div className="fade-up pricing-callout-primary" style={{ animationDelay: '0.15s' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 800, color: 'var(--cream)', marginBottom: '8px' }}>No setup fee for the first 10 clients.</div>
+            <div style={{ fontSize: '14px', color: 'var(--cream-dim)', lineHeight: 1.7 }}>After that, setup fees apply. If you&apos;re reading this and spots are still available — this is the time.</div>
+          </div>
+
+          {/* ADD-ON */}
+          <div className="fade-up" style={{ animationDelay: '0.2s', marginTop: '28px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px 28px', display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ flex: '1 1 320px' }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>Add-on Service</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--cream)', marginBottom: '6px' }}>BaraTrust Ads — Custom AI-Generated Commercial — $499</div>
+              <div style={{ fontSize: '13px', color: 'var(--cream-muted)', lineHeight: 1.65 }}>Standalone purchase available without subscription. Free quarterly with annual Complete.</div>
             </div>
+            <a href="https://baratrustads.com" target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ whiteSpace: 'nowrap' }}>Learn More</a>
           </div>
 
         </div>
@@ -557,7 +581,7 @@ export default function HomePage() {
                 <div className="about-stat-label">Years hiring, managing, and building businesses</div>
               </div>
               <div className="about-stat">
-                <div className="about-stat-num">10</div>
+                <div className="about-stat-num">12</div>
                 <div className="about-stat-label">AI agents working for your business 24/7</div>
               </div>
               <div className="about-stat">
@@ -578,13 +602,15 @@ export default function HomePage() {
         <div className="container">
           <div className="close-inner fade-up">
             <h2>Ready to stop wondering<br />if it&apos;s working?</h2>
-            <p>Get a free 20-minute consultation. No pitch. No pressure. Just an honest conversation about what your business needs and whether BaraTrust is the right fit. If it&apos;s not — we&apos;ll tell you that too.</p>
+            <p>Get a free 20-minute consultation. No pitch. No pressure. Just an honest conversation about what your business needs and whether BaraTrust is the right fit.</p>
             <div className="close-options">
               <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="btn-primary">Book Your Free Consultation</a>
-              <a href="tel:5024313285" className="btn-secondary">Call 502-431-3285</a>
+              <a href="sms:5024313285" className="btn-secondary">Text us at 502-431-3285</a>
+              <a href="mailto:todd@baratrust.com" className="btn-secondary">Email todd@baratrust.com</a>
             </div>
             <div className="close-contact" style={{ marginBottom: '32px' }}>
-              Prefer to text? <a href="sms:5024313285">Text us at 502-431-3285</a>
+              Prefer to look around first? Start with the dashboard demo and see exactly what your business could look like inside BaraTrust.<br />
+              <a href="#proof" style={{ display: 'inline-block', marginTop: '12px' }} className="btn-secondary">See The Demo Dashboard</a>
             </div>
 
             <div style={{ maxWidth: '480px', margin: '0 auto' }}>
@@ -626,12 +652,18 @@ export default function HomePage() {
       <footer>
         <div className="footer-logo">BaraTrust</div>
         <div className="footer-seal">&#x1F9AB;</div>
-        <div className="footer-text">© 2026 BaraTrust. New Albany, Indiana.</div>
+        <div className="footer-text">© 2026 BaraTrust. New Albany, Indiana. Serving local businesses across the United States.</div>
         <div className="footer-links">
+          <a href="#agents">AI Agents</a>
+          <a href="#stack">The Stack</a>
+          <a href="#pricing">Pricing</a>
           <a href="#about">Our Story</a>
           <a href="/terms">Terms</a>
           <a href="/health-score">Health Score</a>
-          <a href="https://nightwatch.baratrust.com" target="_blank" rel="noopener noreferrer">AI Staff Portal</a>
+          <a href="https://nightwatch.baratrust.com" target="_blank" rel="noopener noreferrer">AI Agent Portal</a>
+          <a href="https://baratrustads.com" target="_blank" rel="noopener noreferrer">BaraTrust Ads</a>
+          <a href="https://visiontosop.com" target="_blank" rel="noopener noreferrer">VisionToSOP — AI Training & SOP Platform</a>
+          <a href="https://fundsfetch.com" target="_blank" rel="noopener noreferrer">FundsFetch — Capital Strategy for Small Businesses</a>
           <a href="https://getstackcheck.com" target="_blank" rel="noopener noreferrer">GetStackCheck</a>
           <a href="#close">Contact</a>
         </div>
@@ -663,7 +695,7 @@ function AgentCard({ name, emoji, title, role, desc, placeholder, wide }: {
       </div>
       <div className="agent-desc">{desc}</div>
       <div className="agent-demo">
-        <textarea className="agent-input" id={`input-${name}`} placeholder={placeholder} maxLength={500}></textarea>
+        <textarea className="agent-input" id={`input-${name}`} placeholder={placeholder} maxLength={500} aria-label={`Ask ${title}`}></textarea>
         <button className="agent-btn" onClick={() => (window as any).demoAgent(name)} id={`btn-${name}`}>Ask {title} →</button>
         <div className="agent-response" id={`response-${name}`}></div>
       </div>

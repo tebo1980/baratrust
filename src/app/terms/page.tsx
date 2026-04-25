@@ -53,49 +53,48 @@ export default function TermsPage() {
       {/* CONTENT */}
       <div className="terms-content">
         <TermsSection id="services" num="01" title="Services Provided">
-          <p>BaraTrust agrees to provide the services outlined in the selected subscription tier — Starter, AI Staff Only, or Complete — as described at the time of enrollment and as detailed on the BaraTrust website at baratrust.com.</p>
+          <p>BaraTrust agrees to provide the services outlined in the selected subscription tier — <strong>Foundation</strong>, <strong>Operations</strong>, or <strong>Complete</strong> — as described at the time of enrollment and as detailed on the BaraTrust website at baratrust.com.</p>
           <p>Services are delivered on a monthly basis beginning within <strong>seven business days</strong> of signed agreement and payment receipt. This seven day launch commitment is BaraTrust&apos;s promise to every client and is not subject to negotiation or extension except in cases where the client fails to provide required business information within the first 48 hours of signing.</p>
           <p>BaraTrust reserves the right to update or expand service offerings over time. Existing clients will not have services removed without written notice of at least 30 days.</p>
         </TermsSection>
 
         <TermsSection id="terms" num="02" title="Subscription Terms">
-          <p>All new BaraTrust clients begin on a <strong>twelve month initial agreement</strong>. This is the only starting option for new clients.</p>
+          <p>New BaraTrust clients choose from three initial term options at the time of enrollment. All three are available to new clients across every tier (Foundation, Operations, Complete).</p>
           <table className="tier-table">
             <thead><tr><th>Agreement Type</th><th>Duration</th><th>Discount</th><th>Available To</th></tr></thead>
             <tbody>
-              <tr><td>Standard Twelve Month</td><td>12 months</td><td>None — full price</td><td>All new clients</td></tr>
-              <tr><td>Twenty Four Month</td><td>24 months</td><td>10% off monthly rate</td><td>All new clients</td></tr>
+              <tr><td>Six Month Standard</td><td>6 months</td><td>None — standard rate</td><td>All new clients</td></tr>
+              <tr><td>Twelve Month Commitment</td><td>12 months</td><td>10% off monthly rate</td><td>All new clients</td></tr>
+              <tr><td>Twenty Four Month Commitment</td><td>24 months</td><td>15% off monthly rate</td><td>All new clients</td></tr>
               <tr><td>Month to Month</td><td>Ongoing</td><td>None — no price lock</td><td>Loyalty clients only*</td></tr>
-              <tr><td>Six Month Loyalty</td><td>6 months renewable</td><td>10% loyalty discount</td><td>Loyalty clients only*</td></tr>
-              <tr><td>Twenty Four Month Loyalty</td><td>24 months</td><td>15% loyalty discount</td><td>Loyalty clients only*</td></tr>
             </tbody>
           </table>
-          <p>*Loyalty options are available exclusively to clients who have completed at least one full twelve month initial term in good standing.</p>
-          <div className="highlight-box"><p>No six month agreements are offered to new clients under any circumstances. The twelve month minimum exists to protect both parties.</p></div>
+          <p>*Month to month billing is available exclusively to clients who have completed at least one full initial term (six, twelve, or twenty-four months) in good standing.</p>
+          <div className="highlight-box"><p>The six month minimum initial term exists to give the BaraTrust system enough time to deliver measurable results and to protect both parties from the churn that defines the rest of this industry.</p></div>
           <p>Agreements renew automatically at the end of each term at the then-current standard rate unless the client provides written notice of cancellation at least <strong>30 days before</strong> the renewal date.</p>
         </TermsSection>
 
         <TermsSection id="pricing" num="03" title="Pricing and Payment">
-          <p>Current one-time production rates are as follows:</p>
+          <p>Current recurring monthly subscription rates by tier and term:</p>
+          <table className="tier-table">
+            <thead><tr><th>Tier</th><th>6 Month (standard)</th><th>12 Month (10% off)</th><th>24 Month (15% off)</th></tr></thead>
+            <tbody>
+              <tr><td>Foundation</td><td>$499/mo</td><td>$449/mo</td><td>$424/mo</td></tr>
+              <tr><td>Operations</td><td>$899/mo</td><td>$809/mo</td><td>$764/mo</td></tr>
+              <tr><td>Complete</td><td>$1,499/mo</td><td>$1,349/mo</td><td>$1,274/mo</td></tr>
+            </tbody>
+          </table>
+          <p>Current one-time and add-on rates:</p>
           <ul>
-            <li><strong>Sizzle Reel</strong> — $199</li>
-            <li><strong>Social Starter Pack</strong> — $399</li>
-            <li><strong>Full Commercial</strong> — $599</li>
-            <li><strong>Radio Spot</strong> — $149 (30-second); $198 (60-second)</li>
-            <li><strong>Commercial + Radio Bundle</strong> — $699</li>
+            <li><strong>BaraTrust Ads — Custom AI-Generated Commercial</strong> — $499 per commercial (standalone purchase available without subscription; one commercial per quarter included free with annual Complete)</li>
           </ul>
-          <p>Current recurring monthly rates are as follows:</p>
-          <ul>
-            <li><strong>Content Subscription</strong> — $299 per month</li>
-            <li><strong>Social Management Add-On</strong> — $149 per month</li>
-            <li><strong>Agency Tier (White Label)</strong> — $499 per month</li>
-          </ul>
-          <p>Payment is due on the same date each month for recurring services. One-time productions are billed in full at time of order. BaraTrust uses Stripe for all payment processing.</p>
+          <p>The first ten BaraTrust clients receive <strong>no setup fee</strong> at any tier and on any term. Standard setup fees apply thereafter and will be disclosed at the time of enrollment.</p>
+          <p>Payment is due on the same date each month for recurring subscriptions. One-time and add-on services are billed in full at time of order. BaraTrust uses Stripe for all payment processing.</p>
         </TermsSection>
 
         <TermsSection id="etf" num="04" title="Early Termination Fee">
           <p>Clients who terminate their agreement before the end of their contracted term are subject to an Early Termination Fee equal to <strong>fifty percent of the remaining monthly payments</strong> on their contract.</p>
-          <div className="example-box"><strong>Example Calculation</strong>A client on a twelve month Agency Tier agreement at $499 per month who cancels after month four has eight months remaining. Their Early Termination Fee is 50% of 8 payments: 8 × $499 × 50% = <strong>$1,996</strong>.</div>
+          <div className="example-box"><strong>Example Calculation</strong>A client on a twelve month Operations agreement at $809 per month (10% off rate) who cancels after month four has eight months remaining. Their Early Termination Fee is 50% of those eight remaining payments: 8 × $809 × 50% = <strong>$3,236</strong>.</div>
           <p>The Early Termination Fee is due within 30 days of the cancellation date.</p>
           <div className="highlight-box"><p>Clients who receive a free month under the 90 Day Prove It Guarantee are not eligible for early termination without payment of the full ETF.</p></div>
           <p>ETF is waived in the event of the client&apos;s verified permanent business closure.</p>
@@ -117,7 +116,7 @@ export default function TermsPage() {
           <ul>
             <li>All ad account structures, campaign architecture, and keyword strategies built by BaraTrust</li>
             <li>BaraTrust dashboard configurations and reporting templates</li>
-            <li>The Revenue Loop system methodology and Business Health Score framework</li>
+            <li>The Intelligence Loop system methodology and Business Health Score framework</li>
             <li>The Money Map dashboard configuration and design</li>
             <li>All proprietary BaraTrust systems, tools, and processes</li>
             <li>The CallRail tracking number if assigned by BaraTrust</li>
@@ -148,13 +147,13 @@ export default function TermsPage() {
         </TermsSection>
 
         <TermsSection id="loyalty" num="09" title="Loyalty Renewal Options">
-          <p>Upon successful completion of the initial twelve month term clients in good standing are offered loyalty renewal options.</p>
+          <p>Upon successful completion of an initial term (six, twelve, or twenty-four months) clients in good standing unlock the month-to-month renewal option, which is not offered to new clients. Loyalty clients may also renew on a fresh commitment term at the same discount structure available to new clients.</p>
           <table className="tier-table">
             <thead><tr><th>Option</th><th>Discount</th><th>Price Lock</th><th>Cancellation</th></tr></thead>
             <tbody>
-              <tr><td>Month to Month</td><td>None</td><td>No</td><td>30 days written notice</td></tr>
-              <tr><td>Six Month Loyalty</td><td>10% off</td><td>Yes — 6 months</td><td>ETF if cancelled early</td></tr>
-              <tr><td>Twenty Four Month Loyalty</td><td>15% off</td><td>Yes — 24 months</td><td>ETF if cancelled early</td></tr>
+              <tr><td>Month to Month (loyalty exclusive)</td><td>None</td><td>No</td><td>30 days written notice</td></tr>
+              <tr><td>Twelve Month Renewal</td><td>10% off</td><td>Yes — 12 months</td><td>ETF if cancelled early</td></tr>
+              <tr><td>Twenty Four Month Renewal</td><td>15% off</td><td>Yes — 24 months</td><td>ETF if cancelled early</td></tr>
             </tbody>
           </table>
         </TermsSection>

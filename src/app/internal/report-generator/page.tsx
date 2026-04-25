@@ -224,7 +224,8 @@ export default function Home() {
               className={selectClass}
             >
               <option value="" disabled>Select tier</option>
-              <option value="Starter">Starter</option>
+              <option value="Foundation">Foundation</option>
+              <option value="Operations">Operations</option>
               <option value="Complete">Complete</option>
             </select>
           </div>

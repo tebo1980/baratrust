@@ -99,7 +99,7 @@ export default function ClientScripts() {
       } catch {
         if (resp) {
           resp.className = 'agent-response active'
-          resp.textContent = 'The AI Staff Portal is currently being updated. Please try again in a few minutes or contact Todd directly at 502-431-3285.'
+          resp.textContent = 'The AI Staff Portal is currently being updated. Please try again in a few minutes or contact Todd directly at 502-418-2431.'
         }
       }
 
@@ -175,7 +175,7 @@ export default function ClientScripts() {
         } catch {
           if (errorEl) {
             errorEl.style.display = 'block'
-            errorEl.textContent = 'Unable to send message. Please try again or call 502-431-3285.'
+            errorEl.textContent = 'Unable to send message. Please try again or call 502-418-2431.'
           }
         }
 

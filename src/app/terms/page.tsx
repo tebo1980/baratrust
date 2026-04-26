@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { EmailLink, PhoneLink, SmsLink } from '@/components/ContactLinks'
 
 export const metadata: Metadata = {
   title: 'Client Service Agreement — BaraTrust',
@@ -25,8 +26,8 @@ export default function TermsPage() {
         <div className="terms-meta">
           <div className="terms-meta-item"><strong>Effective Date</strong>January 1, 2026</div>
           <div className="terms-meta-item"><strong>Governing Law</strong>State of Indiana</div>
-          <div className="terms-meta-item"><strong>Contact</strong>todd@baratrust.com</div>
-          <div className="terms-meta-item"><strong>Phone</strong>502-431-3285</div>
+          <div className="terms-meta-item"><strong>Contact</strong><EmailLink /></div>
+          <div className="terms-meta-item"><strong>Phone</strong><PhoneLink /></div>
         </div>
       </div>
 
@@ -169,7 +170,7 @@ export default function TermsPage() {
         <TermsSection id="disputes" num="12" title="Dispute Resolution">
           <p>BaraTrust believes that most disagreements can be resolved through honest conversation.</p>
           <ul>
-            <li><strong>Step one — Direct conversation.</strong> Contact BaraTrust at 502-431-3285 or todd@baratrust.com.</li>
+            <li><strong>Step one — Direct conversation.</strong> Contact BaraTrust at <PhoneLink /> or <EmailLink />.</li>
             <li><strong>Step two — Written resolution attempt.</strong></li>
             <li><strong>Step three — Binding arbitration</strong> in the state of Indiana.</li>
           </ul>
@@ -177,7 +178,7 @@ export default function TermsPage() {
 
         <TermsSection id="governing" num="13" title="Governing Law">
           <p>This agreement is governed by the laws of the <strong>State of Indiana</strong>.</p>
-          <div className="highlight-box"><p>Questions about this agreement? Call or text 502-431-3285 or email todd@baratrust.com.</p></div>
+          <div className="highlight-box"><p>Questions about this agreement? Call <PhoneLink /> or text <SmsLink /> or email <EmailLink />.</p></div>
         </TermsSection>
       </div>
 
@@ -185,7 +186,7 @@ export default function TermsPage() {
       <div className="terms-footer">
         <div className="footer-logo">&#x1F9AB; BaraTrust</div>
         <p>© 2026 BaraTrust · New Albany, Indiana</p>
-        <p>Questions? <a href="tel:5024313285">502-431-3285</a> &nbsp;·&nbsp; todd@baratrust.com</p>
+        <p>Questions? <PhoneLink /> &nbsp;·&nbsp; <EmailLink /></p>
         <p style={{ marginTop: '20px' }}><a href="/">&#8592; Back to BaraTrust.com</a></p>
       </div>
     </>

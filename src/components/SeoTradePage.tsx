@@ -1,3 +1,5 @@
+import { PhoneLink, CONTACT_PHONE_DISPLAY } from './ContactLinks'
+
 type Feature = { icon: string; title: string; text: string }
 
 type SeoTradePageProps = {
@@ -122,7 +124,7 @@ export default function SeoTradePage({
           </p>
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
             <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="btn-primary">Book Free Consultation</a>
-            <a href="tel:5024313285" className="btn-secondary">Call 502-431-3285</a>
+            <PhoneLink className="btn-secondary">Call {CONTACT_PHONE_DISPLAY}</PhoneLink>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--cream-muted)' }}>
             Serving {location} and surrounding {state === 'KY' ? 'Kentucky' : 'Indiana'} communities

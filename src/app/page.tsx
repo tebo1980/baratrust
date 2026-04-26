@@ -1,6 +1,7 @@
 'use client'
 
 import ClientScripts from '@/components/ClientScripts'
+import { EmailLink, SmsLink, CONTACT_PHONE_DISPLAY, CONTACT_EMAIL_DISPLAY } from '@/components/ContactLinks'
 
 export default function HomePage() {
   return (
@@ -605,8 +606,8 @@ export default function HomePage() {
             <p>Get a free 20-minute consultation. No pitch. No pressure. Just an honest conversation about what your business needs and whether BaraTrust is the right fit.</p>
             <div className="close-options">
               <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="btn-primary">Book Your Free Consultation</a>
-              <a href="sms:5024313285" className="btn-secondary">Text us at 502-431-3285</a>
-              <a href="mailto:todd@baratrust.com" className="btn-secondary">Email todd@baratrust.com</a>
+              <SmsLink className="btn-secondary">Text us at {CONTACT_PHONE_DISPLAY}</SmsLink>
+              <EmailLink className="btn-secondary">Email {CONTACT_EMAIL_DISPLAY}</EmailLink>
             </div>
             <div className="close-contact" style={{ marginBottom: '32px' }}>
               Prefer to look around first? Start with the dashboard demo and see exactly what your business could look like inside BaraTrust.<br />

@@ -1,4 +1,7 @@
+'use client'
+
 import { PhoneLink, CONTACT_PHONE_DISPLAY } from './ContactLinks'
+import { AGENT_COUNT } from '@/lib/constants'
 
 type Feature = { icon: string; title: string; text: string }
 
@@ -51,7 +54,7 @@ export default function SeoTradePage({
           </div>
           <div className="hero-proof">
             <div className="proof-item"><span className="proof-check">{'\u2713'}</span> 90-Day Prove It Guarantee</div>
-            <div className="proof-item"><span className="proof-check">{'\u2713'}</span> 10 AI Agents Working 24/7</div>
+            <div className="proof-item"><span className="proof-check">{'\u2713'}</span> {AGENT_COUNT} AI Agents Working 24/7</div>
             <div className="proof-item"><span className="proof-check">{'\u2713'}</span> No Setup Fee</div>
           </div>
         </div>

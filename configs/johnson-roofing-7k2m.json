@@ -1,0 +1,83 @@
+{
+  "slug": "johnson-roofing-7k2m",
+  "generatedAt": "2026-04-29T14:00:00.000Z",
+  "lastTouched": "2026-04-29T14:00:00.000Z",
+  "status": "Sent",
+  "notes": "SAMPLE — fictional business for template validation",
+  "indexable": false,
+  "validUntilDays": 60,
+  "business": {
+    "name": "Johnson Roofing",
+    "tagline": "Family-owned roofing in Louisville since 2008",
+    "phone": "(502) 555-0123",
+    "email": "info@johnsonroofing.example",
+    "yearEstablished": 2008,
+    "licenseNumber": "KY-RC-12345",
+    "insured": true
+  },
+  "location": {
+    "city": "Louisville",
+    "state": "KY",
+    "serviceAreas": ["Louisville", "Jeffersontown", "St. Matthews", "Anchorage", "Prospect", "Middletown"],
+    "primaryGoogleSearchTerm": "roofer Louisville KY"
+  },
+  "services": [
+    {
+      "name": "Roof Replacement",
+      "description": "Full tear-off and re-roof. Asphalt, metal, and architectural shingles. Manufacturer-backed warranties on every job.",
+      "icon": "🏠"
+    },
+    {
+      "name": "Storm Damage Repair",
+      "description": "Same-week response for hail, wind, and tree damage. We handle the insurance paperwork so you don't have to.",
+      "icon": "⛈️"
+    },
+    {
+      "name": "Roof Inspections",
+      "description": "Honest inspections with photos and a written report. If your roof has another five years in it, we'll tell you.",
+      "icon": "🔍"
+    },
+    {
+      "name": "Gutter Service",
+      "description": "Cleaning, repair, and replacement. Seamless aluminum gutters in any color to match your home.",
+      "icon": "🌧️"
+    }
+  ],
+  "reviews": [
+    {
+      "author": "Mark T.",
+      "rating": 5,
+      "text": "These guys came out the day after a hailstorm, walked the roof with me, and told me it could wait another season. Most contractors would've sold me a $20k replacement. Got my work when it was actually time.",
+      "source": "Google",
+      "date": "2025-06-12"
+    },
+    {
+      "author": "Sarah B.",
+      "rating": 5,
+      "text": "Replaced our roof in two days, cleaned up perfectly, and the price was exactly what they quoted. Couldn't ask for better.",
+      "source": "Google",
+      "date": "2025-04-03"
+    },
+    {
+      "author": "Dave R.",
+      "rating": 5,
+      "text": "Honest, fast, and they actually answer the phone. Used them twice now — once for a leak repair and again for a full replacement.",
+      "source": "Google",
+      "date": "2024-11-22"
+    }
+  ],
+  "about": {
+    "ownerName": "Mike Johnson",
+    "yearsExperience": 22,
+    "story": "I started Johnson Roofing in 2008 after watching too many of my neighbors get burned by out-of-town storm chasers. We're local. We answer the phone. We do what we say we'll do, and if something's wrong we come back and make it right. That's it. That's the whole pitch."
+  },
+  "branding": {
+    "primaryColor": "#1B2D4F",
+    "accentColor": "#C9A84C",
+    "style": "classic"
+  },
+  "callToAction": {
+    "primaryButtonText": "Call Now",
+    "secondaryButtonText": "Get a Free Estimate"
+  }
+}

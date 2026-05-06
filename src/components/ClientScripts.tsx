@@ -1,5 +1,6 @@
 'use client'
 import { useEffect } from 'react'
+import { FOUNDATION_MONTHLY } from '@/lib/constants'
 
 export default function ClientScripts() {
   useEffect(() => {
@@ -37,7 +38,7 @@ export default function ClientScripts() {
       const jobsLost = Math.round(missedYear * (close / 100))
       const total = jobsLost * job
       const monthly = Math.round(total / 12)
-      const net = total - (599 * 12)
+      const net = total - (FOUNDATION_MONTHLY * 12)
 
       const calcTotal = document.getElementById('calc-total')
       const calcMonthly = document.getElementById('calc-monthly')

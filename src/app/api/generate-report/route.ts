@@ -1,26 +1,9 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { readFileSync } from "fs";
-import { resolve } from "path";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-function getApiKey(): string {
-  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
-  try {
-    const envPath = resolve(process.cwd(), ".env.local");
-    const content = readFileSync(envPath, "utf8");
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith("ANTHROPIC_API_KEY=")) {
-        const val = trimmed.substring("ANTHROPIC_API_KEY=".length).trim();
-        process.env.ANTHROPIC_API_KEY = val;
-        return val;
-      }
-    }
-  } catch {}
-  return "";
-}
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-const SYSTEM_PROMPT = `You are Todd Tebo, founder of BaraTrust, writing a monthly performance report for a local service business client. Your voice is warm, honest, plain spoken, and conversational. You never use marketing jargon. You explain things like you are talking to a contractor at his kitchen table not a marketing executive in a boardroom. You are direct, encouraging, and always honest even when results are mixed.`;
+const SYSTEM_PROMPT = `You are Todd Tebo, founder of BaraTrust, writing a monthly performance report for a local service business client. Your voice is warm, honest, plain spoken, and conversational. You never use marketing jargon. You explain things like you are talking to a contractor at his kitchen table, not a marketing executive in a boardroom. You are direct, encouraging, and always honest even when results are mixed.`;
 
 interface ReportFormData {
   clientName: string;
@@ -60,8 +43,7 @@ Guarantee calls to date: ${d.guaranteeCalls} of 10
 Days remaining in guarantee: ${d.daysRemaining}
 Top call source: ${d.topCallSource}
 
-Facebook ad spend: $${d.fbAdSpend}
-`;
+Facebook ad spend: $${d.fbAdSpend}\n`;
 
   if (d.googleAdSpend) {
     prompt += `Google ad spend: $${d.googleAdSpend}\n`;
@@ -79,8 +61,7 @@ Business Health Score last month: ${d.scoreLastMonth} out of 100
 Weakest category: ${d.weakestCategory}
 
 Context from Todd:
-What worked well: ${d.whatWorked}
-`;
+What worked well: ${d.whatWorked}\n`;
 
   if (d.challenges) {
     prompt += `Challenges: ${d.challenges}\n`;
@@ -91,7 +72,7 @@ What worked well: ${d.whatWorked}
   }
 
   prompt += `
-Write the report in four sections:
+Write the report in five sections:
 
 Section one — The Month in Plain English. Two to three sentences summarizing what happened this month in simple terms a contractor would understand.
 
@@ -105,40 +86,33 @@ Section five — Your Business Health Score. One to two sentences explaining the
 
 Close with one warm personal sentence from Todd. Sign it Todd.
 
-Keep the entire report under 450 words. Write in first person as Todd. Make it feel like a message from a partner who genuinely cares not a corporate report.`;
+Keep the entire report under 450 words. Write in first person as Todd. Make it feel like a message from a partner who genuinely cares, not a corporate report.`;
 
   return prompt;
 }
 
 export async function POST(request: Request) {
   try {
-    const key = getApiKey();
-    console.log("API key loaded:", key ? key.substring(0, 12) + "..." : "MISSING");
-
-    const anthropic = new Anthropic({
-      apiKey: key,
-    });
-
     const body: ReportFormData = await request.json();
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: buildUserPrompt(body),
-        },
-      ],
+    // Use Gemini 1.5 Pro for reports to ensure maximum nuance and quality
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-pro",
+      systemInstruction: SYSTEM_PROMPT 
     });
 
-    const textBlock = message.content.find((block) => block.type === "text");
-    const report = textBlock ? textBlock.text : "";
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: buildUserPrompt(body) }] }],
+      generationConfig: {
+        maxOutputTokens: 1000,
+        temperature: 0.7,
+      }
+    });
+
+    const report = result.response.text();
 
     return NextResponse.json({ report });
-  } catch (error) {
-    console.error("Report generation failed:", error);
+  } catch {
     return NextResponse.json(
       { error: "Failed to generate report" },
       { status: 500 }

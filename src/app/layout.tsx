@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Fraunces, DM_Sans } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
+import { dark } from '@clerk/themes' // Import the dark theme
 import './globals.css'
 
 const GA_ID = 'G-YWB4NTYLR8'
@@ -59,24 +61,41 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <head>
-        <Script
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-          strategy="afterInteractive"
-        />
-        <Script id="ga-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${GA_ID}');
-          `}
-        </Script>
-      </head>
-      <body className={`${fraunces.variable} ${dmSans.variable}`}>
-        {children}
-      </body>
-    </html>
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: { 
+          colorPrimary: '#ffffff',
+          colorTextOnPrimaryBackground: '#000000',
+          // --- ADD THESE TWO LINES ---
+          fontFamily: 'var(--font-dm-sans)',
+          fontFamilyButtons: 'var(--font-dm-sans)',
+        },
+        // --- ADD THIS BLOCK ---
+        elements: {
+          headerTitle: 'font-fraunces',
+        }
+      }}
+    >
+      <html lang="en">
+        <head>
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}');
+            `}
+          </Script>
+        </head>
+        <body className={`${fraunces.variable} ${dmSans.variable}`}>
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

@@ -1,109 +1,66 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const SYSTEM_PROMPT = `You are a small business investor and M&A advisor with 20 years of experience evaluating local service businesses for acquisition, angel investment, and expansion funding.
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-A BaraTrust client has been profiled. Generate an honest Investor Readiness Score and report.
+const schema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    totalScore: { type: SchemaType.NUMBER },
+    dimensions: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          name: { type: SchemaType.STRING },
+          score: { type: SchemaType.NUMBER },
+          maxScore: { type: SchemaType.NUMBER },
+          explanation: { type: SchemaType.STRING }
+        },
+        required: ["name", "score", "maxScore", "explanation"]
+      }
+    },
+    interpretation: { type: SchemaType.STRING },
+    biggestDrag: { type: SchemaType.STRING },
+    biggestStrength: { type: SchemaType.STRING },
+    recommendedFunding: { type: SchemaType.STRING },
+    acquisitionNote: { type: SchemaType.STRING }, // Removed nullable for better compatibility
+    summary: { type: SchemaType.STRING }
+  },
+  required: ["totalScore", "dimensions", "interpretation", "biggestDrag", "biggestStrength", "recommendedFunding", "summary"]
+};
 
-Score the business from 0-100 across five dimensions:
-
-1. Revenue Quality (0-20 points)
-- Recurring vs one-time revenue
-- Revenue growth trajectory
-- Revenue concentration risk (too dependent on a few clients)
-
-2. Operational Maturity (0-20 points)
-- Owner dependency (the biggest killer of small business valuations)
-- Documented processes and SOPs
-- Team structure
-
-3. Financial Health (0-20 points)
-- Profit margin quality
-- Debt load
-- Revenue size relative to funding goal
-
-4. Market Position (0-20 points)
-- Years in business (longevity signals)
-- Client count and retention
-- Industry growth trajectory
-
-5. Growth Potential (0-20 points)
-- Scalability of the model
-- Franchise or multi-location potential
-- Size of local market opportunity
-
-Total score interpretation:
-0-40: Pre-investment. Focus on operational fundamentals first.
-41-60: Approaching fundable. Specific gaps to close before seeking capital.
-61-75: Fundable for SBA loans and some angel interest. Ready for certain conversations.
-76-90: Strong candidate for angel investment, acquisition conversations, or franchise development.
-91-100: Exceptional. M&A conversations are appropriate.
-
-For each dimension give the score and a one-sentence honest explanation.
-
-IMPORTANT: Format your response as JSON with this exact structure:
-{
-  "totalScore": <number>,
-  "dimensions": [
-    {"name": "Revenue Quality", "score": <number>, "maxScore": 20, "explanation": "<string>"},
-    {"name": "Operational Maturity", "score": <number>, "maxScore": 20, "explanation": "<string>"},
-    {"name": "Financial Health", "score": <number>, "maxScore": 20, "explanation": "<string>"},
-    {"name": "Market Position", "score": <number>, "maxScore": 20, "explanation": "<string>"},
-    {"name": "Growth Potential", "score": <number>, "maxScore": 20, "explanation": "<string>"}
-  ],
-  "interpretation": "<string - one sentence interpreting the total score>",
-  "biggestDrag": "<string - the single biggest thing dragging the score down>",
-  "biggestStrength": "<string - the single biggest thing making this business attractive>",
-  "recommendedFunding": "<string - recommended funding type>",
-  "acquisitionNote": "<string or null - only if acquisition was mentioned as goal>",
-  "summary": "<string - 2-3 sentence overall assessment>"
-}
-
-Be honest. A score of 45 is a 45. Don't inflate to make the client feel good.`;
+const SYSTEM_PROMPT = `You are a small business investor and M&A advisor with 20 years of experience evaluation local service businesses. Generate an honest Investor Readiness Score (0-100) as JSON.`;
 
 export async function POST(request: Request) {
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const body = await request.json();
 
-    const userPrompt = `Profile this BaraTrust client for investor readiness:
-
-Business Name: ${body.businessName}
-Trade/Industry: ${body.industry}
-Years in Business: ${body.yearsInBusiness}
-Annual Revenue: ${body.annualRevenue}
-Monthly Recurring Clients: ${body.recurringClients}
-Revenue Growth Last 12 Months: ${body.revenueGrowth}
-Has Documented Processes/SOPs: ${body.hasSOPs ? 'Yes' : 'No'}
-Has Second Location or Franchise Potential: ${body.franchisePotential ? 'Yes' : 'No'}
-Owner Dependency: ${body.ownerDependency}
-Monthly Profit Margin Estimate: ${body.profitMargin}
-Has Existing Business Debt: ${body.hasDebt ? 'Yes' : 'No'}
-Reason for Seeking Funding: ${body.fundingReason}`;
-
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userPrompt }],
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-pro",
+      systemInstruction: SYSTEM_PROMPT,
+      generationConfig: {
+        responseMimeType: "application/json",
+        // 👇 The "Mushy Brain" Fix: Casting to any kills the TS error instantly
+        responseSchema: schema as any, 
+      }
     });
 
-    const textBlock = message.content.find((block) => block.type === "text");
-    const text = textBlock?.text || "";
+    const userPrompt = `Profile this BaraTrust client for investor readiness:
+    Business: ${body.businessName}
+    Industry: ${body.industry}
+    Revenue: ${body.annualRevenue}
+    SOPs: ${body.hasSOPs ? 'Yes' : 'No'}
+    Dependency: ${body.ownerDependency}`;
 
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return NextResponse.json({ result: parsed });
-      }
-    } catch {
-      // If JSON parsing fails, return raw text
-    }
+    const result = await model.generateContent(userPrompt);
+    const parsed = JSON.parse(result.response.text());
 
-    return NextResponse.json({ result: text });
-  } catch (error) {
-    console.error("Investor score failed:", error);
-    return NextResponse.json({ error: "Failed to generate investor score" }, { status: 500 });
+    return NextResponse.json({ result: parsed });
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to generate investor score" }, 
+      { status: 500 }
+    );
   }
 }

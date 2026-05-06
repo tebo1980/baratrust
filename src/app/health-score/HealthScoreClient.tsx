@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { EmailLink, SmsLink, CONTACT_PHONE_DISPLAY } from '@/components/ContactLinks'
 
 export default function HealthScoreClient() {
@@ -146,6 +146,8 @@ export default function HealthScoreClient() {
 
       <div className="divider"></div>
 
+      <ScoreLeadCapture />
+
       <div className="cta-section">
         <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="cta-btn">Get a Free BaraTrust Consultation</a>
         <div className="cta-sub">
@@ -154,6 +156,143 @@ export default function HealthScoreClient() {
         </div>
       </div>
     </>
+  )
+}
+
+function ScoreLeadCapture() {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [business, setBusiness] = useState('')
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setStatus('sending')
+    setErrorMsg('')
+
+    const score = document.getElementById('score-num')?.textContent || ''
+    const cats = ['s-vis', 's-lead', 's-prof', 's-cust', 's-rep']
+      .map((id) => {
+        const el = document.getElementById(id) as HTMLInputElement | null
+        return el?.value ?? ''
+      })
+      .join(' / ')
+
+    try {
+      const res = await fetch('https://formspree.io/f/xzdkqaap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          business,
+          _subject: `Health Score lead — ${name} — overall ${score}`,
+          message: `Health Score: ${score}\nVis/Lead/Prof/Cust/Rep: ${cats}`,
+        }),
+      })
+      if (res.ok) {
+        setStatus('sent')
+        setName('')
+        setEmail('')
+        setBusiness('')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setStatus('error')
+        setErrorMsg(data.errors?.map((err: { message: string }) => err.message).join(', ') || 'Something went wrong. Please try again.')
+      }
+    } catch {
+      setStatus('error')
+      setErrorMsg('Unable to send. Please try again or call 502-418-2431.')
+    }
+  }
+
+  if (status === 'sent') {
+    return (
+      <div
+        style={{
+          background: 'rgba(90,143,110,0.12)',
+          border: '1px solid rgba(90,143,110,0.25)',
+          borderRadius: '14px',
+          padding: '24px',
+          textAlign: 'center',
+          color: '#7AB08E',
+          fontSize: '15px',
+          margin: '32px 0',
+        }}
+      >
+        ✓ Thanks — Todd will email a personalized review of your score within 24 hours.
+      </div>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: '16px',
+        padding: '28px',
+        margin: '32px 0',
+      }}
+    >
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: 'var(--cream)', marginBottom: '8px' }}>
+        Want a personalized walkthrough of your score?
+      </div>
+      <p style={{ fontSize: '14px', color: 'var(--cream-dim)', lineHeight: 1.6, marginBottom: '18px' }}>
+        Share your contact info and Todd will email a one-page write-up of your weakest areas and what to do about them. No pitch, no spam.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+        <input
+          type="text"
+          required
+          placeholder="Your name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{
+            background: 'var(--bg-card2)', border: '1px solid var(--border)', borderRadius: '8px',
+            padding: '10px 14px', fontSize: '14px', color: 'var(--cream)', fontFamily: 'var(--font-body)', outline: 'none',
+          }}
+        />
+        <input
+          type="email"
+          required
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={{
+            background: 'var(--bg-card2)', border: '1px solid var(--border)', borderRadius: '8px',
+            padding: '10px 14px', fontSize: '14px', color: 'var(--cream)', fontFamily: 'var(--font-body)', outline: 'none',
+          }}
+        />
+        <input
+          type="text"
+          placeholder="Business name (optional)"
+          value={business}
+          onChange={(e) => setBusiness(e.target.value)}
+          style={{
+            background: 'var(--bg-card2)', border: '1px solid var(--border)', borderRadius: '8px',
+            padding: '10px 14px', fontSize: '14px', color: 'var(--cream)', fontFamily: 'var(--font-body)', outline: 'none',
+          }}
+        />
+      </div>
+      {status === 'error' && (
+        <div style={{ fontSize: '13px', color: '#E05A5A', marginBottom: '10px' }}>{errorMsg}</div>
+      )}
+      <button
+        type="submit"
+        disabled={status === 'sending'}
+        style={{
+          background: 'var(--blue)', color: 'var(--cream)', padding: '12px 22px', borderRadius: '10px',
+          fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 600, border: 'none',
+          cursor: status === 'sending' ? 'not-allowed' : 'pointer',
+          letterSpacing: '0.02em', opacity: status === 'sending' ? 0.6 : 1,
+        }}
+      >
+        {status === 'sending' ? 'Sending…' : 'Email me my breakdown →'}
+      </button>
+    </form>
   )
 }
 

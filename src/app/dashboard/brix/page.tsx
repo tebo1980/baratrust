@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { saveProjectDetails, saveMessage, getProjectHistory } from "./actions";
 import { useSearchParams, useRouter } from "next/navigation";
 
@@ -18,6 +18,15 @@ function BrixDashboardContent() {
   const [isTyping, setIsTyping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
 
   useEffect(() => {
     if (!projectId) {
@@ -36,7 +45,9 @@ function BrixDashboardContent() {
 
   useEffect(() => {
     async function loadHistory() {
-      if (projectId) {
+      // Only load history if the project is saved AND we haven't already started chatting
+      // This prevents the UI from resetting to the bouncing dots when a user sends their first message
+      if (projectId && messages.length === 0) {
         setIsLoadingHistory(true);
         const res = await getProjectHistory(projectId);
         if (res.success && res.project) {
@@ -83,12 +94,8 @@ function BrixDashboardContent() {
           body: JSON.stringify({ projectId }),
         });
         
-        // Reset local project state to ensure a truly fresh estimate
-        setProjectId(null);
-        setJobName("");
-        setAddress("");
-        localStorage.removeItem("lastBrixProject");
-        router.push("/dashboard/brix");
+        // We no longer reset project state here, allowing the user to restart the chat
+        // for the EXACT same job/address without having to re-enter it.
       } catch (e) {
         console.error("Failed to clear chat", e);
       }
@@ -97,10 +104,17 @@ function BrixDashboardContent() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return;
+
+    // 1. Immediately toggle state and update UI for instantaneous feedback
+    const userMsg = input;
+    setInput("");
+    setIsTyping(true);
+    setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
 
     let currentProjectId = projectId;
 
+    // 2. Perform background DB tasks if needed
     if (!currentProjectId && jobName.trim()) {
       const saveRes = await saveProjectDetails(jobName, address);
       if (saveRes.success && saveRes.id) {
@@ -110,11 +124,6 @@ function BrixDashboardContent() {
         router.push(`?projectId=${currentProjectId}`);
       }
     }
-
-    const userMsg = input;
-    setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
-    setInput("");
-    setIsTyping(true);
 
     if (currentProjectId) {
       await saveMessage(currentProjectId, "user", userMsg);
@@ -241,7 +250,11 @@ function BrixDashboardContent() {
           
           <div className="flex items-center gap-3">
              <button 
-               onClick={handleClearChat}
+               type="button"
+               onClick={(e) => {
+                 e.preventDefault();
+                 handleClearChat();
+               }}
                className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md mr-4 flex items-center gap-2"
                title="Reset Brix's memory and start a new estimate"
              >
@@ -292,15 +305,16 @@ function BrixDashboardContent() {
               ))}
               {isTyping && (
                 <div className="flex justify-start animate-in fade-in duration-200">
-                  <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700/50 p-5 rounded-2xl rounded-bl-sm flex gap-2 items-center shadow-lg">
-                    <div className="flex space-x-1.5">
-                      <div className="w-2 h-2 bg-blue-500/60 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-blue-500/60 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                      <div className="w-2 h-2 bg-blue-500/60 rounded-full animate-bounce [animation-delay:0.4s]"></div>
-                    </div>
+                  <div className="flex items-center text-xs text-amber-400 bg-black/40 border border-amber-500/30 px-4 py-2 rounded-md animate-pulse w-fit mt-4 shadow-lg shadow-amber-900/20">
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Brix is calculating labor and scanning regional grant databases...
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>

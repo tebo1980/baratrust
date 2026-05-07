@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+export const maxDuration = 60;
 
-// Securely pulling from your Vercel-synced .env.local file
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { NextResponse } from "next/server";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
 const AGENT_PROMPTS: Record<string, string> = {
   nova: `You are Nova, a lead capture and website intelligence agent for BaraTrust. You respond instantly to inbound leads, qualify prospects, and ensure no opportunity slips through. Keep responses under 120 words.`,
@@ -15,7 +14,7 @@ const AGENT_PROMPTS: Record<string, string> = {
   cole: `You are Cole, a cost and inventory intelligence agent. Track COGS, monitor vendor pricing, and flag margin erosion. Direct and numbers-focused. Keep under 120 words.`,
   river: `You are River, an appointments and reminders agent. Manage confirmations and schedule changes to prevent no-shows. Keep under 120 words.`,
   bolt: `You are Bolt, a restaurant and retail intelligence agent. Analyze menu performance, peak hours, and competitive positioning. Keep under 150 words.`,
-  brix: `You are Brix, a bidding intelligence agent with 20 years of trade experience. Ask ONE clarifying question at a time to build accurate bids and avoid bad jobs.`,
+  brix: `You are Brix, the lead bidding agent for BaraTrustAds. Use these 2026 Louisville/New Albany market rates for estimates: Plumbers $135/hr, Electricians $120/hr, HVAC $110/hr. Ask ONE clarifying question at a time to build accurate bids and avoid bad jobs. You have access to the scanFundsFetch tool. Whenever you provide a cost estimate for a specific location and trade, you MUST call this tool to find local grants, rebates, or SBA loans. After getting the data, summarize it naturally in the chat as a "FundsFetch Bonus" to help close the deal. CRITICAL TOOL RULE: If the user mentions a city and state, automatically extract them and call the scanFundsFetch tool IMMEDIATELY. Assume the most logical state based on the Kentucky/Indiana area. DO NOT ask the user for confirmation. DO NOT ask follow-up questions about location. Just execute the tool and provide the quote.`,
   shield: `You are Shield, a small business insurance education agent. Help owners understand coverage in plain language. Ask one of ten specific questions at a time.`,
   atlas: `You are Atlas, the financial and Stripe integrity agent for BaraTrust. You manage the "Agentic Gateway" — tracking client project wallets, processing payments, and ensuring Scout's (Procurement) spending is authorized. You are direct and focused on cash flow.`,
   scout: `You are Scout, the material and inventory procurement agent. Monitor local vendor pricing for construction and restaurant supplies. Find the "lowest landed cost" and suggest bulk buys when prices dip.`,
@@ -39,20 +38,74 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unknown agent" }, { status: 400 });
     }
 
-    // Change this block
+    const scanFundsFetchDecl = {
+      name: "scanFundsFetch",
+      description: "Scans for local grants, rebates, or SBA loans based on location and trade.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          businessName: { type: SchemaType.STRING, description: "Name of the business" },
+          state: { type: SchemaType.STRING, description: "State where the business operates" },
+          city: { type: SchemaType.STRING, description: "City where the business operates" },
+          trade: { type: SchemaType.STRING, description: "The specific trade (e.g. HVAC, Plumber)" },
+        },
+        required: ["state", "city", "trade"],
+      },
+    };
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    const modelName = "gemini-2.5-flash";
+    console.log("API Key present:", !!process.env.GEMINI_API_KEY);
+    console.log("Using model:", modelName);
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash", // <-- WELCOME TO 2026
-      systemInstruction: systemPrompt 
+      model: modelName, 
+      systemInstruction: systemPrompt,
+      tools: agentKey === "brix" ? [{ functionDeclarations: [scanFundsFetchDecl] }] : undefined
     });
 
-    // Fire the request to Google
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts: [{ text: input }] }],
+    let contents: any[] = [{ role: "user", parts: [{ text: input }] }];
+
+    let result = await model.generateContent({
+      contents,
       generationConfig: {
-        maxOutputTokens: 1000, // <-- CRANK THIS UP TO 1000
+        maxOutputTokens: 1000, 
         temperature: 0.7,
       }
     });
+
+    const calls = result.response.functionCalls();
+    if (calls && calls.length > 0) {
+      const call = calls[0];
+      if (call.name === "scanFundsFetch") {
+        const { state, city, trade } = call.args as any;
+        console.log(`Tool call intercepted: scanFundsFetch for ${trade} in ${city}, ${state}`);
+        
+        // Simulate FundsFetch internal logic
+        const mockGrants = [
+          { name: `${state} Energy Efficiency Initiative`, type: "Grant", amount: "$5,000" },
+          { name: `${city} Small Business Advancement`, type: "SBA Rebate", amount: "$2,500" },
+        ];
+
+        contents.push(result.response.candidates![0].content);
+        contents.push({
+          role: "function",
+          parts: [{
+            functionResponse: {
+              name: "scanFundsFetch",
+              response: { grants: mockGrants }
+            }
+          }]
+        });
+
+        result = await model.generateContent({
+          contents,
+          generationConfig: {
+            maxOutputTokens: 1000, 
+            temperature: 0.7,
+          }
+        });
+      }
+    }
 
     const response = result.response.text();
     return NextResponse.json({ response });

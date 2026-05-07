@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, varchar, uuid } from 'drizzle-orm/pg-core';
 
 export const businesses = pgTable('businesses', {
   id: serial('id').primaryKey(),
@@ -18,4 +18,18 @@ export const agentConfigs = pgTable('agent_configs', {
   agentName: text('agent_name').notNull(), 
   isActive: text('is_active').default('true'),
   configuration: text('configuration'), // JSON string of agent-specific settings
+});
+
+export const projects = pgTable('projects', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  businessId: text('business_id'),
+  name: text('name').notNull(),
+  address: text('address'),
+});
+
+export const messages = pgTable('messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').references(() => projects.id),
+  role: text('role').notNull(), // 'user' or 'assistant'
+  content: text('content').notNull(),
 });

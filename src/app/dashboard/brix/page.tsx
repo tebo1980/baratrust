@@ -70,6 +70,31 @@ function BrixDashboardContent() {
     setIsSaving(false);
   };
 
+  const handleClearChat = async () => {
+    // Instantly wipe the UI for a snappy feel
+    setMessages([]);
+    
+    if (projectId) {
+      try {
+        // Asynchronously wipe the DB
+        fetch("/api/chat/clear", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId }),
+        });
+        
+        // Reset local project state to ensure a truly fresh estimate
+        setProjectId(null);
+        setJobName("");
+        setAddress("");
+        localStorage.removeItem("lastBrixProject");
+        router.push("/dashboard/brix");
+      } catch (e) {
+        console.error("Failed to clear chat", e);
+      }
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -215,6 +240,14 @@ function BrixDashboardContent() {
           </div>
           
           <div className="flex items-center gap-3">
+             <button 
+               onClick={handleClearChat}
+               className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md mr-4 flex items-center gap-2"
+               title="Reset Brix's memory and start a new estimate"
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+               Start New Estimate
+             </button>
              <div className="text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-2">
                <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                System Online

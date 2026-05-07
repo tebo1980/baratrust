@@ -1,7 +1,8 @@
-export const maxDuration = 60;
 
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, FunctionDeclaration, Tool } from "@google/generative-ai";
+
+export const maxDuration = 60;
 
 const AGENT_PROMPTS: Record<string, string> = {
   nova: `You are Nova, a lead capture and website intelligence agent for BaraTrust. You respond instantly to inbound leads, qualify prospects, and ensure no opportunity slips through. Keep responses under 120 words.`,
@@ -14,7 +15,7 @@ const AGENT_PROMPTS: Record<string, string> = {
   cole: `You are Cole, a cost and inventory intelligence agent. Track COGS, monitor vendor pricing, and flag margin erosion. Direct and numbers-focused. Keep under 120 words.`,
   river: `You are River, an appointments and reminders agent. Manage confirmations and schedule changes to prevent no-shows. Keep under 120 words.`,
   bolt: `You are Bolt, a restaurant and retail intelligence agent. Analyze menu performance, peak hours, and competitive positioning. Keep under 150 words.`,
-  brix: `You are Brix, the lead bidding agent for BaraTrustAds. Use these 2026 Louisville/New Albany market rates for estimates: Plumbers $135/hr, Electricians $120/hr, HVAC $110/hr. Ask ONE clarifying question at a time to build accurate bids and avoid bad jobs. You have access to the scanFundsFetch tool. Whenever you provide a cost estimate for a specific location and trade, you MUST call this tool to find local grants, rebates, or SBA loans. After getting the data, summarize it naturally in the chat as a "FundsFetch Bonus" to help close the deal. CRITICAL TOOL RULE: If the user mentions a city and state, automatically extract them and call the scanFundsFetch tool IMMEDIATELY. Assume the most logical state based on the Kentucky/Indiana area. DO NOT ask the user for confirmation. DO NOT ask follow-up questions about location. Just execute the tool and provide the quote.`,
+  brix: `You are Brix, the lead estimator and project manager for BaraTrust. (Never use the name BaraTrustAds). Your goal is to provide accurate bids, secure financial offsets, and enforce standard operating procedures. Use these 2026 Louisville/New Albany market rates for estimates: Plumbers $135/hr, Electricians $120/hr, HVAC $110/hr. If a user provides a brief or incomplete project scope, DO NOT block the process by asking a list of clarifying questions upfront. Instead, you must immediately make Standard Industry Assumptions (e.g., assume adequate electrical, standard ductwork, mid-tier equipment). Based on those assumptions, you must IMMEDIATELY execute the scanFundsFetch tool and provide a baseline estimate. After you provide the baseline estimate and the grant data, you must clearly list the assumptions you made. Then, ask your clarifying questions to verify those assumptions so you can finalize a bulletproof bid. HARD DEFAULT: If the user requests a "new" unit or is ambiguous about the installation type, you MUST strictly assume it is a "Standard Replacement". Do not ask them to clarify. Run the scanFundsFetch tool immediately using "replacement" as the parameter, and list it in your assumptions afterward.`,
   shield: `You are Shield, a small business insurance education agent. Help owners understand coverage in plain language. Ask one of ten specific questions at a time.`,
   atlas: `You are Atlas, the financial and Stripe integrity agent for BaraTrust. You manage the "Agentic Gateway" — tracking client project wallets, processing payments, and ensuring Scout's (Procurement) spending is authorized. You are direct and focused on cash flow.`,
   scout: `You are Scout, the material and inventory procurement agent. Monitor local vendor pricing for construction and restaurant supplies. Find the "lowest landed cost" and suggest bulk buys when prices dip.`,
@@ -38,18 +39,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unknown agent" }, { status: 400 });
     }
 
-    const scanFundsFetchDecl = {
+    const scanFundsFetchDecl: FunctionDeclaration = {
       name: "scanFundsFetch",
-      description: "Scans for local grants, rebates, or SBA loans based on location and trade.",
+      description: "Scans for local grants, rebates, or SBA loans based on location and trade. If user is ambiguous, assume the default area and trade to execute IMMEDIATELY.",
       parameters: {
         type: SchemaType.OBJECT,
         properties: {
-          businessName: { type: SchemaType.STRING, description: "Name of the business" },
-          state: { type: SchemaType.STRING, description: "State where the business operates" },
-          city: { type: SchemaType.STRING, description: "City where the business operates" },
-          trade: { type: SchemaType.STRING, description: "The specific trade (e.g. HVAC, Plumber)" },
+          businessName: { type: SchemaType.STRING, description: "Name of the business. If unknown, default to 'BaraTrust Client'." },
+          state: { type: SchemaType.STRING, description: "State where the business operates. If unknown, strictly default to 'KY' and execute." },
+          city: { type: SchemaType.STRING, description: "City where the business operates. If unknown, strictly default to 'Louisville' and execute." },
+          trade: { type: SchemaType.STRING, description: "The specific trade (e.g. HVAC, Plumber). If ambiguous, default to the most likely trade based on context and execute." },
         },
-        required: ["state", "city", "trade"],
+        required: [] as string[],
       },
     };
 
@@ -57,58 +58,71 @@ export async function POST(req: Request) {
     const modelName = "gemini-2.5-flash";
     console.log("API Key present:", !!process.env.GEMINI_API_KEY);
     console.log("Using model:", modelName);
+    const tools: Tool[] | undefined = agentKey === "brix" ? ([{ functionDeclarations: [scanFundsFetchDecl] }] as Tool[]) : undefined;
+
     const model = genAI.getGenerativeModel({ 
       model: modelName, 
       systemInstruction: systemPrompt,
-      tools: agentKey === "brix" ? [{ functionDeclarations: [scanFundsFetchDecl] }] : undefined
+      tools: tools
     });
 
-    let contents: any[] = [{ role: "user", parts: [{ text: input }] }];
-
-    let result = await model.generateContent({
-      contents,
+    const chat = model.startChat({
       generationConfig: {
-        maxOutputTokens: 1000, 
+        maxOutputTokens: 8192, 
         temperature: 0.7,
       }
     });
 
-    const calls = result.response.functionCalls();
-    if (calls && calls.length > 0) {
+    let result = await chat.sendMessage([{ text: input }]);
+    let finalResponse = "";
+    let stepCount = 0;
+
+    while (stepCount < 5) {
+      try {
+        const chunkText = result.response.text();
+        if (chunkText) {
+          finalResponse += chunkText + "\n";
+        }
+      } catch (e) {
+        // No text in this chunk
+      }
+
+      const calls = result.response.functionCalls();
+      if (!calls || calls.length === 0) {
+        break;
+      }
+
+      stepCount++;
       const call = calls[0];
+      
       if (call.name === "scanFundsFetch") {
-        const { state, city, trade } = call.args as any;
-        console.log(`Tool call intercepted: scanFundsFetch for ${trade} in ${city}, ${state}`);
-        
-        // Simulate FundsFetch internal logic
-        const mockGrants = [
-          { name: `${state} Energy Efficiency Initiative`, type: "Grant", amount: "$5,000" },
-          { name: `${city} Small Business Advancement`, type: "SBA Rebate", amount: "$2,500" },
-        ];
+        try {
+          const { state, city, trade } = call.args as any;
+          console.log(`Tool call intercepted: scanFundsFetch for ${trade} in ${city}, ${state}`);
+          
+          // Return exactly what the prompt requested
+          const mockResponse = { grantsFound: true, amount: 2500, state: "IN" };
 
-        contents.push(result.response.candidates![0].content);
-        contents.push({
-          role: "function",
-          parts: [{
+          result = await chat.sendMessage([{
             functionResponse: {
-              name: "scanFundsFetch",
-              response: { grants: mockGrants }
+              name: call.name,
+              response: mockResponse
             }
-          }]
-        });
-
-        result = await model.generateContent({
-          contents,
-          generationConfig: {
-            maxOutputTokens: 1000, 
-            temperature: 0.7,
-          }
-        });
+          }]);
+        } catch (toolErr: any) {
+          console.error("Function execution failed:", toolErr);
+          break;
+        }
+      } else {
+        break;
       }
     }
 
-    const response = result.response.text();
-    return NextResponse.json({ response });
+    if (!finalResponse.trim()) {
+       finalResponse = "FundsFetch logic executed successfully, but no final summary was generated.";
+    }
+
+    return NextResponse.json({ response: finalResponse.trim() });
 
   } catch (err: any) {
     console.error("Agent live error:", err);

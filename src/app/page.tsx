@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 // The full roster of BaraTrust Agents
 const AGENTS = [
@@ -28,6 +30,8 @@ export default function CommandCenter() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{ role: "user" | "agent"; text: string }[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,20 +81,41 @@ export default function CommandCenter() {
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-          {AGENTS.map((agent) => (
-            <button
-              key={agent.id}
-              onClick={() => handleAgentSwitch(agent)}
-              className={`w-full text-left p-3 rounded-lg transition-all duration-200 ${
-                selectedAgent.id === agent.id
-                  ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
-                  : "bg-transparent border border-transparent hover:bg-gray-800 text-gray-400 hover:text-gray-200"
-              }`}
-            >
-              <div className="font-semibold text-sm">{agent.name}</div>
-              <div className="text-xs opacity-70 truncate mt-1">{agent.role}</div>
-            </button>
-          ))}
+          {AGENTS.map((agent) => {
+            const isBrix = agent.id === "brix";
+            const agentPath = `/dashboard/${agent.id}`;
+            const isActive = pathname === agentPath || (pathname === "/" && selectedAgent.id === agent.id);
+            
+            const className = `w-full text-left p-3 rounded-lg transition-all duration-200 block ${
+              isActive
+                ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
+                : "bg-transparent border border-transparent hover:bg-gray-800 text-gray-400 hover:text-gray-200"
+            }`;
+
+            if (isBrix) {
+              return (
+                <a
+                  key={agent.id}
+                  href={agentPath}
+                  className={className}
+                >
+                  <div className="font-semibold text-sm">{agent.name}</div>
+                  <div className="text-xs opacity-70 truncate mt-1">{agent.role}</div>
+                </a>
+              );
+            }
+
+            return (
+              <button
+                key={agent.id}
+                onClick={() => handleAgentSwitch(agent)}
+                className={className}
+              >
+                <div className="font-semibold text-sm">{agent.name}</div>
+                <div className="text-xs opacity-70 truncate mt-1">{agent.role}</div>
+              </button>
+            );
+          })}
         </div>
       </aside>
 

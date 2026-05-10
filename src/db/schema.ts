@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, varchar, uuid, integer } from 'drizzle-orm/pg-core';
 
 export const businesses = pgTable('businesses', {
   id: serial('id').primaryKey(),
@@ -32,4 +32,31 @@ export const messages = pgTable('messages', {
   projectId: uuid('project_id').references(() => projects.id),
   role: text('role').notNull(), // 'user' or 'assistant'
   content: text('content').notNull(),
+});
+
+export const grants = pgTable('grants', {
+  id: serial('id').primaryKey(),
+  state: text('state').notNull(),
+  trade: text('trade'),
+  amount: text('amount'), // Store as text or decimal for currency
+  status: text('status'),
+});
+
+export const bids = pgTable('bids', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').references(() => projects.id),
+  status: text('status').notNull(), // e.g., 'presented'
+  laborCost: integer('labor_cost').notNull().default(0), // stored in cents
+  equipmentCost: integer('equipment_cost').notNull().default(0), // stored in cents
+  materialsCost: integer('materials_cost').notNull().default(0), // stored in cents
+  grantMoneyFound: integer('grant_money_found').notNull().default(0), // stored in cents
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const wallets = pgTable('wallets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  projectId: uuid('project_id').references(() => projects.id),
+  status: text('status').notNull(), // e.g., 'captured'
+  amountCaptured: integer('amount_captured').notNull().default(0), // stored in cents
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });

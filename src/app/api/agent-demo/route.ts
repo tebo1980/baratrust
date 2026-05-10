@@ -1,6 +1,9 @@
 
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, FunctionDeclaration, Tool } from "@google/generative-ai";
+import { db } from "@/db";
+import { bids } from "@/db/schema";
+import { revalidatePath } from "next/cache";
 
 export const maxDuration = 60;
 
@@ -120,6 +123,46 @@ export async function POST(req: Request) {
 
     if (!finalResponse.trim()) {
        finalResponse = "FundsFetch logic executed successfully, but no final summary was generated.";
+    }
+
+    if (agentKey === "brix") {
+      try {
+        // Fallback projectId since it's not dynamically passed yet
+        const fallbackProjectId = "00000000-0000-0000-0000-000000000000";
+
+        // Extract values from the final response text
+        // Using a simple regex to find amounts associated with keywords
+        const parseAmount = (text: string, keyword: string): number => {
+          const regex = new RegExp(`${keyword}[^0-9]*\\$?([0-9,]+(?:\\.[0-9]{2})?)`, 'i');
+          const match = text.match(regex);
+          if (match && match[1]) {
+            const amountStr = match[1].replace(/,/g, '');
+            return Math.round(parseFloat(amountStr) * 100); // Convert to integer cents
+          }
+          return 0; // Default if not found
+        };
+
+        const laborCost = parseAmount(finalResponse, "labor");
+        const equipmentCost = parseAmount(finalResponse, "equipment");
+        const materialsCost = parseAmount(finalResponse, "materials");
+        const grantMoneyFound = parseAmount(finalResponse, "grant");
+
+        // If all are 0, we might have missed them or they weren't generated clearly.
+        // We insert them anyway per instructions to save the finalized quote.
+        await db.insert(bids).values({
+          projectId: fallbackProjectId,
+          laborCost: laborCost,
+          equipmentCost: equipmentCost,
+          materialsCost: materialsCost,
+          grantMoneyFound: grantMoneyFound,
+          status: 'presented',
+        });
+
+        revalidatePath('/dashboard');
+        console.log(`Brix quote saved to database (Labor: ${laborCost}, Equip: ${equipmentCost}, Mat: ${materialsCost}, Grant: ${grantMoneyFound})`);
+      } catch (dbErr) {
+        console.error("Failed to save Brix quote to database:", dbErr);
+      }
     }
 
     return NextResponse.json({ response: finalResponse.trim() });

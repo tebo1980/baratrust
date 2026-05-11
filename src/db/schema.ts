@@ -69,3 +69,14 @@ export const wallets = pgTable('wallets', {
   status: text('status').default('pending_authorization'), // 'authorized', 'captured', 'refunded'
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+// 3. Nova's Domain: The Inbound Leads Table
+export const inbound_leads = pgTable('inbound_leads', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  source: text('source'),
+  jobScope: text('job_scope'),
+  estimatedPay: integer('estimated_pay'),
+  region: text('region'),
+  sourceUrl: text('source_url'),
+  status: text('status').default('new'),
+});

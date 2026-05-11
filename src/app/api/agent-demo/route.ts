@@ -57,11 +57,23 @@ export async function POST(req: Request) {
       },
     };
 
+    const fetchEquipmentCostsDecl: FunctionDeclaration = {
+      name: "fetchEquipmentCosts",
+      description: "Fetches current market equipment costs.",
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: {
+          equipmentType: { type: SchemaType.STRING, description: "The type of equipment to fetch costs for." },
+        },
+        required: ["equipmentType"],
+      },
+    };
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const modelName = "gemini-2.5-flash";
     console.log("API Key present:", !!process.env.GEMINI_API_KEY);
     console.log("Using model:", modelName);
-    const tools: Tool[] | undefined = agentKey === "brix" ? ([{ functionDeclarations: [scanFundsFetchDecl] }] as Tool[]) : undefined;
+    const tools: Tool[] | undefined = agentKey === "brix" ? ([{ functionDeclarations: [scanFundsFetchDecl, fetchEquipmentCostsDecl] }] as Tool[]) : undefined;
 
     const model = genAI.getGenerativeModel({ 
       model: modelName, 
@@ -105,6 +117,22 @@ export async function POST(req: Request) {
           
           // Return exactly what the prompt requested
           const mockResponse = { grantsFound: true, amount: 2500, state: "IN" };
+
+          result = await chat.sendMessage([{
+            functionResponse: {
+              name: call.name,
+              response: mockResponse
+            }
+          }]);
+        } catch (toolErr: any) {
+          console.error("Function execution failed:", toolErr);
+          break;
+        }
+      } else if (call.name === "fetchEquipmentCosts") {
+        try {
+          console.log(`Tool call intercepted: fetchEquipmentCosts`);
+
+          const mockResponse = { cost: 4500, availability: "In Stock" };
 
           result = await chat.sendMessage([{
             functionResponse: {

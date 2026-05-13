@@ -72,11 +72,10 @@ export const wallets = pgTable('wallets', {
 
 // 3. Nova's Domain: The Inbound Leads Table
 export const inbound_leads = pgTable('inbound_leads', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  source: text('source'),
-  jobScope: text('job_scope'),
-  estimatedPay: integer('estimated_pay'),
-  region: text('region'),
-  sourceUrl: text('source_url'),
-  status: text('status').default('new'),
+  id: serial('id').primaryKey(),
+  title: text('title'),
+  price: text('price'),
+  summary: text('summary'),
+  city: text('city'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });

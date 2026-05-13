@@ -23,12 +23,11 @@ export async function POST(req: Request) {
 
     // 3. Database Insert
     await db.insert(inbound_leads).values({
-      source: payload.source,
-      jobScope: payload.jobScope,
-      estimatedPay: payload.estimatedPay,
-      region: payload.region,
-      sourceUrl: payload.sourceUrl,
-      status: 'new'
+      title: payload.title,
+      price: payload.price,
+      summary: payload.summary,
+      city: payload.city,
+      // created_at from the payload is ignored here because the schema automatically sets defaultNow() for createdAt
     });
 
     // 4. Cache Refresh

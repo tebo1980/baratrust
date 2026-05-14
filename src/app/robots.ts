@@ -1,0 +1,15 @@
+import type { MetadataRoute } from 'next'
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/internal/', '/api/', '/preview/'],
+      },
+    ],
+    sitemap: 'https://baratrust.com/sitemap.xml',
+    host: 'https://baratrust.com',
+  }
+}

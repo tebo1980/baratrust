@@ -1,0 +1,82 @@
+{
+  "slug": "greenfield-landscaping-d3e1",
+  "generatedAt": "2026-04-29T14:00:00.000Z",
+  "lastTouched": "2026-04-29T14:00:00.000Z",
+  "status": "Sent",
+  "notes": "SAMPLE — fictional business for template validation",
+  "indexable": false,
+  "validUntilDays": 60,
+  "business": {
+    "name": "Greenfield Landscaping",
+    "tagline": "Yards, hardscapes, and trees done right",
+    "phone": "(812) 555-0167",
+    "email": "hello@greenfieldscapes.example",
+    "yearEstablished": 2016,
+    "insured": true
+  },
+  "location": {
+    "city": "New Albany",
+    "state": "IN",
+    "serviceAreas": ["New Albany", "Jeffersonville", "Clarksville", "Sellersburg", "Floyds Knobs", "Georgetown"],
+    "primaryGoogleSearchTerm": "landscaping New Albany IN"
+  },
+  "services": [
+    {
+      "name": "Lawn Care",
+      "description": "Weekly mowing, edging, and cleanup. We show up when we say we will and leave it better than we found it.",
+      "icon": "🌱"
+    },
+    {
+      "name": "Hardscaping",
+      "description": "Patios, retaining walls, fire pits, and walkways. Built to last decades, not seasons.",
+      "icon": "🧱"
+    },
+    {
+      "name": "Tree & Shrub Service",
+      "description": "Pruning, removal, and stump grinding. Insured climbers and clean cleanup, every time.",
+      "icon": "🌳"
+    },
+    {
+      "name": "Mulch & Beds",
+      "description": "Spring mulch refresh, bed edging, and seasonal plantings. Cheapest curb-appeal upgrade you can buy.",
+      "icon": "🪴"
+    }
+  ],
+  "reviews": [
+    {
+      "author": "Pat M.",
+      "rating": 5,
+      "text": "Built a 400 square foot paver patio for us last fall. Took five days, looks incredible, and the price was thousands less than the other quote we got. Already booked them for spring mulch.",
+      "source": "Google",
+      "date": "2025-09-14"
+    },
+    {
+      "author": "Linda H.",
+      "rating": 5,
+      "text": "Took down a huge dead oak that was leaning over our garage. Quick, careful, and they ground the stump and hauled everything away. Yard looked spotless when they left.",
+      "source": "Google",
+      "date": "2025-05-22"
+    },
+    {
+      "author": "Jeff S.",
+      "rating": 5,
+      "text": "Been using Greenfield for weekly mowing for three seasons. Never miss a week, never any drama. That's all I ask for.",
+      "source": "Google",
+      "date": "2024-08-11"
+    }
+  ],
+  "about": {
+    "ownerName": "Marcus Greenfield",
+    "yearsExperience": 15,
+    "story": "I grew up working in my dad's nursery, then spent ten years on commercial crews before starting Greenfield in 2016. We're not the biggest landscaping company around, and we don't want to be. We're a small crew that takes pride in showing up, doing the work, and not leaving you to chase us down for a callback."
+  },
+  "branding": {
+    "primaryColor": "#C0392B",
+    "accentColor": "#1A1A1A",
+    "style": "bold"
+  },
+  "callToAction": {
+    "primaryButtonText": "Call for a Quote",
+    "secondaryButtonText": "Email Us"
+  }
+}

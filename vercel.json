@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/health-score.html",
+      "destination": "/health-score",
+      "permanent": true
+    },
+    {
+      "source": "/terms.html",
+      "destination": "/terms",
+      "permanent": true
+    }
+  ]
+}

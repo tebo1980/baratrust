@@ -1,0 +1,83 @@
+{
+  "slug": "clarks-hvac-a4f9",
+  "generatedAt": "2026-04-29T14:00:00.000Z",
+  "lastTouched": "2026-04-29T14:00:00.000Z",
+  "status": "Replied",
+  "notes": "SAMPLE — fictional business for template validation",
+  "indexable": false,
+  "validUntilDays": 60,
+  "business": {
+    "name": "Clark's Heating & Air",
+    "tagline": "Honest HVAC service in Indianapolis",
+    "phone": "(317) 555-0184",
+    "email": "service@clarkshvac.example",
+    "yearEstablished": 2014,
+    "licenseNumber": "IN-HVAC-88421",
+    "insured": true
+  },
+  "location": {
+    "city": "Indianapolis",
+    "state": "IN",
+    "serviceAreas": ["Indianapolis", "Carmel", "Fishers", "Greenwood", "Noblesville", "Plainfield", "Speedway"],
+    "primaryGoogleSearchTerm": "HVAC repair Indianapolis"
+  },
+  "services": [
+    {
+      "name": "AC Repair & Install",
+      "description": "Same-day diagnostics most of the year. We fix what we can and only replace what truly needs replacing.",
+      "icon": "❄️"
+    },
+    {
+      "name": "Furnace Service",
+      "description": "Repair, maintenance, and replacement for gas and electric furnaces. We service every major brand.",
+      "icon": "🔥"
+    },
+    {
+      "name": "Heat Pumps",
+      "description": "High-efficiency heat pump installation and repair. Lower utility bills, year-round comfort, fewer moving parts.",
+      "icon": "♻️"
+    },
+    {
+      "name": "Maintenance Plans",
+      "description": "Two visits a year, priority scheduling, and 15% off any repair work. The cheapest insurance you'll ever buy.",
+      "icon": "🛠️"
+    }
+  ],
+  "reviews": [
+    {
+      "author": "Jennifer K.",
+      "rating": 5,
+      "text": "AC died on the hottest day of the summer. Clark's had a tech at our house in three hours, fixed it for under $200. We're customers for life.",
+      "source": "Google",
+      "date": "2025-07-18"
+    },
+    {
+      "author": "Tom W.",
+      "rating": 5,
+      "text": "Got three quotes for a new furnace. Clark's was the only one that actually checked our existing system instead of just trying to upsell. Saved us $4k.",
+      "source": "Google",
+      "date": "2025-02-08"
+    },
+    {
+      "author": "Ashley P.",
+      "rating": 5,
+      "text": "Maintenance plan is worth every penny. They catch stuff before it becomes a midnight emergency. Highly recommend.",
+      "source": "Google",
+      "date": "2024-09-30"
+    }
+  ],
+  "about": {
+    "ownerName": "Dan Clark",
+    "yearsExperience": 18,
+    "story": "I worked at a big HVAC company for ten years before starting Clark's. Watched them push replacements that customers didn't need and charge for repairs that took fifteen minutes. I started this business to do it the way I always thought it should be done — show up, tell the truth, fix it right, charge what's fair."
+  },
+  "branding": {
+    "primaryColor": "#0F8C8C",
+    "accentColor": "#E27431",
+    "style": "modern"
+  },
+  "callToAction": {
+    "primaryButtonText": "Call for Service",
+    "secondaryButtonText": "Schedule Online"
+  }
+}

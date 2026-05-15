@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 // The full roster of BaraTrust Agents
@@ -23,6 +22,7 @@ const AGENTS = [
   { id: "acoustic", name: "Acoustic", role: "Royalty-Free BGM System" },
   { id: "blackbox", name: "Black Box", role: "Forensic Dispute Resolver" },
   { id: "rescue", name: "ShiftRescue", role: "Emergency Staffing" },
+  { id: "fetch", name: "Fetch", role: "Autonomous Scouting Agent" }, // <-- Fetch has officially joined the Mothership!
 ];
 
 export default function CommandCenter() {
@@ -72,43 +72,36 @@ export default function CommandCenter() {
 
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-      
+
       {/* SIDEBAR */}
       <aside className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <h1 className="text-2xl font-bold tracking-widest text-blue-500">BARATRUST</h1>
           <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider">Command Center v2.0</p>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
           {AGENTS.map((agent) => {
-            const isBrix = agent.id === "brix";
-            const agentPath = `/dashboard/${agent.id}`;
+            const isLinkable = agent.id === "brix" || agent.id === "fetch";
+            const agentPath = agent.id === "fetch" ? "/pioneer" : `/dashboard/${agent.id}`;
             const isActive = pathname === agentPath || (pathname === "/" && selectedAgent.id === agent.id);
-            
-            const className = `w-full text-left p-3 rounded-lg transition-all duration-200 block ${
-              isActive
-                ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
-                : "bg-transparent border border-transparent hover:bg-gray-800 text-gray-400 hover:text-gray-200"
-            }`;
 
-            if (isBrix) {
-              return (
-                <a
-                  key={agent.id}
-                  href={agentPath}
-                  className={className}
-                >
-                  <div className="font-semibold text-sm">{agent.name}</div>
-                  <div className="text-xs opacity-70 truncate mt-1">{agent.role}</div>
-                </a>
-              );
-            }
+            const className = `w-full text-left p-3 rounded-lg transition-all duration-200 block ${isActive
+              ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
+              : "bg-transparent border border-transparent hover:bg-gray-800 text-gray-400 hover:text-gray-200"
+              }`;
 
+            // ONE UNIFIED BUTTON TO RULE THEM ALL (No more hydration errors)
             return (
               <button
                 key={agent.id}
-                onClick={() => handleAgentSwitch(agent)}
+                onClick={() => {
+                  if (isLinkable) {
+                    router.push(agentPath);
+                  } else {
+                    handleAgentSwitch(agent);
+                  }
+                }}
                 className={className}
               >
                 <div className="font-semibold text-sm">{agent.name}</div>
@@ -132,9 +125,9 @@ export default function CommandCenter() {
           </div>
           {/* Easter egg back to our Stripe test */}
           {selectedAgent.id === "atlas" && (
-             <a href="/api/atlas-gateway" className="text-xs bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded border border-gray-700 text-gray-300">
-               View Payment Gateway
-             </a>
+            <a href="/api/atlas-gateway" className="text-xs bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded border border-gray-700 text-gray-300">
+              View Payment Gateway
+            </a>
           )}
         </header>
 
@@ -147,12 +140,11 @@ export default function CommandCenter() {
           ) : (
             messages.map((msg, index) => (
               <div key={index} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div 
-                  className={`max-w-[70%] p-4 rounded-xl ${
-                    msg.role === "user" 
-                      ? "bg-blue-600 text-white rounded-br-none" 
-                      : "bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-none"
-                  }`}
+                <div
+                  className={`max-w-[70%] p-4 rounded-xl ${msg.role === "user"
+                    ? "bg-blue-600 text-white rounded-br-none"
+                    : "bg-gray-800 text-gray-200 border border-gray-700 rounded-bl-none"
+                    }`}
                 >
                   {msg.text}
                 </div>

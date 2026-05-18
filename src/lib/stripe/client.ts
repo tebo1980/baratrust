@@ -23,7 +23,7 @@ const getStripeKey = () => {
 
 // 3. Initialize the Client
 export const stripe = new Stripe(getStripeKey(), {
-  apiVersion: "2026-04-22.dahlia", // Change this to whatever version your Stripe dashboard uses
+  apiVersion: "2026-04-22.dahlia", // Stripe dashboard uses
   typescript: true,
   appInfo: {
     name: "BaraTrust",

@@ -69,4 +69,7 @@ export const leads = pgTable('leads', {
   city: text('city'),
   status: text('status').default('new'),
   createdAt: timestamp('created_at').defaultNow(),
+  source: text('source'),
+  originalText: text('original_text'),
+  draftReply: text('draft_reply'),
 });

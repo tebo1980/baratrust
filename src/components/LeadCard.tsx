@@ -9,13 +9,14 @@ import {
   Tag,
   CheckCircle2,
   XCircle,
-  Archive
+  Archive,
+  Bot // <-- Added Bot icon for Brix
 } from "lucide-react";
 import { formatDate, cn } from "../lib/utils";
 import { firebaseService } from "../lib/firebase/service";
 
 interface LeadCardProps {
-  key?: string | number; // <--- Add this exact line right here
+  key?: string | number;
   lead: JobLead & { id: string };
   index: number;
   compact?: boolean;
@@ -24,6 +25,37 @@ interface LeadCardProps {
 export default function LeadCard({ lead, index, compact }: LeadCardProps) {
   const handleStatusUpdate = async (status: JobLead["status"]) => {
     await firebaseService.updateLeadStatus(lead.id, status);
+  };
+
+  const handleEngageBrix = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log(`[BRIX DISPATCH] Transmitting lead ${lead.id} to agent network...`);
+
+    try {
+      // Change button state to loading (optional UI polish for later)
+      const response = await fetch("/api/agents/engage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadId: lead.id,
+          title: lead.title,
+          description: lead.description,
+          category: lead.category,
+          region: lead.region
+        })
+      });
+
+      if (!response.ok) throw new Error("Brix deployment failed");
+
+      const result = await response.json();
+      console.log("[BRIX SUCCESS] Quote generated and saved to pipeline:", result);
+
+      // Update the lead status in Firebase so it visually changes on your dashboard
+      await handleStatusUpdate('contacted');
+
+    } catch (error) {
+      console.error("[BRIX ERROR] Agent failed to process lead:", error);
+    }
   };
 
   if (compact) {
@@ -51,7 +83,15 @@ export default function LeadCard({ lead, index, compact }: LeadCardProps) {
         <div className="col-span-2 font-serif font-bold text-natural-heading text-sm text-right">
           {lead.pay}
         </div>
-        <div className="col-span-1 flex items-center justify-end gap-3">
+        <div className="col-span-1 flex items-center justify-end gap-2">
+          {/* BRIX COMPACT BUTTON */}
+          <button
+            onClick={handleEngageBrix}
+            className="p-1.5 rounded-full text-indigo-600 hover:bg-indigo-50 transition-colors"
+            title="Engage Brix"
+          >
+            <Bot className="w-4 h-4" />
+          </button>
           <a href={lead.sourceUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full hover:bg-natural-bg text-natural-accent transition-colors">
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
@@ -106,6 +146,15 @@ export default function LeadCard({ lead, index, compact }: LeadCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* THE NEW BRIX DEPLOYMENT TRIGGER */}
+          <button
+            onClick={handleEngageBrix}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-900/10 text-indigo-700 hover:bg-indigo-900 hover:text-white rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300"
+          >
+            <Bot className="w-4 h-4" />
+            Engage Brix
+          </button>
+
           <button
             onClick={() => handleStatusUpdate('contacted')}
             className="p-3 rounded-full border border-natural-border hover:bg-natural-accent hover:text-white hover:border-natural-accent transition-all duration-300 group/btn"

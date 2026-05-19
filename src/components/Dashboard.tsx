@@ -13,7 +13,9 @@ import {
   TrendingUp,
   LayoutGrid,
   List,
-  Database
+  Database,
+  Bot,
+  Zap
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -52,28 +54,22 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     if (!contractor) return;
     setIsScouting(true);
 
-    // In a real app, we'd loop through categories and regions
-    // For this demo, we'll scout the first one of each
     const foundLeads = await geminiService.searchLeads(
       contractor.regions[0],
       contractor.categories[0]
     );
 
     for (const lead of foundLeads) {
-      // 1. Keep original code: Save to Firebase for the LeadScout UI
       await firebaseService.addLead({
         ...lead,
         contractorId: user.uid,
       });
 
-      // 2. The Bridge: Forward a translated copy to BaraTrustAds / BaraTrust Backend
       try {
-        // Safely parse the pay just in case it's missing or a pure number
         const rawPay = String(lead.pay || "");
         const parsedPay = parseInt(rawPay.replace(/[^0-9]/g, ''));
         const safeEstimatedPay = isNaN(parsedPay) ? null : parsedPay * 100;
 
-        // Translate LeadScout's schema into the main database schema
         const payload = {
           source: lead.sourceSite || (lead as any).source || "Unknown",
           jobScope: `${lead.title || "Unknown Job"} - ${lead.description || ""}`,
@@ -82,7 +78,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           sourceUrl: lead.sourceUrl || ""
         };
 
-        await fetch("http://localhost:3000/api/webhooks/lead-pioneer", {
+        // FIXED: Switched from hardcoded localhost to a relative URL for Vercel compatibility
+        await fetch("/api/webhooks/lead-pioneer", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -101,7 +98,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
   return (
     <div className="flex bg-natural-bg min-h-screen font-sans">
-      {/* Sidebar */}
       <aside className="w-72 bg-natural-sidebar border-r border-natural-border flex flex-col pt-10">
         <div className="px-8 mb-12 flex items-center gap-3">
           <div className="w-10 h-10 bg-natural-accent rounded-xl flex items-center justify-center text-white">
@@ -116,10 +112,16 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           <NavItem icon={TrendingUp} label="Region Matrix" />
           <NavItem icon={Settings} label="Configurations" />
 
-          {/* THE NEW GATEWAY LINK */}
+          {/* RESTORED BRIX & FETCH LINKS */}
+          <div className="pt-6 pb-2 px-4">
+            <p className="text-[10px] font-bold tracking-widest text-natural-text/40 uppercase">Engines</p>
+          </div>
+          <NavItem icon={Bot} label="Brix AI" href="/dashboard/brix" />
+          <NavItem icon={Zap} label="Fetch Scraper" href="/dashboard/fetch" />
+
           <a
             href="/leads"
-            className="w-full flex items-center gap-3 px-4 py-3 mt-4 text-sm font-bold transition-all rounded-xl bg-blue-900/10 text-blue-800 hover:bg-blue-900/20 border border-blue-900/10 shadow-sm"
+            className="w-full flex items-center gap-3 px-4 py-3 mt-6 text-sm font-bold transition-all rounded-xl bg-blue-900/10 text-blue-800 hover:bg-blue-900/20 border border-blue-900/10 shadow-sm"
           >
             <Database className="w-4 h-4" />
             Lead Command Center
@@ -157,9 +159,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <header className="h-24 border-b border-natural-border flex items-center justify-between px-10 bg-white/40 backdrop-blur-md sticky top-0 z-10">
           <div>
             <h2 className="text-3xl font-serif italic text-natural-heading leading-tight">Morning Dispatch</h2>
@@ -197,7 +197,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           </div>
         </header>
 
-        {/* Scrollable Content */}
         <div className={cn(
           "flex-1 overflow-y-auto p-10 transition-all duration-500",
           view === "grid" ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 auto-rows-min" : "flex flex-col gap-3"
@@ -223,7 +222,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           )}
         </div>
 
-        {/* Footer Activity Feed */}
         <footer className="h-16 bg-natural-sidebar border-t border-natural-border px-10 flex items-center overflow-hidden">
           <span className="text-[10px] font-bold text-natural-text/50 uppercase tracking-[0.2em] mr-8">Live Feed:</span>
           <div className="flex gap-12 text-[11px] text-natural-text/70 whitespace-nowrap overflow-hidden">
@@ -238,9 +236,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   );
 }
 
-function NavItem({ icon: Icon, label, active = false }: { icon: any, label: string, active?: boolean }) {
+// UPGRADED NAV ITEM: Now accepts standard URLs to act as a proper link
+function NavItem({ icon: Icon, label, active = false, href }: { icon: any, label: string, active?: boolean, href?: string }) {
+  const Element = href ? "a" : "button";
   return (
-    <button
+    <Element
+      href={href}
       className={cn(
         "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-xl",
         active ? "bg-[#E5E1D5] text-natural-heading shadow-sm" : "hover:bg-natural-text/5 text-natural-text/60 hover:text-natural-heading"
@@ -248,6 +249,6 @@ function NavItem({ icon: Icon, label, active = false }: { icon: any, label: stri
     >
       <div className={cn("w-2 h-2 rounded-full", active ? "bg-natural-accent-light" : "bg-transparent border border-natural-border")}></div>
       {label}
-    </button>
+    </Element>
   );
 }

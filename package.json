@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^5.7.6",
     "@clerk/themes": "^2.4.57",
+    "@google/genai": "^2.4.0",
     "@google/generative-ai": "^0.11.0",
     "@neondatabase/serverless": "^0.8.1",
     "clsx": "^2.1.1",
@@ -23,6 +24,8 @@
     "pg": "^8.11.5",
     "react": "^18",
     "react-dom": "^18",
+    "stripe": "^22.1.1",
+    "svix": "^1.93.0",
     "tailwind-merge": "^2.3.0"
   },
   "devDependencies": {

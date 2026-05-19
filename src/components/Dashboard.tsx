@@ -12,7 +12,8 @@ import {
   Layers,
   TrendingUp,
   LayoutGrid,
-  List
+  List,
+  Database
 } from "lucide-react";
 import { cn } from "../lib/utils";
 
@@ -114,6 +115,15 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           <NavItem icon={Search} label="Lead Pool" />
           <NavItem icon={TrendingUp} label="Region Matrix" />
           <NavItem icon={Settings} label="Configurations" />
+
+          {/* THE NEW GATEWAY LINK */}
+          <a
+            href="/leads"
+            className="w-full flex items-center gap-3 px-4 py-3 mt-4 text-sm font-bold transition-all rounded-xl bg-blue-900/10 text-blue-800 hover:bg-blue-900/20 border border-blue-900/10 shadow-sm"
+          >
+            <Database className="w-4 h-4" />
+            Lead Command Center
+          </a>
         </nav>
 
         <div className="p-6">

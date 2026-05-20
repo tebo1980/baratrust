@@ -283,7 +283,7 @@ export default function ManualPaste() {
               </>
             )}
             <a
-              href="/internal/opportunity-watch/self-prospecting"
+              href="/dashboard/fetch"
               style={{ fontSize: '13px', color: '#5B9FE4', fontWeight: 600, textDecoration: 'none' }}
             >
               See it in the dashboard →

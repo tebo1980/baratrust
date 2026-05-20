@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '../../../../../lib/stripe/client';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!.trim(), {
+  apiVersion: '2026-04-22.dahlia',
+});
 
 export async function POST(req: Request) {
   try {

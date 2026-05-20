@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { sql } from '@vercel/postgres';
-import { stripe } from '../../../../lib/stripe/client';
+
+// Initialize Stripe with the correct 2026 version
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-04-22.dahlia',
+});
 
 // The webhook secret from the Stripe Dashboard / CLI
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: Request) {
   const body = await req.text();

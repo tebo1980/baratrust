@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Replace with your actual key
-const GEMINI_API_KEY = "AIzaSyBlysfIJyWWU81UnXmdPk84wlMebyg0eFU";
+const GEMINI_API_KEY = "AIzaSyAW-_PZ6WRlxQm2EHb74eZjq4AMMVoQeh8";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 async function extractAndAnalyzeLeads() {

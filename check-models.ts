@@ -1,5 +1,5 @@
 // Replace with your actual Gemini API Key
-const GEMINI_API_KEY = "AIzaSyBlysfIJyWWU81UnXmdPk84wlMebyg0eFU";
+const GEMINI_API_KEY = "AIzaSyAW-_PZ6WRlxQm2EHb74eZjq4AMMVoQeh8";
 
 async function interrogateGoogle() {
     console.log("Pinging Google servers for authorized models...");

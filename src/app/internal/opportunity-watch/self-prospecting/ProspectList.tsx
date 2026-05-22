@@ -31,6 +31,8 @@ interface Prospect {
   contractor_name: string | null
   conversion_value_monthly: number | null
   found_at: string
+  novaPriority?: boolean
+  nova_priority?: boolean
 }
 
 interface Counts {
@@ -184,6 +186,26 @@ export default function ProspectList({ sinceHours, title }: Props) {
     }
   }, [])
 
+  const dispatchNovaResponse = useCallback(async (id: number) => {
+    try {
+      const res = await fetch('/api/internal/nova-responder/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospectId: id }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`)
+      }
+
+      alert('✅ ' + (data.message || 'Nova payload dispatched successfully!'))
+      refresh()
+    } catch (err) {
+      alert(`Dispatch failed: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
+  }, [refresh])
+
   const headerStats = useMemo(() => {
     if (!counts) return null
     return (
@@ -311,6 +333,22 @@ export default function ProspectList({ sinceHours, title }: Props) {
               >
                 {bColor.label} · {p.total_score}
               </span>
+              {(p.novaPriority || p.nova_priority) && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    background: 'rgba(224,90,90,0.25)',
+                    color: '#FF7373',
+                    letterSpacing: '0.08em',
+                    boxShadow: '0 0 10px rgba(224,90,90,0.6)'
+                  }}
+                >
+                  🚨 Nova Priority Intake
+                </span>
+              )}
               <span
                 style={{
                   fontSize: '11px',
@@ -459,6 +497,20 @@ export default function ProspectList({ sinceHours, title }: Props) {
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {(p.novaPriority || p.nova_priority) && (
+                <button
+                  onClick={() => dispatchNovaResponse(p.id)}
+                  style={{
+                    ...btnStyle,
+                    background: 'rgba(224,90,90,0.15)',
+                    color: '#FF7373',
+                    borderColor: 'rgba(224,90,90,0.4)',
+                    boxShadow: '0 0 8px rgba(224,90,90,0.4)'
+                  }}
+                >
+                  ⚡ Trigger Nova Response
+                </button>
+              )}
               {p.status !== 'sent' && (
                 <button onClick={() => updateStatus(p.id, { status: 'sent' })} style={btnStyle}>
                   Mark sent

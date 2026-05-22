@@ -1,0 +1,31 @@
+name: BaraTrust Lead Fetcher Autopilot
+
+on:
+  schedule:
+    # This runs the script every 6 hours automatically
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # This adds a manual "Run Workflow" button in GitHub so you can force it to run anytime
+
+jobs:
+  run-fetch-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout BaraTrust Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Engine Parts
+        run: npm install playwright @google/generative-ai pg dotenv --legacy-peer-deps
+
+      - name: Install Playwright Stealth Browser
+        run: npx playwright install chromium
+
+      - name: Fire the Fetch Engine
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/cl-fetch.js

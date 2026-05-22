@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Contractor": {
+      "title": "Contractor",
+      "description": "Represents a professional looking for work leads.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "regions": { "type": "array", "items": { "type": "string" }, "description": "Geographic regions of interest" },
+        "categories": { "type": "array", "items": { "type": "string" }, "description": "Types of work (e.g., mechanic, lawn care)" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "JobLead": {
+      "title": "Job Lead",
+      "description": "A lead found by the AI agent.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "pay": { "type": "string" },
+        "region": { "type": "string" },
+        "sourceUrl": { "type": "string" },
+        "sourceSite": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string", "enum": ["new", "saved", "contacted", "ignored"] },
+        "rawContent": { "type": "string", "description": "Original text for AI re-parsing if needed" },
+        "contractorId": { "type": "string", "description": "The UID of the contractor this lead belongs to" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "region", "contractorId"]
+    },
+    "SearchLog": {
+      "title": "Search Log",
+      "description": "Log of agentic searches performed.",
+      "type": "object",
+      "properties": {
+        "contractorId": { "type": "string" },
+        "query": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "resultsCount": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "contractors/{contractorId}": {
+      "schema": "Contractor",
+      "description": "Contractor profiles"
+    },
+    "leads/{leadId}": {
+      "schema": "JobLead",
+      "description": "Global collection of found leads"
+    },
+    "searchLogs/{logId}": {
+      "schema": "SearchLog",
+      "description": "History of searches"
+    }
+  }
+}

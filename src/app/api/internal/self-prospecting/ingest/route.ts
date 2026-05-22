@@ -3,6 +3,30 @@ import { fetchPost } from '@/lib/self-prospecting/fetcher'
 import { scoreProspect, scoreBand } from '@/lib/self-prospecting/scorer'
 import { draftReply } from '@/lib/self-prospecting/drafter'
 import { insertProspect } from '@/lib/self-prospecting/db'
+import type { ProspectRow } from '@/lib/self-prospecting/db';
+
+/**
+ * Evaluates a newly inserted prospect to determine if it requires
+ * immediate Nova Priority Intake on the frontend dashboard.
+ */
+function evaluateNovaPriority(prospect: ProspectRow | any, band: string): boolean {
+  // Option A: Rely purely on the scorer's band designation
+  const isHotLead = band === 'hot';
+
+  // Option B: Set a strict numerical threshold based on your specific scaling logic
+  const meetsScoreThreshold = (prospect.total_score || prospect.score?.total || 0) >= 85;
+
+  // Option C: Check if specific high-value keywords triggered
+  const keywords = prospect.matched_keywords || prospect.score?.matchedKeywords || [];
+  const hasEmergencyKeywords = keywords.some((kw: string) =>
+    kw.toLowerCase().includes('emergency') ||
+    kw.toLowerCase().includes('asap') ||
+    kw.toLowerCase().includes('today')
+  );
+
+  // Return true if it meets the criteria for immediate Nova intervention
+  return isHotLead || (meetsScoreThreshold && hasEmergencyKeywords);
+}
 
 interface IngestBody {
   url: string
@@ -115,9 +139,13 @@ export async function POST(req: Request) {
     )
   }
 
+  // 5. Evaluate for Nova Priority Intake
+  const requiresNovaIntake = evaluateNovaPriority(row, band);
+
   return NextResponse.json({
     prospect: row,
     band,
     fetchNote,
+    novaPriority: requiresNovaIntake, // Pass flag to the front-end state
   })
 }

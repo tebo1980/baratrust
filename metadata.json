@@ -1,0 +1,12 @@
+{
+  "name": "LeadScout AI",
+  "description": "Agentic lead generation for contractors, mechanics, and lawn care professionals. Automatically sources and categorizes jobs from Craigslist, Facebook Marketplace, and more.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "AI-powered lead extraction",
+    "Regional job tracking",
+    "Contractor analytics"
+  ]
+}

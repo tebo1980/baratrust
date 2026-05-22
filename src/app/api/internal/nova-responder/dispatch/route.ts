@@ -30,11 +30,10 @@ export async function POST(req: Request) {
     console.log(`[NOVA DISPATCH] Target URL: ${prospect.source_url}`)
     console.log(`[NOVA DISPATCH] Message Payload: "${messageToSend}"`)
 
-    // TODO: In production, integrate your actual third-party email/SMS provider (e.g. SendGrid, Twilio, resend) here.
+    // TODO: In production, integrate your actual third-party email/SMS provider (e.g. SendGrid, Twilio, Resend) here.
 
-    // 4. Update the prospect's status column to 'sent' (or 'contacted' conceptually, but our db schema uses 'sent')
-    // Note: The schema's ProspectStatus type is 'new' | 'sent' | 'replied' | 'converted' | 'discarded'.
-    // Moving it out of the 'New' column is achieved by changing status to 'sent'.
+    // 4. Update the prospect's status column to 'sent'
+    // Note: The schema's ProspectStatus type uses 'sent'. Moving it out of the 'New' column is achieved by changing status to 'sent'.
     const updatedProspect = await updateProspect(prospectId, { status: 'sent' })
 
     return NextResponse.json({

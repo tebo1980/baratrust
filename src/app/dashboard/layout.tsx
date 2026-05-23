@@ -1,7 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { Bot, Zap, Database, RefreshCcw } from "lucide-react"; // Imported the engine icons
+import { Bot, Zap, Database, RefreshCcw, Send } from "lucide-react"; // Imported the engine icons
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -59,6 +59,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link href="/dashboard/iris" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-500/30 border border-transparent transition-all shadow-sm">
                 <RefreshCcw className="w-4 h-4 text-cyan-400" />
                 Iris Sequencer
+              </Link>
+              <Link href="/internal/opportunitywatch-v2" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20 hover:border-emerald-500/30 border border-transparent transition-all shadow-sm">
+                <Send className="w-4 h-4 text-emerald-400" />
+                Nova Responder
               </Link>
             </div>
           </div>

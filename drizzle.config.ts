@@ -3,8 +3,8 @@ import type { Config } from "drizzle-kit";
 export default {
   schema: "./src/db/schema.ts", // Make sure this path matches your setup!
   out: "./drizzle",
-  dialect: 'postgresql',
+  driver: "pg", // <-- This is the exact string Drizzle is demanding
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    connectionString: process.env.DATABASE_URL!, // Or whatever your env variable is named
   }
-};
+} satisfies Config;

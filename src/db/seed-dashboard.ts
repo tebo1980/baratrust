@@ -20,11 +20,11 @@ async function seedDashboard() {
     console.log(`✅ Successfully created bid: ${newBid.id}`);
 
     // 2. Insert Wallet
+    // Note: 'amountAuthorized' and linking to the specific bid ID are omitted here
+    // because those fields don't exist in the current wallets schema!
     const [newWallet] = await db.insert(wallets).values({
       projectId: PROJECT_ID,
-      bidId: newBid.id,
       status: "captured",
-      amountAuthorized: 500000,
       amountCaptured: 500000,
     }).returning();
 

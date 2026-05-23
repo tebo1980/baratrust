@@ -69,14 +69,14 @@ export default async function RecentBidsTable() {
                       {dateString}
                     </td>
                     <td className="px-6 py-4">
-                      {bid.status?.toLowerCase() === 'presented' ? (
+                      {bid.status.toLowerCase() === 'presented' ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(251,191,36,0.15)] group-hover:shadow-[0_0_12px_rgba(251,191,36,0.3)] transition-all">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5 animate-pulse"></span>
                           Presented
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                          {bid.status || 'Unknown'}
+                          {bid.status}
                         </span>
                       )}
                     </td>

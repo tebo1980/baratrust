@@ -43,36 +43,21 @@ export const grants = pgTable('grants', {
 
 export const bids = pgTable('bids', {
   id: uuid('id').defaultRandom().primaryKey(),
-  projectId: uuid('project_id').notNull(), // Foreign key to your existing projects table
-
-  // Brix's Calculations (Stored in cents to avoid decimal math errors)
-  laborCost: integer('labor_cost').notNull(),
-  equipmentCost: integer('equipment_cost').notNull(),
-  materialsCost: integer('materials_cost').notNull(),
-
-  // Brix's Grant Discoveries
-  grantMoneyFound: integer('grant_money_found').default(0),
-
-  // State Tracking
-  status: text('status').default('draft'), // 'draft', 'presented', 'won', 'lost'
+  projectId: uuid('project_id').references(() => projects.id),
+  status: text('status').notNull(),
+  laborCost: integer('labor_cost').notNull().default(0),
+  equipmentCost: integer('equipment_cost').notNull().default(0),
+  materialsCost: integer('materials_cost').notNull().default(0),
+  grantMoneyFound: integer('grant_money_found').notNull().default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const wallets = pgTable('wallets', {
   id: uuid('id').defaultRandom().primaryKey(),
-  projectId: uuid('project_id').notNull(),
-  bidId: uuid('bid_id').notNull(), // Ties the payment directly to Brix's winning bid
-
-  // Atlas's Stripe Integration
-  stripePaymentIntentId: text('stripe_payment_intent_id'),
-
-  // Financial State
-  amountAuthorized: integer('amount_authorized').notNull(),
-  amountCaptured: integer('amount_captured').default(0),
-
-  // State Tracking
-  status: text('status').default('pending_authorization'), // 'authorized', 'captured', 'refunded'
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  projectId: uuid('project_id').references(() => projects.id),
+  status: text('status').notNull(),
+  amountCaptured: integer('amount_captured').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // --- MARINER / FETCH MEMORY BANK ---

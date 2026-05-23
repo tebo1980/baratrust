@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getProspect, updateProspect, type ProspectStatus } from '@/lib/self-prospecting/db'
+import { db } from '@/db'
+import { leads } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
-const VALID_STATUSES: ProspectStatus[] = ['new', 'sent', 'replied', 'converted', 'discarded']
+const VALID_STATUSES = ['new', 'sent', 'replied', 'converted', 'discarded', 'pending_review']
 
 interface PatchBody {
-  status?: ProspectStatus
+  status?: string
   notes?: string | null
   contractor_slug?: string | null
   contractor_name?: string | null
@@ -15,9 +17,29 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   const id = parseInt(params.id, 10)
   if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
   try {
-    const row = await getProspect(id)
+    const rowData = await db.select().from(leads).where(eq(leads.id, id)).limit(1)
+    const row = rowData[0]
+
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ prospect: row })
+
+    const mappedRow = {
+        id: row.id,
+        source_url: row.source || '#',
+        post_excerpt: row.originalText,
+        drafted_message: row.draftReply,
+        status: row.status || 'new',
+        found_at: row.createdAt?.toISOString() || new Date().toISOString(),
+        total_score: 0,
+        matched_keywords: [],
+        intent_score: 0,
+        intent_tier: 'Unknown',
+        specificity: 0,
+        location_match: 0,
+        recency: 0,
+        budget_signals: 0,
+    }
+
+    return NextResponse.json({ prospect: mappedRow })
   } catch (err) {
     console.error('get prospect failed:', err)
     return NextResponse.json({ error: 'Database read failed' }, { status: 500 })
@@ -48,9 +70,37 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 
   try {
-    const row = await updateProspect(id, body)
+    const updateData: any = {};
+    if (body.status) {
+        updateData.status = body.status;
+    }
+    // We omit the other notes and conversion mappings for now as they are not on the `leads` schema.
+
+    await db.update(leads).set(updateData).where(eq(leads.id, id))
+
+    const rowData = await db.select().from(leads).where(eq(leads.id, id)).limit(1)
+    const row = rowData[0]
+
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json({ prospect: row })
+
+    const mappedRow = {
+        id: row.id,
+        source_url: row.source || '#',
+        post_excerpt: row.originalText,
+        drafted_message: row.draftReply,
+        status: row.status || 'new',
+        found_at: row.createdAt?.toISOString() || new Date().toISOString(),
+        total_score: 0,
+        matched_keywords: [],
+        intent_score: 0,
+        intent_tier: 'Unknown',
+        specificity: 0,
+        location_match: 0,
+        recency: 0,
+        budget_signals: 0,
+    }
+
+    return NextResponse.json({ prospect: mappedRow })
   } catch (err) {
     console.error('update prospect failed:', err)
     return NextResponse.json({ error: 'Database write failed' }, { status: 500 })

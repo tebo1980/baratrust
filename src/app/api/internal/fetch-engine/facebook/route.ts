@@ -60,8 +60,8 @@ export async function POST(req: Request) {
     console.log("[FETCH ENGINE] Waiting for heavy Marketplace grid to render...");
     await page.waitForTimeout(10000);
 
-    console.log("[FETCH ENGINE] Executing infinite scroll sequence...");
-    for (let i = 0; i < 3; i++) {
+    console.log("[FETCH ENGINE] Executing infinite scroll sequence (Max 12 loops)...");
+    for (let i = 0; i < 12; i++) {
       await page.evaluate(() => window.scrollBy(0, 1000));
       await page.waitForTimeout(2000);
     }
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     const rawListings = await extractListings(page);
 
     await context.close();
-    console.log("[FETCH ENGINE] Browser session closed.");
+    console.log("[FETCH ENGINE] Browser session closed to flush memory.");
 
     if (rawListings.length === 0) {
         return NextResponse.json({ success: false, message: "No raw listings found. DOM might have changed." }, { status: 404 });
@@ -78,28 +78,23 @@ export async function POST(req: Request) {
 
     console.log("[FETCH ENGINE] Parsing raw DOM blocks and routing to database...");
 
-    // For this MVP step, we will inject the raw text blocks directly into the leads database.
-    // In production, you would pipe `rawListings` into a Gemini AI prompt here to format them into structured JSON (Title, Price, Phone, Summary) BEFORE inserting into Drizzle.
-
     let insertedCount = 0;
     for (const listing of rawListings) {
-        // Simple deduplication check based on the source link if available, or a slice of text
-        const snippet = listing.text.substring(0, 50);
+        // We use the snippet as the title for now since that's our unique constraint in the leads table
+        const snippet = listing.text.substring(0, 50) + '...';
 
         try {
             await db.insert(leads).values({
-                title: snippet + '...', // We don't have a clean title yet
+                title: snippet,
                 source: listing.link || 'Facebook Marketplace',
                 originalText: listing.text,
                 status: 'new',
                 city: city
-            });
+            }).onConflictDoNothing({ target: leads.title }); // Use title as target since it's UNIQUE in schema
+
             insertedCount++;
         } catch (dbErr: any) {
-            // Ignore unique constraint violations (if title is already in there)
-            if (dbErr.code !== '23505') {
-                console.error("Database insert error:", dbErr);
-            }
+            console.error("Database insert error:", dbErr);
         }
     }
 

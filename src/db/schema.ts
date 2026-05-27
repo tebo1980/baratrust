@@ -13,7 +13,7 @@ export const businesses = pgTable('businesses', {
 
 export const agentConfigs = pgTable('agent_configs', {
   id: serial('id').primaryKey(),
-  businessId: serial('business_id').references(() => businesses.id),
+  businessId: integer('business_id').references(() => businesses.id),
   agentName: text('agent_name').notNull(),
   isActive: text('is_active').default('true'),
   configuration: text('configuration'),

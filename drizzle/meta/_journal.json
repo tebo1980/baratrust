@@ -15,6 +15,13 @@
       "when": 1779848141963,
       "tag": "0001_shiny_menace",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1779868925988,
+      "tag": "0002_safe_the_call",
+      "breakpoints": true
     }
   ]
 }

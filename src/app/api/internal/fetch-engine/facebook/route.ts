@@ -80,7 +80,6 @@ export async function POST(req: Request) {
 
     let insertedCount = 0;
     for (const listing of rawListings) {
-        // We use the snippet as the title for now since that's our unique constraint in the leads table
         const snippet = listing.text.substring(0, 50) + '...';
 
         try {
@@ -90,7 +89,7 @@ export async function POST(req: Request) {
                 originalText: listing.text,
                 status: 'new',
                 city: city
-            }).onConflictDoNothing({ target: leads.title }); // Use title as target since it's UNIQUE in schema
+            }).onConflictDoNothing({ target: leads.source }); // Prevent duplicates using the UNIQUE source/link target
 
             insertedCount++;
         } catch (dbErr: any) {

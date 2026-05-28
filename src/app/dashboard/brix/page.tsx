@@ -207,10 +207,10 @@ function BrixDashboardContent() {
               <button
                 type="button"
                 onClick={handleSaveProject}
-                disabled={!jobName.trim() || !!projectId || isSaving}
+                disabled={!jobName.trim() || isSaving}
                 className="w-full bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:hover:bg-gray-800 text-white text-sm font-semibold py-3 rounded-lg border border-gray-700 transition-colors"
               >
-                {isSaving ? "Brix is calculating..." : projectId ? "Project Saved" : "Save Project"}
+                {isSaving ? "Brix is calculating..." : projectId ? "Update Project" : "Save Project"}
               </button>
             </div>
           </div>

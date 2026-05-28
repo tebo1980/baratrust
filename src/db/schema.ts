@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, varchar, uuid, integer } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, varchar, uuid, integer, boolean, jsonb } from 'drizzle-orm/pg-core';
 
 export const businesses = pgTable('businesses', {
   id: serial('id').primaryKey(),
@@ -13,7 +13,7 @@ export const businesses = pgTable('businesses', {
 
 export const agentConfigs = pgTable('agent_configs', {
   id: serial('id').primaryKey(),
-  businessId: serial('business_id').references(() => businesses.id),
+  businessId: integer('business_id').references(() => businesses.id), // FIXED: Now integer instead of serial!
   agentName: text('agent_name').notNull(),
   isActive: text('is_active').default('true'),
   configuration: text('configuration'),
@@ -63,13 +63,46 @@ export const wallets = pgTable('wallets', {
 // --- MARINER / FETCH MEMORY BANK ---
 export const leads = pgTable('leads', {
   id: serial('id').primaryKey(),
-  title: text('title').unique(),
+  title: text('title'), 
   price: text('price'),
   summary: text('summary'),
   city: text('city'),
   status: text('status').default('new'),
   createdAt: timestamp('created_at').defaultNow(),
-  source: text('source'),
+  source: text('source').unique(), // ADDED UNIQUE to source URL
   originalText: text('original_text'),
   draftReply: text('draft_reply'),
+});
+
+// --- ORIGINAL SELF-PROSPECTING LEADS TABLE (DO NOT DELETE) ---
+export const selfProspectingLeads = pgTable('self_prospecting_leads', {
+  id: serial('id').primaryKey(),
+  sourceUrl: text('source_url').notNull().unique(),
+  sourcePlatform: text('source_platform'),
+  subreddit: text('subreddit'),
+  author: text('author'),
+  postExcerpt: text('post_excerpt'),
+  postFullText: text('post_full_text'),
+  postedAt: timestamp('posted_at', { withTimezone: true }),
+  intentScore: integer('intent_score').notNull().default(0),
+  intentTier: text('intent_tier'),
+  specificity: integer('specificity').notNull().default(0),
+  locationMatch: integer('location_match').notNull().default(0),
+  recency: integer('recency').notNull().default(0),
+  budgetSignals: integer('budget_signals').notNull().default(0),
+  totalScore: integer('total_score').notNull().default(0),
+  matchedKeywords: jsonb('matched_keywords').default('[]'),
+  draftedMessage: text('drafted_message'),
+  noMentionMode: boolean('no_mention_mode').default(false),
+  subredditNote: text('subreddit_note'),
+  status: text('status').notNull().default('new'),
+  notes: text('notes'),
+  contractorSlug: text('contractor_slug'),
+  contractorName: text('contractor_name'),
+  conversionValueMonthly: integer('conversion_value_monthly'),
+  foundAt: timestamp('found_at', { withTimezone: true }).defaultNow(),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  repliedAt: timestamp('replied_at', { withTimezone: true }),
+  convertedAt: timestamp('converted_at', { withTimezone: true }),
+  discardedAt: timestamp('discarded_at', { withTimezone: true }),
 });

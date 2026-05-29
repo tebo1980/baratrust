@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType, FunctionDeclaration, Tool } from "@google/generative-ai";
 import { db } from "@/db";
-import { bids } from "@/db/schema";
+import { bids, projects } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 
 export const maxDuration = 60;
@@ -154,8 +154,19 @@ export async function POST(req: Request) {
 
     if (agentKey === "brix") {
       try {
-        // Fallback projectId since it's not dynamically passed yet
+        // Ensure a fallback project exists to satisfy the foreign key constraint
         const fallbackProjectId = "00000000-0000-0000-0000-000000000000";
+
+        try {
+            await db.insert(projects).values({
+                id: fallbackProjectId,
+                businessId: "system",
+                name: "Fallback Project (Agent API)",
+                address: "System Generated"
+            }).onConflictDoNothing();
+        } catch (e) {
+            console.log("Fallback project already exists or error creating it", e);
+        }
 
         // Extract values from the final response text
         // Using a simple regex to find amounts associated with keywords

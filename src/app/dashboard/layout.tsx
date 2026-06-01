@@ -43,28 +43,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     },
     {
       name: 'Nova Agent',
-      href: '/internal/opportunitywatch-v2',
+      href: '/dashboard/nova',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Fetch Engine',
-      href: '/dashboard/fetch',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Lead Command',
-      href: '/leads',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
         </svg>
       ),
     },
@@ -143,7 +125,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* User Profile Info */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-xs font-semibold text-white">Todd M. Tebo</p>
               <p className="text-[10px] text-[#6b7280]">Lead Architect</p>

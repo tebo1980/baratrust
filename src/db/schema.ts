@@ -13,7 +13,7 @@ export const businesses = pgTable('businesses', {
 
 export const agentConfigs = pgTable('agent_configs', {
   id: serial('id').primaryKey(),
-  businessId: integer('business_id').references(() => businesses.id),
+  businessId: integer('business_id').references(() => businesses.id), // FIXED: Now integer instead of serial!
   agentName: text('agent_name').notNull(),
   isActive: text('is_active').default('true'),
   configuration: text('configuration'),
@@ -69,12 +69,12 @@ export const leads = pgTable('leads', {
   city: text('city'),
   status: text('status').default('new'),
   createdAt: timestamp('created_at').defaultNow(),
-  source: text('source').unique(),
+  source: text('source').unique(), // ADDED UNIQUE to source URL
   originalText: text('original_text'),
   draftReply: text('draft_reply'),
 });
 
-// --- ORIGINAL SELF-PROSPECTING LEADS TABLE ---
+// --- ORIGINAL SELF-PROSPECTING LEADS TABLE (DO NOT DELETE) ---
 export const selfProspectingLeads = pgTable('self_prospecting_leads', {
   id: serial('id').primaryKey(),
   sourceUrl: text('source_url').notNull().unique(),

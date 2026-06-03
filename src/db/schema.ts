@@ -106,3 +106,12 @@ export const selfProspectingLeads = pgTable('self_prospecting_leads', {
   convertedAt: timestamp('converted_at', { withTimezone: true }),
   discardedAt: timestamp('discarded_at', { withTimezone: true }),
 });
+export const irisSequences = pgTable('iris_sequences', {
+  id: serial('id').primaryKey(),
+  prospectId: integer('prospect_id').references(() => selfProspectingLeads.id).notNull().unique(),
+  status: text('status').default('queued').notNull(), // 'queued', 'paused', 'completed', 'cancelled'
+  currentStep: integer('current_step').default(1).notNull(), // 1 (D1), 2 (D3), 3 (D7)
+  nextRunAt: timestamp('next_run_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});

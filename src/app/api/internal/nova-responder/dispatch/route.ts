@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getProspect, updateProspect } from '@/lib/self-prospecting/db'
+import { db } from '@/db/index'
+import { irisSequences } from '@/db/schema'
 
 export async function POST(req: Request) {
   try {
@@ -46,6 +48,17 @@ export async function POST(req: Request) {
     // 4. Update the prospect's status column to 'sent'
     // Note: The schema's ProspectStatus type uses 'sent'. Moving it out of the 'New' column is achieved by changing status to 'sent'.
     const updatedProspect = await updateProspect(prospectId, { status: 'sent' })
+
+    // 5. Insert Iris Sequence for Follow-up Cadence
+    const nextRun = new Date();
+    nextRun.setDate(nextRun.getDate() + 1); // 24 hours from now
+
+    await db.insert(irisSequences).values({
+      prospectId: prospectId,
+      status: 'queued',
+      currentStep: 1,
+      nextRunAt: nextRun
+    }).onConflictDoNothing(); // Prevent crash if already exists
 
     return NextResponse.json({ 
       success: true, 

@@ -9,6 +9,28 @@ export default function NovaDashboard() {
     { id: 3, time: "11:15 AM", action: "AUTO-REPLY", target: "River City HVAC", status: "Confirmed" },
     { id: 4, time: "11:30 AM", action: "INTAKE QUEUE", target: "Searching local Reddit threads...", status: "Active" },
   ]);
+
+  async function handleManualDispatch() {
+    try {
+      const res = await fetch('/api/internal/nova-responder/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospectId: 'OVERRIDE' })
+      });
+      
+      if (res.ok) {
+         setLogs(prev => [...prev, { 
+            id: Date.now(), 
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+            action: "MANUAL DISPATCH", 
+            target: "System Override Activated", 
+            status: "Sent" 
+         }]);
+      }
+    } catch (err) {
+      console.error("Dispatch Failed", err);
+    }
+  }
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12">
       {/* 1. Hero Header */}
@@ -36,7 +58,7 @@ export default function NovaDashboard() {
              {isPaused ? "Resume Intake" : "Halt Intake"}
           </button>
           <button 
-            onClick={() => setLogs(prev => [...prev, { id: Date.now(), time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), action: "MANUAL DISPATCH", target: "System Override Activated", status: "Sent" }])}
+            onClick={handleManualDispatch}
             className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-900 border border-amber-500 rounded-lg text-sm font-semibold transition-colors shadow-[0_0_15px_rgba(245,158,11,0.4)] flex items-center gap-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>

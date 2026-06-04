@@ -72,13 +72,16 @@ function BrixDashboardContent() {
     if (!jobName.trim()) return;
     
     setIsSaving(true);
-    const res = await saveProjectDetails(jobName, address);
-    if (res.success && res.id) {
-      setProjectId(res.id);
-      localStorage.setItem("lastBrixProject", res.id);
-      router.push(`?projectId=${res.id}`);
+    try {
+      const res = await saveProjectDetails(jobName, address);
+      if (res.success && res.id) {
+        setProjectId(res.id);
+        localStorage.setItem("lastBrixProject", res.id);
+        router.push(`?projectId=${res.id}`);
+      }
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   const handleClearChat = async () => {
@@ -104,7 +107,7 @@ function BrixDashboardContent() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isTyping) return;
+    if (input.trim().length === 0 || isTyping) return;
 
     // 1. Immediately toggle state and update UI for instantaneous feedback
     const userMsg = input;
@@ -112,26 +115,26 @@ function BrixDashboardContent() {
     setIsTyping(true);
     setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
 
-    let currentProjectId = projectId;
-
-    // 2. Perform background DB tasks if needed
-    if (!currentProjectId && jobName.trim()) {
-      const saveRes = await saveProjectDetails(jobName, address);
-      if (saveRes.success && saveRes.id) {
-        currentProjectId = saveRes.id;
-        setProjectId(currentProjectId);
-        localStorage.setItem("lastBrixProject", currentProjectId);
-        router.push(`?projectId=${currentProjectId}`);
-      }
-    }
-
-    if (currentProjectId) {
-      await saveMessage(currentProjectId, "user", userMsg);
-    }
-
-    const apiInput = jobName ? `Project: ${jobName} at ${address || "Unknown Address"}. User says: ${userMsg}` : userMsg;
-
     try {
+      let currentProjectId = projectId;
+
+      // 2. Perform background DB tasks if needed
+      if (!currentProjectId && jobName.trim()) {
+        const saveRes = await saveProjectDetails(jobName, address);
+        if (saveRes.success && saveRes.id) {
+          currentProjectId = saveRes.id;
+          setProjectId(currentProjectId);
+          localStorage.setItem("lastBrixProject", currentProjectId);
+          router.push(`?projectId=${currentProjectId}`);
+        }
+      }
+
+      if (currentProjectId) {
+        await saveMessage(currentProjectId, "user", userMsg);
+      }
+
+      const apiInput = jobName ? `Project: ${jobName} at ${address || "Unknown Address"}. User says: ${userMsg}` : userMsg;
+
       const res = await fetch("/api/agent-demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,7 +210,7 @@ function BrixDashboardContent() {
               <button
                 type="button"
                 onClick={handleSaveProject}
-                disabled={!jobName.trim() || isSaving}
+                disabled={jobName.trim().length === 0 || isSaving}
                 className="w-full bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:hover:bg-gray-800 text-white text-sm font-semibold py-3 rounded-lg border border-gray-700 transition-colors"
               >
                 {isSaving ? "Brix is calculating..." : projectId ? "Update Project" : "Save Project"}
@@ -332,7 +335,7 @@ function BrixDashboardContent() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isTyping}
+              disabled={input.trim().length === 0 || isTyping}
               className="absolute right-2 top-2 bottom-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 px-6 rounded-lg font-semibold transition-all flex items-center gap-2 text-white shadow-[0_0_15px_rgba(59,127,212,0.3)] disabled:shadow-none"
             >
               {isTyping ? "Brix is calculating..." : (

@@ -22,7 +22,7 @@ const AGENTS = [
   { id: "acoustic", name: "Acoustic", role: "Royalty-Free BGM System" },
   { id: "blackbox", name: "Black Box", role: "Forensic Dispute Resolver" },
   { id: "rescue", name: "ShiftRescue", role: "Emergency Staffing" },
-  { id: "fetch", name: "Fetch", role: "Autonomous Scouting Agent" }, // <-- Fetch has officially joined the Mothership!
+  { id: "fetch", name: "Fetch Autopilot", role: "Autonomous Scouting Agent" }, // <-- Fetch has officially joined the Mothership!
 ];
 
 export default function CommandCenter() {
@@ -35,7 +35,7 @@ export default function CommandCenter() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (input.trim().length === 0 || isTyping) return;
 
     // Add user message to UI
     const userMsg = input;
@@ -174,7 +174,7 @@ export default function CommandCenter() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isTyping}
+              disabled={input.trim().length === 0 || isTyping}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 px-6 py-3 rounded-lg font-semibold transition-all"
             >
               Send

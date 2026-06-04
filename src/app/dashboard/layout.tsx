@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </Link>
               <Link href="/dashboard/fetch" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
                 <Zap className="w-4 h-4 text-amber-400" />
-                Regular Ass Fetch
+                Fetch Autopilot
               </Link>
               <Link href="/leads" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold bg-blue-900/20 text-blue-400 hover:bg-blue-900/40 border border-blue-900/30 shadow-sm transition-all">
                 <Database className="w-4 h-4" />

@@ -115,3 +115,12 @@ export const irisSequences = pgTable('iris_sequences', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
+
+export const agentActions = pgTable('agent_actions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  agentId: text('agent_id').notNull(), // 'rex', 'sage', 'della'
+  referenceId: uuid('reference_id'), // Optional link to a Project or Lead
+  actionType: text('action_type').notNull(), // e.g. 'review_drafted'
+  payload: jsonb('payload').notNull(), // Flexible schema
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

@@ -1,41 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-// The full roster of BaraTrust Agents
-const AGENTS = [
-  { id: "nova", name: "Nova", role: "Lead Capture & Qualification" },
-  { id: "rex", name: "Rex", role: "Reputation & Review Manager" },
-  { id: "iris", name: "Iris", role: "7-Day Follow-up Sequencer" },
-  { id: "max", name: "Max", role: "Post-Job & Payment Automator" },
-  { id: "della", name: "Della", role: "Client Communications Secretary" },
-  { id: "sage", name: "Sage", role: "Social Media Drafter" },
-  { id: "flynn", name: "Flynn", role: "Fleet & Mileage Tracker" },
-  { id: "cole", name: "Cole", role: "COGS & Inventory Analyst" },
-  { id: "river", name: "River", role: "Schedule & No-Show Preventer" },
-  { id: "bolt", name: "Bolt", role: "Restaurant & Menu Analyst" },
-  { id: "brix", name: "Brix", role: "Bidding & Estimate Architect" },
-  { id: "shield", name: "Shield", role: "Insurance & Liability Educator" },
-  { id: "atlas", name: "Atlas", role: "Stripe & Financial Gateway" },
-  { id: "scout", name: "Scout", role: "Material Procurement" },
-  { id: "acoustic", name: "Acoustic", role: "Royalty-Free BGM System" },
-  { id: "blackbox", name: "Black Box", role: "Forensic Dispute Resolver" },
-  { id: "rescue", name: "ShiftRescue", role: "Emergency Staffing" },
-  { id: "fetch", name: "Fetch Autopilot", role: "Autonomous Scouting Agent" }, // <-- Fetch has officially joined the Mothership!
-];
+interface UIAgent {
+  id: string;
+  name: string;
+  role: string;
+}
 
 export default function CommandCenter() {
-  const [selectedAgent, setSelectedAgent] = useState(AGENTS[0]);
+  const [agents, setAgents] = useState<UIAgent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<UIAgent | null>(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{ role: "user" | "agent"; text: string }[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
+  // 1. Dynamically fetch the live agents from the registry on mount
+  useEffect(() => {
+    async function loadAgents() {
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+
+        if (data.agents && data.agents.length > 0) {
+          setAgents(data.agents);
+          setSelectedAgent(data.agents[0]); // Default to the first live agent
+        }
+      } catch (err) {
+        console.error("Failed to load agent registry:", err);
+      }
+    }
+    loadAgents();
+  }, []);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim().length === 0 || isTyping) return;
+    if (input.trim().length === 0 || isTyping || !selectedAgent) return;
 
     // Add user message to UI
     const userMsg = input;
@@ -65,10 +68,14 @@ export default function CommandCenter() {
   };
 
   // When switching agents, clear the chat history
-  const handleAgentSwitch = (agent: typeof AGENTS[0]) => {
+  const handleAgentSwitch = (agent: UIAgent) => {
     setSelectedAgent(agent);
     setMessages([]);
   };
+
+  if (!selectedAgent) {
+    return <div className="flex h-screen bg-gray-950 items-center justify-center text-white">Loading Agent Registry...</div>;
+  }
 
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
@@ -81,7 +88,7 @@ export default function CommandCenter() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-          {AGENTS.map((agent) => {
+          {agents.map((agent) => {
             const isLinkable = agent.id === "brix" || agent.id === "fetch";
             const agentPath = agent.id === "fetch" ? "/pioneer" : `/dashboard/${agent.id}`;
             const isActive = pathname === agentPath || (pathname === "/" && selectedAgent.id === agent.id);

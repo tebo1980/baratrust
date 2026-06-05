@@ -22,9 +22,8 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               <input 
                 type="password" 
-                value="••••••••••••••••••••••••" 
-                disabled 
-                className="bg-[#0A1019] border border-indigo-500/30 rounded-lg px-4 py-2 w-full text-slate-300 opacity-50 cursor-not-allowed"
+                defaultValue="••••••••••••••••••••••••" 
+                className="bg-[#0A1019] border border-indigo-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
               <span className="text-xs text-rose-400 font-semibold border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 rounded-md shrink-0">
                 Action Required
@@ -38,9 +37,8 @@ export default function SettingsPage() {
             <div className="flex items-center gap-4">
               <input 
                 type="password" 
-                value="••••••••••••••••••••••••" 
-                disabled 
-                className="bg-[#0A1019] border border-emerald-500/30 rounded-lg px-4 py-2 w-full text-slate-300 opacity-50 cursor-not-allowed"
+                defaultValue="••••••••••••••••••••••••" 
+                className="bg-[#0A1019] border border-emerald-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
               <span className="text-xs text-emerald-400 font-semibold border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 rounded-md shrink-0">
                 Connected

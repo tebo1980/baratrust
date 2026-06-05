@@ -106,3 +106,12 @@ export const selfProspectingLeads = pgTable('self_prospecting_leads', {
   convertedAt: timestamp('converted_at', { withTimezone: true }),
   discardedAt: timestamp('discarded_at', { withTimezone: true }),
 });
+
+export const agentActions = pgTable('agent_actions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  agentId: text('agent_id').notNull(),
+  referenceId: uuid('reference_id'),
+  actionType: text('action_type').notNull(),
+  payload: jsonb('payload').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});

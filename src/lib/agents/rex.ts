@@ -4,21 +4,54 @@ import { agentActions } from '@/db/schema';
 
 export const RexAgent: AgentConfig = {
   id: "rex",
-  systemPrompt: "You are Rex, a review manager for BaraTrust. You monitor and respond to Google/Yelp reviews in the business owner's voice. Accountability and path to resolution are key. Keep under 120 words.",
+  systemPrompt: `You are Rex, the Reputation and Review Manager for BaraTrust. Your job is to monitor and respond to Google and Yelp reviews for local blue-collar trades (HVAC, plumbing, electrical).
+
+Your tone must be authentic, professional, and blue-collar—accountability and a clear path to resolution are key for negative reviews, while genuine gratitude is key for positive ones. Avoid corporate jargon.
+
+CRITICAL INSTRUCTION: You must output your final response strictly as a valid JSON object. Do not include markdown formatting like \`\`\`json. Your response must precisely match this schema:
+{
+  "stars": number, // The star rating mentioned or implied (1-5)
+  "sentiment": "positive" | "negative" | "neutral",
+  "platform": "Google" | "Yelp" | "Other",
+  "responseDraft": "Your drafted response to the customer."
+}`,
+
   onComplete: async (response: string, contextId?: string) => {
-    // Rex-specific database parsing and insertion logic
     try {
+      // Clean the response in case the model wraps it in markdown backticks
+      const cleanJsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
+      const parsedPayload = JSON.parse(cleanJsonStr);
+
+      // Validate the payload matches our expected JSONB structure
+      const payload = {
+        stars: typeof parsedPayload.stars === 'number' ? parsedPayload.stars : 5,
+        sentiment: ['positive', 'negative', 'neutral'].includes(parsedPayload.sentiment) ? parsedPayload.sentiment : 'neutral',
+        platform: parsedPayload.platform || 'Unknown',
+        responseDraft: parsedPayload.responseDraft || "Thank you for your feedback.",
+        timestamp: new Date().toISOString()
+      };
+
       await db.insert(agentActions).values({
         agentId: "rex",
-        actionType: 'review_drafted',
+        actionType: 'review_processed',
+        payload: payload
+      });
+
+      console.log(`[REX] Successfully processed review and saved to agent_actions.`);
+
+    } catch (err) {
+      console.error(`[REX] Failed to parse or save review action:`, err);
+
+      // Fallback save in case the model hallucinates non-JSON text
+      await db.insert(agentActions).values({
+        agentId: "rex",
+        actionType: 'review_processed_fallback',
         payload: {
-          generated_response: response,
+          raw_response: response,
+          error: "Failed to parse JSON payload",
           timestamp: new Date().toISOString()
         }
       });
-      console.log(`Rex action saved to agent_actions`);
-    } catch (dbErr) {
-      console.error("Failed to save Rex action to database:", dbErr);
     }
   }
 };

@@ -1,6 +1,7 @@
 import { AgentConfig } from './types';
 import { RexAgent } from './rex';
 import { BrixAgent } from './brix';
+import { MaxAgent } from './max';
 
 // Basic wrapper for agents that only have a system prompt right now
 const createBasicAgent = (id: string, systemPrompt: string): AgentConfig => ({
@@ -11,9 +12,9 @@ const createBasicAgent = (id: string, systemPrompt: string): AgentConfig => ({
 export const AgentRegistry: Record<string, AgentConfig> = {
   rex: RexAgent,
   brix: BrixAgent,
+  max: MaxAgent,
   nova: createBasicAgent("nova", "You are Nova, a lead capture and website intelligence agent for BaraTrust. You respond instantly to inbound leads, qualify prospects, and ensure no opportunity slips through. Keep responses under 120 words."),
   iris: createBasicAgent("iris", "You are Iris, a follow-up sequence agent. You run 3-touch sequences over 7 days for prospects who didn't book. Messages must feel human. Keep under 120 words."),
-  max: createBasicAgent("max", "You are Max, a back office automation agent. You handle post-job review requests and payment reminders. Efficient and professional. Keep under 120 words."),
   della: createBasicAgent("della", "You are Della, an email secretary. You write professional confirmations, estimates, and thank-yous in the contractor's voice. No jargon. Keep under 150 words."),
   sage: createBasicAgent("sage", "You are Sage, a social media drafting agent. You turn completed jobs into genuine social posts (FB/GBP/IG). No hashtag spam. Keep under 120 words."),
   flynn: createBasicAgent("flynn", "You are Flynn, a fleet and vehicle intelligence agent. Track maintenance, mileage for tax purposes, and fuel costs. Provide actionable advice. Keep under 120 words."),

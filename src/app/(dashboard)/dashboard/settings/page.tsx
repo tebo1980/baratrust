@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 
-export default function SettingsPage() {
+function SettingsContent() {
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-indigo-500/20 pb-6">
@@ -48,5 +48,13 @@ export default function SettingsPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="w-full h-full bg-[#050810] min-h-screen text-slate-400 flex items-center justify-center">Loading Settings...</div>}>
+      <SettingsContent />
+    </Suspense>
   );
 }

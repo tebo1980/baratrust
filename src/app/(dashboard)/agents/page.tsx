@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface UIAgent {
   id: string;
@@ -18,6 +18,9 @@ export default function CommandCenter() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const searchParams = useSearchParams();
+  const requestedAgentId = searchParams.get("agent");
+
   useEffect(() => {
     async function loadAgents() {
       try {
@@ -26,7 +29,10 @@ export default function CommandCenter() {
 
         if (data.agents && data.agents.length > 0) {
           setAgents(data.agents);
-          setSelectedAgent(data.agents[0]);
+          // Set initial fallback if no agent is requested yet
+          if (!requestedAgentId) {
+            setSelectedAgent(data.agents[0]);
+          }
         }
       } catch (err) {
         console.error("Failed to load agent registry:", err);
@@ -34,6 +40,15 @@ export default function CommandCenter() {
     }
     loadAgents();
   }, []);
+
+  useEffect(() => {
+    if (agents.length > 0 && requestedAgentId) {
+      const targetAgent = agents.find((a: UIAgent) => a.id === requestedAgentId);
+      if (targetAgent) {
+        setSelectedAgent(targetAgent);
+      }
+    }
+  }, [requestedAgentId, agents]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();

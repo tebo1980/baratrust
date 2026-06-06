@@ -10,19 +10,17 @@ Your tone is urgent, clear, and highly logistical. You speak like a seasoned dis
 
 CRITICAL INSTRUCTION: You must output your final response strictly as a valid JSON object. Do not include markdown formatting like \`\`\`json. Your response must precisely match this schema:
 {
-  "priority": "URGENT" | "HIGH" | "STANDARD", // Triage level based on emergency state
-  "tradeCategory": string, // e.g., "HVAC", "Plumbing", "Electrical", "General"
-  "estimatedResponseTime": string, // e.g., "Immediately - Roll Next Available Truck", "Within 4 Hours", "Next Business Day"
-  "dispatchMessage": string // A clear, concise radio-style summary for the technician in the field
+  "priority": "URGENT" | "HIGH" | "STANDARD",
+  "tradeCategory": string,
+  "estimatedResponseTime": string,
+  "dispatchMessage": string
 }`,
 
   onComplete: async (response: string, contextId?: string) => {
     try {
-      // Clean the response in case the model wraps it in markdown backticks
       const cleanJsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
       const parsedPayload = JSON.parse(cleanJsonStr);
 
-      // Validate the payload matches our expected JSONB structure
       const payload = {
         priority: ['URGENT', 'HIGH', 'STANDARD'].includes(parsedPayload.priority) ? parsedPayload.priority : 'STANDARD',
         tradeCategory: parsedPayload.tradeCategory || 'General',
@@ -42,7 +40,6 @@ CRITICAL INSTRUCTION: You must output your final response strictly as a valid JS
     } catch (err) {
       console.error(`[MAX] Failed to parse or save dispatch action:`, err);
 
-      // Fallback save in case the model hallucinates non-JSON text
       await db.insert(agentActions).values({
         agentId: "max",
         actionType: 'dispatch_optimized_fallback',

@@ -1,7 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { Bot, Zap, Database, RefreshCcw, Send } from "lucide-react"; // Imported the engine icons
+import { Bot, Zap, Database, RefreshCcw, Send, ShieldCheck } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </Link>
               <Link href="/dashboard/fetch" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
                 <Zap className="w-4 h-4 text-amber-400" />
-                Fetch Autopilot
+                Regular Ass Fetch
               </Link>
               <Link href="/leads" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold bg-blue-900/20 text-blue-400 hover:bg-blue-900/40 border border-blue-900/30 shadow-sm transition-all">
                 <Database className="w-4 h-4" />
@@ -63,6 +63,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link href="/dashboard/iris" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-500/30 border border-transparent transition-all shadow-sm">
                 <RefreshCcw className="w-4 h-4 text-cyan-400" />
                 Iris Sequencer
+              </Link>
+              <Link href="/agents?agent=rex" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-pink-400 hover:bg-pink-900/20 hover:border-pink-500/30 border border-transparent transition-all shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-pink-400" />
+                Rex (Reviews)
+              </Link>
+              <Link href="/agents?agent=max" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-orange-400 hover:bg-orange-900/20 hover:border-orange-500/30 border border-transparent transition-all shadow-sm">
+                <Zap className="w-4 h-4 text-orange-400" />
+                Max (Dispatch)
+              </Link>
+              <Link href="/agents?agent=della" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-purple-400 hover:bg-purple-900/20 hover:border-purple-500/30 border border-transparent transition-all shadow-sm">
+                <Send className="w-4 h-4 text-purple-400" />
+                Della (Screener)
               </Link>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { AgentConfig } from './types';
 import { db } from '@/db';
-import { bids } from '@/db/schema';
+import { bids, projects } from '@/db/schema';
 import { revalidatePath } from "next/cache";
 import { SchemaType, FunctionDeclaration } from "@google/generative-ai";
 
@@ -47,26 +47,35 @@ export const BrixAgent: AgentConfig = {
     throw new Error(`Unknown tool: ${callName}`);
   },
   onComplete: async (response: string, contextId?: string) => {
+    const fallbackProjectId = "00000000-0000-0000-0000-000000000000";
+
     try {
-      // Fallback projectId since it's not dynamically passed yet
-      const fallbackProjectId = contextId || "00000000-0000-0000-0000-000000000000";
+        await db.insert(projects).values({
+            id: fallbackProjectId,
+            businessId: "system",
+            name: "Fallback Project (Agent API)",
+            address: "System Generated"
+        }).onConflictDoNothing();
+    } catch (e) {
+        console.log("Fallback project already exists or error creating it", e);
+    }
 
-      // Extract values from the final response text
-      const parseAmount = (text: string, keyword: string): number => {
-        const regex = new RegExp(`${keyword}[^0-9]*\\$?([0-9,]+(?:\\.[0-9]{2})?)`, 'i');
-        const match = text.match(regex);
-        if (match && match[1]) {
-          const amountStr = match[1].replace(/,/g, '');
-          return Math.round(parseFloat(amountStr) * 100); // Convert to integer cents
-        }
-        return 0; // Default if not found
-      };
+    const parseAmount = (text: string, keyword: string): number => {
+      const regex = new RegExp(`${keyword}[^0-9]*\\$?([0-9,]+(?:\\.[0-9]{2})?)`, 'i');
+      const match = text.match(regex);
+      if (match && match[1]) {
+        const amountStr = match[1].replace(/,/g, '');
+        return Math.round(parseFloat(amountStr) * 100);
+      }
+      return 0;
+    };
 
-      const laborCost = parseAmount(response, "labor");
-      const equipmentCost = parseAmount(response, "equipment");
-      const materialsCost = parseAmount(response, "materials");
-      const grantMoneyFound = parseAmount(response, "grant");
+    const laborCost = parseAmount(response, "labor");
+    const equipmentCost = parseAmount(response, "equipment");
+    const materialsCost = parseAmount(response, "materials");
+    const grantMoneyFound = parseAmount(response, "grant");
 
+    try {
       await db.insert(bids).values({
         projectId: fallbackProjectId,
         laborCost: laborCost,
@@ -75,7 +84,6 @@ export const BrixAgent: AgentConfig = {
         grantMoneyFound: grantMoneyFound,
         status: 'presented',
       });
-
       revalidatePath('/dashboard');
       console.log(`Brix quote saved to database (Labor: ${laborCost}, Equip: ${equipmentCost}, Mat: ${materialsCost}, Grant: ${grantMoneyFound})`);
     } catch (dbErr) {

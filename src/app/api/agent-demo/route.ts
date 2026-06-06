@@ -21,9 +21,8 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
     const modelName = "gemini-2.5-flash";
-    console.log("API Key present:", !!process.env.GEMINI_API_KEY);
-    console.log("Using model:", modelName);
 
+    // 1. Dynamic Initialization
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: agentConfig.systemPrompt,
@@ -31,30 +30,22 @@ export async function POST(req: Request) {
     });
 
     const chat = model.startChat({
-      generationConfig: {
-        maxOutputTokens: 8192,
-        temperature: 0.7,
-      }
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
     });
 
     let result = await chat.sendMessage([{ text: input }]);
     let finalResponse = "";
     let stepCount = 0;
 
+    // 2. Dynamic Tool Execution Loop
     while (stepCount < 5) {
       try {
         const chunkText = result.response.text();
-        if (chunkText) {
-          finalResponse += chunkText + "\n";
-        }
-      } catch (e) {
-        // No text in this chunk
-      }
+        if (chunkText) finalResponse += chunkText + "\n";
+      } catch (e) {}
 
       const calls = result.response.functionCalls();
-      if (!calls || calls.length === 0) {
-        break;
-      }
+      if (!calls || calls.length === 0) break;
 
       stepCount++;
       const call = calls[0];
@@ -64,10 +55,7 @@ export async function POST(req: Request) {
           const toolResponse = await agentConfig.executeTool(call.name, call.args);
 
           result = await chat.sendMessage([{
-            functionResponse: {
-              name: call.name,
-              response: toolResponse
-            }
+            functionResponse: { name: call.name, response: toolResponse }
           }]);
         } catch (toolErr: any) {
           console.error("Function execution failed:", toolErr);
@@ -79,6 +67,7 @@ export async function POST(req: Request) {
       }
     }
 
+    // 3. Dynamic Post-Completion Hooks
     if (!finalResponse.trim()) {
       finalResponse = "Agent logic executed successfully, but no final summary was generated.";
     }
@@ -91,9 +80,6 @@ export async function POST(req: Request) {
 
   } catch (err: any) {
     console.error("Agent live error:", err);
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

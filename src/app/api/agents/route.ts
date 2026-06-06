@@ -1,16 +1,19 @@
 import { NextResponse } from "next/server";
-import { AgentRegistry } from "@/lib/agents";
+import { AgentRegistry } from "@/lib/agents/index";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  // Map the registry object into an array for the UI
   const activeAgents = Object.keys(AgentRegistry).map(key => {
     const config = AgentRegistry[key];
 
-    // Parse or assign roles for production polish
     let displayRole = "Specialized Automation Engine";
     if (key === 'rex') displayRole = "Reputation & Review Manager";
     if (key === 'max') displayRole = "Automated Dispatch Agent";
     if (key === 'della') displayRole = "Lead Screener";
+    if (key === 'nova') displayRole = "Lead Capture & Qualification";
+    if (key === 'iris') displayRole = "7-Day Follow-up Sequencer";
+    if (key === 'brix') displayRole = "Bidding & Estimate Architect";
 
     return {
       id: config.id,

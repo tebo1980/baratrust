@@ -3,44 +3,51 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
-const SYSTEM_PROMPT = `You are Todd Tebo, founder of BaraTrust. You are writing a monthly performance report for a local contractor (HVAC, Plumbing, etc.). 
-Your voice is warm, honest, and plain-spoken. Talk like you're sitting at their kitchen table, not in a boardroom. 
-No marketing jargon. Be direct and encouraging.`;
+const SYSTEM_PROMPT = `You are Nova, the AI OpportunityWatch lead generation agent.
+You are tasked with scanning incoming social signals, classifieds, and community boards to find high-intent leads for home service contractors.
+The user will provide a 'trade', 'location', and optional 'context'.
+You must generate 2 to 4 highly realistic, simulated leads that match the criteria.
+Return ONLY valid JSON matching this schema:
+{
+  "leads": [
+    {
+      "platform": "String (e.g. 'Reddit - r/Louisville', 'Nextdoor', 'Craigslist')",
+      "summary": "String (A realistic post from a homeowner needing this service)",
+      "decision": "String (Must be 'ACT_NOW', 'WATCH', or 'IGNORE')",
+      "decision_reasoning": "String (Why you categorized it this way)",
+      "urgency_score": "Number (0 to 100)",
+      "location": "String (Neighborhood or city)",
+      "outreach_message": "String (A drafted intro message from the contractor)",
+      "source_url": "String or null"
+    }
+  ]
+}`;
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const { trade, location, context } = body;
 
-    // Calculate the change from last month for the AI context
-    const callsThis = Number(body.callsThisMonth);
-    const callsLast = Number(body.callsLastMonth);
-    const diff = callsThis - callsLast;
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: SYSTEM_PROMPT
+    });
 
-    const userPrompt = `Write a monthly report for ${body.clientName} (${body.reportMonth} ${body.reportYear}).
-    Tier: ${body.tier}
-    Calls This Month: ${body.callsThisMonth} (Change: ${diff >= 0 ? "+" : ""}${diff})
-    Guarantee Status: ${body.guaranteeCalls} of 10 leads found.
-    Business Health Score: ${body.scoreThisMonth}/100
-    Todd's Notes: ${body.whatWorked}
-    
-    Structure the report in these 5 sections:
-    1. The Month in Plain English (Summary)
-    2. What Worked and Why (The wins)
-    3. What We Are Adjusting (Future plans)
-    4. Your Guarantee Status (Honest look at the 10-call promise)
-    5. Your Business Health Score (Explanation of the score)
-    
-    Close with a warm sentence and sign it 'Todd'. Keep it under 450 words.`;
+    const userPrompt = `Find ${trade} leads in ${location}. ${context ? `Additional context: ${context}` : ''}`;
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      systemInstruction: SYSTEM_PROMPT,
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
     });
 
-    return NextResponse.json({ report: result.response.text() });
+    const responseText = result.response.text();
+    const data = JSON.parse(responseText);
+
+    return NextResponse.json({ leads: data.leads || [] });
   } catch (error) {
-    console.error("Monthly Report Gemini Error:", error);
-    return NextResponse.json({ error: "Failed to generate report" }, { status: 500 });
+    console.error("OpportunityWatch Gemini Error:", error);
+    return NextResponse.json({ error: "Failed to fetch leads" }, { status: 500 });
   }
 }

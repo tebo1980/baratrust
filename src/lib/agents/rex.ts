@@ -10,7 +10,7 @@ Your tone must be authentic, professional, and blue-collar—accountability and 
 
 CRITICAL INSTRUCTION: You must output your final response strictly as a valid JSON object. Do not include markdown formatting like \`\`\`json. Your response must precisely match this schema:
 {
-  "stars": number, // The star rating mentioned or implied (1-5)
+  "stars": number,
   "sentiment": "positive" | "negative" | "neutral",
   "platform": "Google" | "Yelp" | "Other",
   "responseDraft": "Your drafted response to the customer."
@@ -18,11 +18,9 @@ CRITICAL INSTRUCTION: You must output your final response strictly as a valid JS
 
   onComplete: async (response: string, contextId?: string) => {
     try {
-      // Clean the response in case the model wraps it in markdown backticks
       const cleanJsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
       const parsedPayload = JSON.parse(cleanJsonStr);
 
-      // Validate the payload matches our expected JSONB structure
       const payload = {
         stars: typeof parsedPayload.stars === 'number' ? parsedPayload.stars : 5,
         sentiment: ['positive', 'negative', 'neutral'].includes(parsedPayload.sentiment) ? parsedPayload.sentiment : 'neutral',
@@ -42,7 +40,6 @@ CRITICAL INSTRUCTION: You must output your final response strictly as a valid JS
     } catch (err) {
       console.error(`[REX] Failed to parse or save review action:`, err);
 
-      // Fallback save in case the model hallucinates non-JSON text
       await db.insert(agentActions).values({
         agentId: "rex",
         actionType: 'review_processed_fallback',

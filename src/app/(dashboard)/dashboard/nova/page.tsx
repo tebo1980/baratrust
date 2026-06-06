@@ -31,7 +31,6 @@ export default function NovaDashboard() {
       console.error("Dispatch Failed", err);
     }
   }
-
   return (
     <div className="w-full max-w-6xl mx-auto space-y-8 pb-12">
       {/* 1. Hero Header */}

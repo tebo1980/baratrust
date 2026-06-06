@@ -1,7 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { ReactNode } from "react";
-import { Bot, Zap, Database, RefreshCcw, Send } from "lucide-react"; // Imported the engine icons
+import { Bot, Zap, Database, RefreshCcw, Send, ShieldCheck } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (

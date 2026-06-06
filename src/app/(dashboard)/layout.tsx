@@ -64,6 +64,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <RefreshCcw className="w-4 h-4 text-cyan-400" />
                 Iris Sequencer
               </Link>
+              <Link href="/agents" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-pink-400 hover:bg-pink-900/20 hover:border-pink-500/30 border border-transparent transition-all shadow-sm">
+                <ShieldCheck className="w-4 h-4 text-pink-400" />
+                Rex (Reviews)
+              </Link>
+              <Link href="/agents" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-orange-400 hover:bg-orange-900/20 hover:border-orange-500/30 border border-transparent transition-all shadow-sm">
+                <Zap className="w-4 h-4 text-orange-400" />
+                Max (Dispatch)
+              </Link>
+              <Link href="/agents" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-purple-400 hover:bg-purple-900/20 hover:border-purple-500/30 border border-transparent transition-all shadow-sm">
+                <Send className="w-4 h-4 text-purple-400" />
+                Della (Screener)
+              </Link>
             </div>
           </div>
         </div>

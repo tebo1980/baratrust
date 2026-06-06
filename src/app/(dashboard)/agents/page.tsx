@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface UIAgent {
   id: string;
@@ -9,7 +9,7 @@ interface UIAgent {
   role: string;
 }
 
-export default function CommandCenter() {
+function CommandCenterContent() {
   const [agents, setAgents] = useState<UIAgent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<UIAgent | null>(null);
   const [input, setInput] = useState("");
@@ -17,6 +17,9 @@ export default function CommandCenter() {
   const [isTyping, setIsTyping] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const requestedAgentId = searchParams.get("agent");
 
   // 1. Dynamically fetch the live agents from the registry on mount
   useEffect(() => {
@@ -27,14 +30,17 @@ export default function CommandCenter() {
 
         if (data.agents && data.agents.length > 0) {
           setAgents(data.agents);
-          setSelectedAgent(data.agents[0]); // Default to the first live agent
+
+          // Try to find the requested agent via query param, otherwise fallback to the first engine
+          const targetAgent = data.agents.find((a: UIAgent) => a.id === requestedAgentId);
+          setSelectedAgent(targetAgent || data.agents[0]);
         }
       } catch (err) {
         console.error("Failed to load agent registry:", err);
       }
     }
     loadAgents();
-  }, []);
+  }, [requestedAgentId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,5 +197,13 @@ export default function CommandCenter() {
       </main>
 
     </div>
+  );
+}
+
+export default function CommandCenter() {
+  return (
+    <Suspense fallback={<div className="flex h-screen bg-gray-950 items-center justify-center text-white">Loading Command Center...</div>}>
+      <CommandCenterContent />
+    </Suspense>
   );
 }

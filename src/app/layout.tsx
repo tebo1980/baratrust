@@ -92,7 +92,7 @@ export default function RootLayout({
             `}
           </Script>
         </head>
-        <body className={`${fraunces.variable} ${dmSans.variable}`}>
+        <body className={`${fraunces.variable} ${dmSans.variable} bg-[#050810] text-slate-200 antialiased`}>
           {children}
         </body>
       </html>

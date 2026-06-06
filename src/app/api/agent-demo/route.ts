@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
     });
 
-    console.log(`[ORCHESTRATOR] Booting protocol for agent: ${agentConfig.name || agentKey}`);
+    console.log(`[ORCHESTRATOR] Booting protocol for agent: ${agentConfig.id || agentKey}`);
 
     let result = await chat.sendMessage([{ text: input }]);
     let finalResponse = "";

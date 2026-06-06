@@ -1,43 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-// The full roster of BaraTrust Agents
-const AGENTS = [
-  { id: "nova", name: "Nova", role: "Lead Capture & Qualification" },
-  { id: "rex", name: "Rex", role: "Reputation & Review Manager" },
-  { id: "iris", name: "Iris", role: "7-Day Follow-up Sequencer" },
-  { id: "max", name: "Max", role: "Post-Job & Payment Automator" },
-  { id: "della", name: "Della", role: "Client Communications Secretary" },
-  { id: "sage", name: "Sage", role: "Social Media Drafter" },
-  { id: "flynn", name: "Flynn", role: "Fleet & Mileage Tracker" },
-  { id: "cole", name: "Cole", role: "COGS & Inventory Analyst" },
-  { id: "river", name: "River", role: "Schedule & No-Show Preventer" },
-  { id: "bolt", name: "Bolt", role: "Restaurant & Menu Analyst" },
-  { id: "brix", name: "Brix", role: "Bidding & Estimate Architect" },
-  { id: "shield", name: "Shield", role: "Insurance & Liability Educator" },
-  { id: "atlas", name: "Atlas", role: "Stripe & Financial Gateway" },
-  { id: "scout", name: "Scout", role: "Material Procurement" },
-  { id: "acoustic", name: "Acoustic", role: "Royalty-Free BGM System" },
-  { id: "blackbox", name: "Black Box", role: "Forensic Dispute Resolver" },
-  { id: "rescue", name: "ShiftRescue", role: "Emergency Staffing" },
-  { id: "fetch", name: "Fetch", role: "Autonomous Scouting Agent" }, // <-- Fetch has officially joined the Mothership!
-];
+interface UIAgent {
+  id: string;
+  name: string;
+  role: string;
+}
 
 export default function CommandCenter() {
-  const [selectedAgent, setSelectedAgent] = useState(AGENTS[0]);
+  const [agents, setAgents] = useState<UIAgent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<UIAgent | null>(null);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<{ role: "user" | "agent"; text: string }[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
+  useEffect(() => {
+    async function loadAgents() {
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        
+        if (data.agents && data.agents.length > 0) {
+          setAgents(data.agents);
+          setSelectedAgent(data.agents[0]);
+        }
+      } catch (err) {
+        console.error("Failed to load agent registry:", err);
+      }
+    }
+    loadAgents();
+  }, []);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (input.trim().length === 0 || isTyping || !selectedAgent) return;
 
-    // Add user message to UI
     const userMsg = input;
     setMessages((prev) => [...prev, { role: "user", text: userMsg }]);
     setInput("");
@@ -64,16 +65,17 @@ export default function CommandCenter() {
     }
   };
 
-  // When switching agents, clear the chat history
-  const handleAgentSwitch = (agent: typeof AGENTS[0]) => {
+  const handleAgentSwitch = (agent: UIAgent) => {
     setSelectedAgent(agent);
     setMessages([]);
   };
 
+  if (!selectedAgent) {
+    return <div className="flex h-screen bg-gray-950 items-center justify-center text-white font-semibold tracking-wider animate-pulse">Loading Agent Registry...</div>;
+  }
+
   return (
     <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-
-      {/* SIDEBAR */}
       <aside className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <h1 className="text-2xl font-bold tracking-widest text-blue-500">BARATRUST</h1>
@@ -81,7 +83,7 @@ export default function CommandCenter() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-          {AGENTS.map((agent) => {
+          {agents.map((agent) => {
             const isLinkable = agent.id === "brix" || agent.id === "fetch";
             const agentPath = agent.id === "fetch" ? "/pioneer" : `/dashboard/${agent.id}`;
             const isActive = pathname === agentPath || (pathname === "/" && selectedAgent.id === agent.id);
@@ -91,7 +93,6 @@ export default function CommandCenter() {
               : "bg-transparent border border-transparent hover:bg-gray-800 text-gray-400 hover:text-gray-200"
               }`;
 
-            // ONE UNIFIED BUTTON TO RULE THEM ALL (No more hydration errors)
             return (
               <button
                 key={agent.id}
@@ -112,9 +113,7 @@ export default function CommandCenter() {
         </div>
       </aside>
 
-      {/* MAIN CHAT AREA */}
       <main className="flex-1 flex flex-col relative">
-        {/* Header */}
         <header className="p-6 border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-3">
@@ -123,7 +122,6 @@ export default function CommandCenter() {
             </h2>
             <p className="text-sm text-gray-400">{selectedAgent.role}</p>
           </div>
-          {/* Easter egg back to our Stripe test */}
           {selectedAgent.id === "atlas" && (
             <a href="/api/atlas-gateway" className="text-xs bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded border border-gray-700 text-gray-300">
               View Payment Gateway
@@ -131,7 +129,6 @@ export default function CommandCenter() {
           )}
         </header>
 
-        {/* Chat History */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-500">
@@ -162,7 +159,6 @@ export default function CommandCenter() {
           )}
         </div>
 
-        {/* Input Bar */}
         <div className="p-6 bg-gray-900 border-t border-gray-800">
           <form onSubmit={handleSendMessage} className="flex gap-4">
             <input
@@ -174,7 +170,7 @@ export default function CommandCenter() {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isTyping}
+              disabled={input.trim().length === 0 || isTyping || !selectedAgent}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 px-6 py-3 rounded-lg font-semibold transition-all"
             >
               Send
@@ -182,7 +178,6 @@ export default function CommandCenter() {
           </form>
         </div>
       </main>
-
     </div>
   );
 }

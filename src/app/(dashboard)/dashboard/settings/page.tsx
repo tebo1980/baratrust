@@ -21,7 +21,8 @@ export default function SettingsPage() {
             <label className="text-sm font-semibold text-cyan-400 uppercase tracking-widest">Gemini API Key</label>
             <div className="flex items-center gap-4">
               <input 
-                type="password" 
+                type="text" 
+                readOnly
                 defaultValue="••••••••••••••••••••••••" 
                 className="bg-[#0A1019] border border-indigo-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
@@ -36,7 +37,8 @@ export default function SettingsPage() {
             <label className="text-sm font-semibold text-cyan-400 uppercase tracking-widest">Neon Database</label>
             <div className="flex items-center gap-4">
               <input 
-                type="password" 
+                type="text" 
+                readOnly
                 defaultValue="••••••••••••••••••••••••" 
                 className="bg-[#0A1019] border border-emerald-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
@@ -50,7 +52,8 @@ export default function SettingsPage() {
             <label className="text-sm font-semibold text-cyan-400 uppercase tracking-widest">Stripe Webhook Secret</label>
             <div className="flex items-center gap-4">
               <input 
-                type="password" 
+                type="text" 
+                readOnly
                 defaultValue="••••••••••••••••••••••••" 
                 className="bg-[#0A1019] border border-emerald-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />

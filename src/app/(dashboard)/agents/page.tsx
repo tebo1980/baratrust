@@ -46,6 +46,7 @@ export default function CommandCenter() {
       const targetAgent = agents.find((a: UIAgent) => a.id === requestedAgentId);
       if (targetAgent) {
         setSelectedAgent(targetAgent);
+        setMessages([]); // Clear chat logs when URL changes
       }
     }
   }, [requestedAgentId, agents]);

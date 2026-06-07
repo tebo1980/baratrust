@@ -85,9 +85,9 @@ export default function MasterDashboard() {
               const isFetch = agent.id === 'fetch';
               const agentPath = (() => {
                 if (agent.id === 'fetch') return "/pioneer";
-                if (agent.id === 'brix') return "/dashboard/brix";
                 if (agent.id === 'nova') return "/internal/opportunitywatch-v2";
-                return `/agents?agent=${agent.id}`;
+
+                return `/dashboard/${agent.id}`;
               })();
               const Icon = isFetch ? Activity : Bot;
               const colorTheme = isFetch ? "amber" : "blue";

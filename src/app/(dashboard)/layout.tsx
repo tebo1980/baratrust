@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <span className="text-amber-500 font-bold text-lg tracking-wider">B</span>
             </div>
             <h1 className="text-xl font-bold tracking-widest text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]">
-              BARATRUST
+              BARATRUST SUITE
             </h1>
           </Link>
         </div>

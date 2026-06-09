@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Bot className="w-4 h-4 text-indigo-400" />
                 Brix AI
               </Link>
-              <Link href="/dashboard/fetch" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+              <Link href="/pioneer" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
                 <Zap className="w-4 h-4 text-amber-400" />
                 Regular Ass Fetch
               </Link>

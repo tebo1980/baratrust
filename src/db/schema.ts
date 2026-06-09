@@ -77,6 +77,16 @@ export const leads = pgTable('leads', {
   draftReply: text('draft_reply'),
 });
 
+export const partsOrders = pgTable('parts_orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  leadId: integer('lead_id').references(() => leads.id).notNull(),
+  requiredMaterials: jsonb('required_materials').$type<string[]>().notNull().default([]),
+  supplierName: text('supplier_name'),
+  quotedPrice: integer('quoted_price').default(0),
+  status: text('status').notNull().default('Sourcing'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // --- ORIGINAL SELF-PROSPECTING LEADS TABLE (DO NOT DELETE) ---
 export const selfProspectingLeads = pgTable('self_prospecting_leads', {
   id: serial('id').primaryKey(),

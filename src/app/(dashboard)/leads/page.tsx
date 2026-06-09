@@ -40,7 +40,11 @@ export default async function LeadsDashboard() {
                             <tbody className="divide-y divide-gray-800/50 text-sm">
                                 {allLeads.map((lead) => (
                                     <tr key={lead.id} className="hover:bg-gray-800/40 transition-colors group">
-                                        <td className="p-5 align-top font-medium text-blue-400">{lead.source || 'SYSTEM'}</td>
+                                        <td className="p-5 align-top font-medium text-blue-400">
+                                            {lead.source || 'SYSTEM'}
+                                            <div className="text-xs text-gray-500 mt-1">Sector: {lead.tradeSector ?? 'Unassigned'}</div>
+                                            <div className="text-xs text-gray-500">Region: {lead.geographicMetadata ?? 'Unknown'}</div>
+                                        </td>
                                         <td className="p-5 align-top text-gray-300">
                                             <p className="line-clamp-4 leading-relaxed">{lead.originalText || lead.summary || 'No original text'}</p>
                                         </td>
@@ -48,6 +52,7 @@ export default async function LeadsDashboard() {
                                             <div className="bg-gray-950 p-4 rounded-lg border border-gray-800 text-gray-400 italic">
                                                 "{lead.draftReply || 'No draft generated'}"
                                             </div>
+                                            <div className="text-xs text-gray-500 mt-2">Contact: {lead.prospectContact ?? 'Not provided'}</div>
                                         </td>
                                         <td className="p-5 align-top text-right">
                                             <button className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium transition-all shadow-lg shadow-blue-900/20 active:scale-95">

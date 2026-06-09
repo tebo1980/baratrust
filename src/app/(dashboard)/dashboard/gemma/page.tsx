@@ -4,8 +4,8 @@ import React from 'react';
 import { Package, Truck, Search, CheckCircle2, Clock, MapPin, Database } from 'lucide-react';
 
 const sourcingQueue = [
-  { id: "ORD-9901", supplyHouse: "Kentuckiana Parts Distributors", materials: "3/4-inch Copper Elbows (x50)", requestedAt: "10:15 AM", status: "Price Locked" },
-  { id: "ORD-9902", supplyHouse: "Ohio Valley Supply House", materials: "Commercial AC Condenser (5 Ton)", requestedAt: "11:30 AM", status: "Sourcing" },
+  { id: "ORD-9902", supplyHouse: "Kentuckiana Parts Distributors", materials: "Commercial AC Compressor (5 Ton) + Refrigerant R-410A", requestedAt: "Just now", status: "Price Locked" },
+  { id: "ORD-9901", supplyHouse: "Ohio Valley Supply House", materials: "3/4-inch Copper Elbows (x50)", requestedAt: "10:15 AM", status: "Price Locked" },
   { id: "ORD-9899", supplyHouse: "Ferguson Plumbing Supply", materials: "PVC Schedule 40 Pipe (100ft)", requestedAt: "Yesterday", status: "Dispatched to Site" }
 ];
 
@@ -106,14 +106,14 @@ export default function GemmaAgentPage() {
                   <p className="text-sm text-slate-400 mb-2">Gemma is currently parsing quotes for ongoing field operations.</p>
 
                   {/* Ledger Item 1 */}
-                  <div className="flex items-center justify-between p-4 bg-[#0B0F19] border border-slate-800 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-[#0B0F19] border border-[#C17B2A]/20 shadow-[0_0_10px_rgba(193,123,42,0.05)] rounded-lg">
                     <div>
-                      <p className="text-sm font-bold text-slate-200">Commercial AC Condenser (5 Ton)</p>
-                      <p className="text-xs text-slate-500 mt-1">Vendor: Pending response</p>
+                      <p className="text-sm font-bold text-slate-200">Commercial AC Compressor (5 Ton) + R-410A</p>
+                      <p className="text-xs text-slate-500 mt-1">Vendor: Kentuckiana Parts Distributors</p>
                     </div>
                     <div className="text-right">
-                       <p className="text-lg font-mono font-bold text-slate-400">---</p>
-                       <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Analyzing Data</p>
+                       <p className="text-lg font-mono font-bold text-[#C17B2A]">$4,250.00</p>
+                       <p className="text-[10px] text-amber-500 font-bold uppercase tracking-widest mt-1">Price Locked</p>
                     </div>
                   </div>
 

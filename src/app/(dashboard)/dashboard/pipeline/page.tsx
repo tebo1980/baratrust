@@ -10,6 +10,8 @@ interface Lead {
   description: string;
   confidence: number;
   timestamp: string;
+  ticketValue?: string;
+  assignedAgents?: string[];
 }
 
 interface Column {
@@ -23,15 +25,15 @@ const initialData: Column[] = [
     id: "col-1",
     title: "Inbound Intercepts",
     leads: [
-      { id: "lead-1", trade: "HVAC", description: "AC blowing hot air, weird noise.", confidence: 92, timestamp: "10m ago" },
-      { id: "lead-2", trade: "Plumbing", description: "Leaky main valve in basement.", confidence: 85, timestamp: "30m ago" }
+      { id: "lead-1", trade: "HVAC", description: "AC blowing hot air, weird noise.", confidence: 92, timestamp: "10m ago", assignedAgents: ["Della"] },
+      { id: "lead-2", trade: "Plumbing", description: "Leaky main valve in basement.", confidence: 85, timestamp: "30m ago", assignedAgents: ["Fetch"] }
     ]
   },
   {
     id: "col-2",
     title: "Triage & Estimate",
     leads: [
-      { id: "lead-3", trade: "Electrical", description: "Breaker panel sparking.", confidence: 98, timestamp: "1h ago" }
+      { id: "lead-3", trade: "Electrical", description: "Breaker panel sparking.", confidence: 98, timestamp: "1h ago", ticketValue: "$850.00", assignedAgents: ["Brix"] }
     ]
   },
   {
@@ -43,7 +45,8 @@ const initialData: Column[] = [
     id: "col-4",
     title: "Scheduled Work",
     leads: [
-      { id: "lead-4", trade: "HVAC", description: "Full system replacement (1202 Main).", confidence: 100, timestamp: "2h ago" }
+      { id: "lead-5", trade: "HVAC", description: "Emergency Commercial HVAC Compressor Failure (Downtown Office).", confidence: 99, timestamp: "Just now", ticketValue: "$4,250.00", assignedAgents: ["Della", "Brix", "Gemma"] },
+      { id: "lead-4", trade: "HVAC", description: "Full system replacement (1202 Main).", confidence: 100, timestamp: "2h ago", ticketValue: "$6,500.00", assignedAgents: ["Max"] }
     ]
   },
   {
@@ -140,6 +143,26 @@ export default function PipelinePage() {
                     <p className="text-sm text-slate-200 font-medium leading-relaxed">
                       "{lead.description}"
                     </p>
+
+                    {/* Conditional Ticket Value & Assigned Agents */}
+                    {(lead.ticketValue || lead.assignedAgents) && (
+                      <div className="flex justify-between items-center mt-1">
+                        {lead.ticketValue && (
+                          <span className="text-xs font-mono font-bold text-[#C17B2A]">
+                            {lead.ticketValue}
+                          </span>
+                        )}
+                        {lead.assignedAgents && (
+                          <div className="flex items-center gap-1">
+                            {lead.assignedAgents.map((agent, i) => (
+                              <span key={i} className="text-[9px] bg-slate-800 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">
+                                {agent}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Bottom: Timestamp & ID */}
                     <div className="flex justify-between items-center border-t border-slate-800 pt-2 mt-1">

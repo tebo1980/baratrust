@@ -4,11 +4,11 @@ import React from 'react';
 import { Wallet, ArrowDownToLine, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const mockTransactions = [
+  { id: "TRX-8903", date: "Just now", job: "API Inference (Multi-Agent Cascade)", amount: "-$3.75", status: "Settled" },
   { id: "TRX-8902", date: "Today, 10:42 AM", job: "HVAC Replacement (1202 Main)", amount: "$4,200.00", status: "Settled" },
   { id: "TRX-8901", date: "Today, 09:15 AM", job: "Plumbing Estimate (River Rd)", amount: "$150.00", status: "Processing" },
   { id: "TRX-8899", date: "Yesterday, 04:30 PM", job: "Electrical Panel Upgrade", amount: "$1,850.00", status: "Escrowed" },
-  { id: "TRX-8898", date: "Yesterday, 02:10 PM", job: "API Inference (LLM Credits)", amount: "-$12.50", status: "Settled" },
-  { id: "TRX-8895", date: "Oct 24, 11:00 AM", job: "Emergency Drain Repair", amount: "$450.00", status: "Settled" }
+  { id: "TRX-8898", date: "Yesterday, 02:10 PM", job: "API Inference (LLM Credits)", amount: "-$12.50", status: "Settled" }
 ];
 
 export default function WalletsPage() {
@@ -90,9 +90,9 @@ export default function WalletsPage() {
         <div className="bg-[#1E1B16] border border-[#2A2621] rounded-xl p-6 shadow-lg relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full group-hover:bg-blue-500/10 transition-colors"></div>
           <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Gas / Automation Fuel</p>
-          <h2 className="text-4xl font-bold text-slate-100 font-mono tracking-tight">8,450 <span className="text-xl text-slate-500">CR</span></h2>
+          <h2 className="text-4xl font-bold text-slate-100 font-mono tracking-tight">8,446 <span className="text-xl text-slate-500">CR</span></h2>
           <p className="text-sm text-blue-400 mt-2 font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
             LLM API & proxy network active
           </p>
         </div>

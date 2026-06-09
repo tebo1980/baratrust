@@ -76,6 +76,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Send className="w-4 h-4 text-purple-400" />
                 Della (Screener)
               </Link>
+              <Link href="/dashboard/gemma" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20 hover:border-emerald-500/30 border border-transparent transition-all shadow-sm">
+                <Database className="w-4 h-4 text-emerald-400" />
+                Gemma (Logistics)
+              </Link>
             </div>
           </div>
         </div>

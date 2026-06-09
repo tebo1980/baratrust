@@ -67,7 +67,10 @@ export const leads = pgTable('leads', {
   price: text('price'),
   summary: text('summary'),
   city: text('city'),
-  status: text('status').default('new'),
+  tradeSector: text('trade_sector'),
+  prospectContact: text('prospect_contact'),
+  geographicMetadata: text('geographic_metadata'),
+  status: text('status').default('Inbound Intercepts'),
   createdAt: timestamp('created_at').defaultNow(),
   source: text('source').unique(), // ADDED UNIQUE to source URL
   originalText: text('original_text'),

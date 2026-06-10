@@ -80,6 +80,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Database className="w-4 h-4 text-emerald-400" />
                 Gemma (Logistics)
               </Link>
+              <Link href="/dashboard/fleet" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-[#C17B2A] hover:bg-[#C17B2A]/20 hover:border-[#C17B2A]/30 border border-transparent transition-all shadow-sm">
+                <RefreshCcw className="w-4 h-4 text-[#C17B2A]" />
+                Flynn (Fleet)
+              </Link>
             </div>
           </div>
         </div>

@@ -7,7 +7,30 @@ interface UIAgent {
   id: string;
   name: string;
   role: string;
+  status?: 'active' | 'standby';
 }
+
+const MASTER_FLEET_BLUEPRINT: UIAgent[] = [
+  { id: "nova", name: "Nova", role: "Lead Capture & Qualification", status: "active" },
+  { id: "rex", name: "Rex", role: "Reputation & Review Manager", status: "active" },
+  { id: "iris", name: "Iris", role: "7-Day Follow-up Sequencer", status: "active" },
+  { id: "max", name: "Max", role: "Automated Dispatch Agent", status: "active" },
+  { id: "della", name: "Della", role: "Lead Screener", status: "active" },
+  { id: "brix", name: "Brix", role: "Bidding & Estimate Architect", status: "active" },
+  { id: "gemma", name: "Gemma", role: "Automated Supply Chain & Parts Procurement", status: "active" },
+  { id: "fetch", name: "Fetch", role: "Autonomous Scouting Agent", status: "active" },
+  { id: "sage", name: "Sage", role: "Social Media Drafter", status: "standby" },
+  { id: "flynn", name: "Flynn", role: "Fleet & Mileage Tracker", status: "standby" },
+  { id: "cole", name: "Cole", role: "COGS & Inventory Analyst", status: "standby" },
+  { id: "river", name: "River", role: "Schedule & No-Show Preventer", status: "standby" },
+  { id: "bolt", name: "Bolt", role: "Restaurant & Menu Analyst", status: "standby" },
+  { id: "shield", name: "Shield", role: "Insurance & Liability Educator", status: "standby" },
+  { id: "atlas", name: "Atlas", role: "Stripe & Financial Gateway", status: "standby" },
+  { id: "scout", name: "Scout", role: "Material Procurement", status: "standby" },
+  { id: "acoustic", name: "Acoustic", role: "Royalty-Free BGM System", status: "standby" },
+  { id: "blackbox", name: "Black Box", role: "Forensic Dispute Resolver", status: "standby" },
+  { id: "rescue", name: "ShiftRescue", role: "Emergency Staffing", status: "standby" },
+];
 
 export default function CommandCenter() {
   const [agents, setAgents] = useState<UIAgent[]>([]);
@@ -24,12 +47,22 @@ export default function CommandCenter() {
         const res = await fetch('/api/agents');
         const data = await res.json();
 
-        if (data.agents && data.agents.length > 0) {
-          setAgents(data.agents);
-          setSelectedAgent(data.agents[0]); // Hard fallback to first engine
-        }
+        // Merge DB/API active agents with the Master Blueprint
+        const mergedFleet = MASTER_FLEET_BLUEPRINT.map(blueprintAgent => {
+          const apiAgent = data.agents?.find((a: any) => a.id === blueprintAgent.id);
+          if (apiAgent) {
+             return { ...blueprintAgent, name: apiAgent.name, role: apiAgent.role, status: 'active' as const };
+          }
+          return blueprintAgent;
+        });
+
+        setAgents(mergedFleet);
+        setSelectedAgent(mergedFleet[0]); // Hard fallback to first engine
       } catch (err) {
         console.error("Failed to load agent registry:", err);
+        // Fallback to purely local blueprint on failure
+        setAgents(MASTER_FLEET_BLUEPRINT);
+        setSelectedAgent(MASTER_FLEET_BLUEPRINT[0]);
       }
     }
     loadAgents();
@@ -95,16 +128,22 @@ export default function CommandCenter() {
 
             const isActive = pathname === agentPath || (pathname === "/" && selectedAgent.id === agent.id);
 
+            const isStandby = agent.status === 'standby';
+
             const className = `w-full text-left p-3 rounded-lg transition-all duration-200 block border ${isActive
               ? "bg-[#C17B2A]/10 border-[#C17B2A]/50 text-[#C17B2A] shadow-[0_0_10px_rgba(193,123,42,0.1)]"
-              : "bg-transparent border-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200"
+              : isStandby
+                ? "bg-transparent border-amber-900/30 text-amber-600/70 hover:bg-amber-900/10 cursor-pointer"
+                : "bg-transparent border-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200"
               }`;
 
             return (
               <button
                 key={agent.id}
                 onClick={() => {
-                  if (isLinkable) {
+                  if (isStandby) {
+                    handleAgentSwitch(agent);
+                  } else if (isLinkable) {
                     router.push(agentPath);
                   } else {
                     handleAgentSwitch(agent);
@@ -112,7 +151,10 @@ export default function CommandCenter() {
                 }}
                 className={className}
               >
-                <div className="font-semibold text-sm">{agent.name ?? 'Unknown Agent'}</div>
+                <div className="flex justify-between items-center">
+                  <div className="font-semibold text-sm">{agent.name ?? 'Unknown Agent'}</div>
+                  {isStandby && <span className="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 border border-amber-800/50 bg-amber-900/20 text-amber-500 rounded">Standby</span>}
+                </div>
                 <div className="text-xs opacity-70 truncate mt-1">{agent.role ?? 'System Agent'}</div>
               </button>
             );
@@ -137,7 +179,15 @@ export default function CommandCenter() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          {messages.length === 0 ? (
+          {selectedAgent.status === 'standby' ? (
+            <div className="h-full flex flex-col items-center justify-center text-amber-500/70 border-2 border-dashed border-amber-900/30 rounded-xl p-8 m-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-amber-900/20 flex items-center justify-center mb-4">
+                 <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+              </div>
+              <h3 className="text-lg font-bold tracking-wider mb-2">Protocol on Standby</h3>
+              <p className="text-sm font-medium">Core engine initialization scheduled.</p>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-slate-500">
               <p>Initialize protocol with {selectedAgent.name ?? 'Agent'}...</p>
             </div>
@@ -172,13 +222,14 @@ export default function CommandCenter() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={`Send a directive to ${selectedAgent.name ?? 'Agent'}...`}
-              className="flex-1 bg-[#1A1713] border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-[#C17B2A]/50 focus:ring-1 focus:ring-[#C17B2A]/50 transition-all placeholder:text-slate-600"
+              disabled={selectedAgent.status === 'standby'}
+              placeholder={selectedAgent.status === 'standby' ? "Secure transmission channel locked." : `Send a directive to ${selectedAgent.name ?? 'Agent'}...`}
+              className="flex-1 bg-[#1A1713] border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-[#C17B2A]/50 focus:ring-1 focus:ring-[#C17B2A]/50 transition-all placeholder:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               type="submit"
-              disabled={input.trim().length === 0 || isTyping || !selectedAgent}
-              className="bg-[#C17B2A] hover:bg-[#A66721] disabled:opacity-50 disabled:hover:bg-[#C17B2A] text-[#050810] px-8 py-3 rounded-lg font-bold tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(193,123,42,0.3)] disabled:shadow-none"
+              disabled={input.trim().length === 0 || isTyping || !selectedAgent || selectedAgent.status === 'standby'}
+              className="bg-[#C17B2A] hover:bg-[#A66721] disabled:opacity-50 disabled:hover:bg-[#C17B2A] text-[#050810] px-8 py-3 rounded-lg font-bold tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(193,123,42,0.3)] disabled:shadow-none disabled:cursor-not-allowed"
             >
               Send
             </button>

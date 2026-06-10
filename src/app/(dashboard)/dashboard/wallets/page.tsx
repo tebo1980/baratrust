@@ -87,13 +87,44 @@ export default function WalletsPage() {
           </p>
         </div>
 
-        <div className="bg-[#1E1B16] border border-[#2A2621] rounded-xl p-6 shadow-lg relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full group-hover:bg-blue-500/10 transition-colors"></div>
-          <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Gas / Automation Fuel</p>
-          <h2 className="text-4xl font-bold text-slate-100 font-mono tracking-tight">8,446 <span className="text-xl text-slate-500">CR</span></h2>
-          <p className="text-sm text-blue-400 mt-2 font-medium flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            LLM API & proxy network active
+        <div className="bg-[#1E1B16] border border-[#2A2621] rounded-xl p-6 shadow-lg relative overflow-hidden group flex flex-col justify-between">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#C17B2A]/5 blur-3xl rounded-full group-hover:bg-[#C17B2A]/10 transition-colors"></div>
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Gas / Automation Fuel</p>
+              <h2 className="text-4xl font-bold text-slate-100 font-mono tracking-tight">1,240 <span className="text-xl text-slate-500">CR</span></h2>
+            </div>
+            {/* SVG Semi-Circular Gauge */}
+            <div className="relative w-16 h-16 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                {/* Background Track */}
+                <path
+                  className="text-slate-800"
+                  strokeDasharray="100, 100"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  fill="none"
+                />
+                {/* Progress Fill (12% capacity, below threshold) */}
+                <path
+                  className="text-rose-500 animate-pulse"
+                  strokeDasharray="12, 100"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold text-rose-400 animate-pulse">12%</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-rose-400 mt-4 font-medium flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
+            Low Fuel: Auto-Recharge pending
           </p>
         </div>
 
@@ -133,6 +164,46 @@ export default function WalletsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* 4. High-Contrast Trend Line (SVG Chart Grid) */}
+      <div className="bg-[#1E1B16] border border-[#2A2621] rounded-xl shadow-xl overflow-hidden p-6">
+        <h3 className="text-sm font-bold tracking-widest text-[#C17B2A] uppercase mb-6">Weekly Operational Cash Flow (7-Day Span)</h3>
+
+        <div className="relative w-full h-64">
+          <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 300">
+            {/* Dotted Background Grid Mesh */}
+            <defs>
+              <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#2A2621" strokeWidth="1" strokeDasharray="2,2"/>
+              </pattern>
+            </defs>
+            <rect width="1000" height="300" fill="url(#grid)" />
+
+            {/* X and Y Axis Lines */}
+            <line x1="0" y1="300" x2="1000" y2="300" stroke="#333" strokeWidth="2" />
+            <line x1="0" y1="0" x2="0" y2="300" stroke="#333" strokeWidth="2" />
+
+            {/* Amber Trend Line */}
+            <path
+              d="M 50 250 L 200 180 L 350 210 L 500 120 L 650 150 L 800 80 L 950 40"
+              fill="none"
+              stroke="#C17B2A"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+
+            {/* Data Nodes */}
+            <circle cx="50" cy="250" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+            <circle cx="200" cy="180" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+            <circle cx="350" cy="210" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+            <circle cx="500" cy="120" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+            <circle cx="650" cy="150" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+            <circle cx="800" cy="80" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+            <circle cx="950" cy="40" r="6" fill="#1E1B16" stroke="#C17B2A" strokeWidth="3" />
+          </svg>
         </div>
       </div>
 

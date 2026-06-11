@@ -84,6 +84,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <RefreshCcw className="w-4 h-4 text-[#C17B2A]" />
                 Flynn (Fleet)
               </Link>
+              <Link href="/dashboard/financials" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-500 hover:bg-emerald-900/20 hover:border-emerald-600/30 border border-transparent transition-all shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                Cole (Financials)
+              </Link>
             </div>
           </div>
         </div>

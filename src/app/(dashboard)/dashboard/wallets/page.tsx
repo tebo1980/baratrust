@@ -3,17 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowDownToLine, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 
-const mockTransactions = [
-  { id: "TRX-8902", date: "Today, 10:42 AM", job: "HVAC Replacement (1202 Main)", amount: "$4,200.00", status: "Settled" },
-  { id: "TRX-8901", date: "Today, 09:15 AM", job: "Plumbing Estimate (River Rd)", amount: "$150.00", status: "Processing" },
-  { id: "TRX-8899", date: "Yesterday, 04:30 PM", job: "Electrical Panel Upgrade", amount: "$1,850.00", status: "Escrowed" },
-  { id: "TRX-8898", date: "Yesterday, 02:10 PM", job: "API Inference (LLM Credits)", amount: "-$12.50", status: "Settled" },
-  { id: "TRX-8895", date: "Oct 24, 11:00 AM", job: "Emergency Drain Repair", amount: "$450.00", status: "Settled" }
-];
+
 
 export default function WalletsPage() {
   const [balance, setBalance] = useState<number>(14250.00); // Default to mock, override on fetch
   const [isRefueling, setIsRefueling] = useState(false);
+  const [transactions, setTransactions] = useState([
+    { id: "TRX-8902", date: "Today, 10:42 AM", job: "HVAC Replacement (1202 Main)", amount: "$4,200.00", status: "Settled" },
+    { id: "TRX-8901", date: "Today, 09:15 AM", job: "Plumbing Estimate (River Rd)", amount: "$150.00", status: "Processing" },
+    { id: "TRX-8899", date: "Yesterday, 04:30 PM", job: "Electrical Panel Upgrade", amount: "$1,850.00", status: "Escrowed" },
+    { id: "TRX-8898", date: "Yesterday, 02:10 PM", job: "API Inference (LLM Credits)", amount: "-$12.50", status: "Settled" },
+    { id: "TRX-8895", date: "Oct 24, 11:00 AM", job: "Emergency Drain Repair", amount: "$450.00", status: "Settled" }
+  ]);
 
   const fetchBalance = async () => {
     try {
@@ -38,17 +39,29 @@ export default function WalletsPage() {
     if (isRefueling) return;
     setIsRefueling(true);
     try {
-      const res = await fetch('/api/wallets/refuel', {
+      const response = await fetch('/api/wallets/refuel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amountCents: 5000 }) // $50 injection
+        body: JSON.stringify({ amountCents: 5000 }) // Explicit $50 payload
       });
 
-      if (res.ok) {
-        await fetchBalance();
+      const data = await response.json();
+      if (data.success) {
+        // FORCE CLIENT-SIDE LOCAL STATE MUTATION HERE
+        setBalance(prev => prev + 50.00);
+
+        const newTx = {
+          id: data.transaction?.id ? `TRX-${data.transaction.id.substring(0, 4).toUpperCase()}` : `TRX-${Math.floor(Math.random() * 10000)}`,
+          date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          job: "Manual Refuel Injection",
+          amount: "$50.00",
+          status: "Escrowed"
+        };
+
+        setTransactions(prev => [newTx, ...prev]);
       }
     } catch (err) {
-      console.error('Failed to refuel', err);
+      console.error('Frontend wallet injection failure:', err);
     } finally {
       setIsRefueling(false);
     }
@@ -208,7 +221,7 @@ export default function WalletsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#2A2621]">
-              {mockTransactions.map((trx, i) => (
+              {transactions.map((trx, i) => (
                 <tr key={i} className="hover:bg-[#231F1A] transition-colors group">
                   <td className="px-6 py-4 text-slate-300 font-medium">{trx.date}</td>
                   <td className="px-6 py-4 text-slate-500 font-mono text-xs">{trx.id}</td>

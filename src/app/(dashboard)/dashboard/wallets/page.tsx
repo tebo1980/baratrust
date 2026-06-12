@@ -1,17 +1,59 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Wallet, ArrowDownToLine, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const mockTransactions = [
-  { id: "TRX-8903", date: "Just now", job: "API Inference (Multi-Agent Cascade)", amount: "-$3.75", status: "Settled" },
   { id: "TRX-8902", date: "Today, 10:42 AM", job: "HVAC Replacement (1202 Main)", amount: "$4,200.00", status: "Settled" },
   { id: "TRX-8901", date: "Today, 09:15 AM", job: "Plumbing Estimate (River Rd)", amount: "$150.00", status: "Processing" },
   { id: "TRX-8899", date: "Yesterday, 04:30 PM", job: "Electrical Panel Upgrade", amount: "$1,850.00", status: "Escrowed" },
-  { id: "TRX-8898", date: "Yesterday, 02:10 PM", job: "API Inference (LLM Credits)", amount: "-$12.50", status: "Settled" }
+  { id: "TRX-8898", date: "Yesterday, 02:10 PM", job: "API Inference (LLM Credits)", amount: "-$12.50", status: "Settled" },
+  { id: "TRX-8895", date: "Oct 24, 11:00 AM", job: "Emergency Drain Repair", amount: "$450.00", status: "Settled" }
 ];
 
 export default function WalletsPage() {
+  const [balance, setBalance] = useState<number>(14250.00); // Default to mock, override on fetch
+  const [isRefueling, setIsRefueling] = useState(false);
+
+  const fetchBalance = async () => {
+    try {
+      const res = await fetch('/api/wallets');
+      if (res.ok) {
+        const data = await res.json();
+        // Convert cents to dollars
+        if (typeof data.balanceCents === 'number') {
+          setBalance(data.balanceCents / 100);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch balance', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBalance();
+  }, []);
+
+  const handleRefuel = async () => {
+    if (isRefueling) return;
+    setIsRefueling(true);
+    try {
+      const res = await fetch('/api/wallets/refuel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountCents: 5000 }) // $50 injection
+      });
+
+      if (res.ok) {
+        await fetchBalance();
+      }
+    } catch (err) {
+      console.error('Failed to refuel', err);
+    } finally {
+      setIsRefueling(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Settled':
@@ -57,9 +99,26 @@ export default function WalletsPage() {
             <ArrowDownToLine className="w-4 h-4" />
             Export Ledger (CSV)
           </button>
-          <button className="px-5 py-2.5 bg-[#C17B2A] hover:bg-[#A66721] text-[#050810] rounded-lg text-sm font-bold tracking-wide transition-all shadow-[0_0_15px_rgba(193,123,42,0.4)] flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Fund Wallet
+          <button
+            onClick={handleRefuel}
+            disabled={isRefueling}
+            className={`px-5 py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all flex items-center gap-2 ${
+              isRefueling
+                ? 'bg-[#C17B2A]/50 text-slate-800 cursor-not-allowed'
+                : 'bg-[#C17B2A] hover:bg-[#A66721] text-[#050810] shadow-[0_0_15px_rgba(193,123,42,0.4)]'
+            }`}
+          >
+            {isRefueling ? (
+              <>
+                <Clock className="w-4 h-4 animate-spin" />
+                [⏳ REFUELING...]
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                [⚡ FUND WALLET / REFUEL]
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -70,7 +129,7 @@ export default function WalletsPage() {
         <div className="bg-[#1E1B16] border border-[#2A2621] rounded-xl p-6 shadow-lg relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full group-hover:bg-emerald-500/10 transition-colors"></div>
           <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Total Escrow Funds</p>
-          <h2 className="text-4xl font-bold text-slate-100 font-mono tracking-tight">$14,250.00</h2>
+          <h2 className="text-4xl font-bold text-slate-100 font-mono tracking-tight">${balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
           <p className="text-sm text-emerald-400 mt-2 font-medium flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Standing credit pool active

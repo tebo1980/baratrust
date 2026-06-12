@@ -1,190 +1,62 @@
-"use client";
-
-import React, { useState } from 'react';
-
-type TradeType = 'HVAC' | 'Plumbing' | 'Electrical';
-
-interface Lead {
-  id: string;
-  trade: TradeType;
-  description: string;
-  confidence: number;
-  timestamp: string;
-  ticketValue?: string;
-  assignedAgents?: string[];
-}
-
-interface Column {
-  id: string;
-  title: string;
-  leads: Lead[];
-}
-
-const initialData: Column[] = [
-  {
-    id: "col-1",
-    title: "Inbound Intercepts",
-    leads: [
-      { id: "lead-1", trade: "HVAC", description: "AC blowing hot air, weird noise.", confidence: 92, timestamp: "10m ago", assignedAgents: ["Della"] },
-      { id: "lead-2", trade: "Plumbing", description: "Leaky main valve in basement.", confidence: 85, timestamp: "30m ago", assignedAgents: ["Fetch"] }
-    ]
-  },
-  {
-    id: "col-2",
-    title: "Triage & Estimate",
-    leads: [
-      { id: "lead-3", trade: "Electrical", description: "Breaker panel sparking.", confidence: 98, timestamp: "1h ago", ticketValue: "$850.00", assignedAgents: ["Brix"] }
-    ]
-  },
-  {
-    id: "col-3",
-    title: "Ready to Dispatch",
-    leads: []
-  },
-  {
-    id: "col-4",
-    title: "Scheduled Work",
-    leads: [
-      { id: "lead-5", trade: "HVAC", description: "Emergency Commercial HVAC Compressor Failure (Downtown Office).", confidence: 99, timestamp: "Just now", ticketValue: "$4,250.00", assignedAgents: ["Della", "Brix", "Gemma"] },
-      { id: "lead-4", trade: "HVAC", description: "Full system replacement (1202 Main).", confidence: 100, timestamp: "2h ago", ticketValue: "$6,500.00", assignedAgents: ["Max"] }
-    ]
-  },
-  {
-    id: "col-5",
-    title: "Invoiced / Complete",
-    leads: []
-  }
-];
+import React from 'react';
 
 export default function PipelinePage() {
-  const [columns, setColumns] = useState<Column[]>(initialData);
+  const columns = [
+    { title: "Inbound Intercepts", color: "border-indigo-500/30 text-indigo-400" },
+    { title: "Triage & Estimate", color: "border-amber-500/30 text-amber-400" },
+    { title: "Ready to Dispatch", color: "border-emerald-500/30 text-emerald-400" },
+    { title: "Scheduled Work", color: "border-blue-500/30 text-blue-400" },
+    { title: "Invoiced / Complete", color: "border-purple-500/30 text-purple-400" }
+  ];
 
-  const handleAddMockLead = () => {
-    const trades: TradeType[] = ['HVAC', 'Plumbing', 'Electrical'];
-    const randomTrade = trades[Math.floor(Math.random() * trades.length)];
-
-    const newLead: Lead = {
-      id: `lead-${Date.now()}`,
-      trade: randomTrade,
-      description: "Auto-generated mock inquiry detected via Della.",
-      confidence: Math.floor(Math.random() * (99 - 70 + 1)) + 70, // 70 to 99
-      timestamp: "Just now"
-    };
-
-    setColumns(prev => {
-      const newCols = [...prev];
-      newCols[0].leads = [newLead, ...newCols[0].leads];
-      return newCols;
-    });
-  };
-
-  const getTradeColor = (trade: TradeType) => {
-    switch (trade) {
-      case 'HVAC': return 'text-sky-400 bg-sky-400/10 border-sky-400/30';
-      case 'Plumbing': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30';
-      case 'Electrical': return 'text-amber-400 bg-amber-400/10 border-amber-400/30';
-      default: return 'text-gray-400 bg-gray-400/10 border-gray-400/30';
-    }
-  };
+  const mockCards = [
+    { id: 1, col: 0, trade: "HVAC", desc: "A/C blowing warm air", contact: "John D.", loc: "Louisville, KY" },
+    { id: 2, col: 0, trade: "Plumbing", desc: "Leaking water heater", contact: "Sarah M.", loc: "New Albany, IN" },
+    { id: 3, col: 1, trade: "Electrical", desc: "Panel upgrade quote", contact: "Mike T.", loc: "Jeffersonville, IN" },
+    { id: 4, col: 2, trade: "HVAC", desc: "Full system replacement", contact: "Emily R.", loc: "Louisville, KY" }
+  ];
 
   return (
-    <div className="w-full h-[calc(100vh-100px)] flex flex-col">
-      {/* Header Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-indigo-500/20 pb-6 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-wider text-slate-200 drop-shadow-[0_0_8px_rgba(79,70,229,0.4)]">
-            Active Pipeline
-          </h1>
-          <p className="text-slate-400 mt-1">Live dispatch routing and Kanban lead management.</p>
-        </div>
-        <button
-          onClick={handleAddMockLead}
-          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-bold tracking-wide transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] flex items-center gap-2"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          Add Mock Lead
-        </button>
-      </div>
+    <div className="flex flex-col h-full bg-[#1E1B16] text-slate-200 rounded-xl border border-[#C17B2A]/30 shadow-2xl p-6 overflow-hidden">
+      <header className="mb-6 border-b border-[#C17B2A]/20 pb-4">
+        <h1 className="text-3xl font-bold tracking-wider text-[#C17B2A] drop-shadow-[0_0_8px_rgba(193,123,42,0.4)]">
+          Live Project Pipeline
+        </h1>
+        <p className="text-amber-500/60 mt-1">Real-time trade Kanban board</p>
+      </header>
 
-      {/* Kanban Board Area */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar pb-4">
-        <div className="flex gap-6 h-full min-w-max">
-          {columns.map((col) => (
-            <div key={col.id} className="w-80 flex flex-col bg-[#080b14] border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-
-              {/* Column Header */}
-              <div className="px-4 py-3 bg-[#0B0F19] border-b border-slate-800 flex justify-between items-center">
-                <h3 className="text-sm font-bold tracking-widest uppercase text-slate-300">{col.title}</h3>
-                <span className="bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full">
-                  {col.leads.length}
-                </span>
-              </div>
-
-              {/* Column Body / Cards */}
-              <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
-                {col.leads.map((lead) => (
-                  <div key={lead.id} className="bg-[#0b1329] border border-indigo-900/40 rounded-lg p-4 cursor-grab hover:border-indigo-500/50 hover:shadow-[0_0_15px_rgba(79,70,229,0.15)] transition-all flex flex-col gap-3">
-
-                    {/* Top Row: Trade Badge & Score */}
-                    <div className="flex justify-between items-start">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${getTradeColor(lead.trade)}`}>
-                        {lead.trade}
-                      </span>
-
-                      <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 px-2 py-1 rounded-md shadow-inner">
-                        <div className={`w-1.5 h-1.5 rounded-full ${lead.confidence > 90 ? 'bg-emerald-400' : 'bg-amber-400'}`}></div>
-                        <span className="text-[10px] font-mono font-bold text-slate-300">
-                          {lead.confidence}%
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Middle: Description */}
-                    <p className="text-sm text-slate-200 font-medium leading-relaxed">
-                      "{lead.description}"
-                    </p>
-
-                    {/* Conditional Ticket Value & Assigned Agents */}
-                    {(lead.ticketValue || lead.assignedAgents) && (
-                      <div className="flex justify-between items-center mt-1">
-                        {lead.ticketValue && (
-                          <span className="text-xs font-mono font-bold text-[#C17B2A]">
-                            {lead.ticketValue}
-                          </span>
-                        )}
-                        {lead.assignedAgents && (
-                          <div className="flex items-center gap-1">
-                            {lead.assignedAgents.map((agent, i) => (
-                              <span key={i} className="text-[9px] bg-slate-800 border border-slate-700 text-slate-300 px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">
-                                {agent}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Bottom: Timestamp & ID */}
-                    <div className="flex justify-between items-center border-t border-slate-800 pt-2 mt-1">
-                      <span className="text-[10px] text-slate-500 font-mono">ID: {lead.id.split('-')[1].slice(-4)}</span>
-                      <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                        {lead.timestamp}
-                      </span>
-                    </div>
-
-                  </div>
-                ))}
-
-                {col.leads.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-800 rounded-lg opacity-50">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Drop Zone</span>
-                  </div>
-                )}
-              </div>
+      <div className="flex gap-6 overflow-x-auto h-full pb-4">
+        {columns.map((col, index) => (
+          <div key={index} className="flex-1 min-w-[280px] bg-black/40 rounded-lg border border-gray-800/50 flex flex-col">
+            <div className={`p-4 border-b bg-gray-900/50 ${col.color}`}>
+              <h2 className="text-sm font-bold uppercase tracking-wider">{col.title}</h2>
             </div>
-          ))}
-        </div>
+
+            <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+              {mockCards.filter(card => card.col === index).map(card => (
+                <div key={card.id} className="bg-[#1E1B16] border border-[#C17B2A]/20 p-4 rounded shadow-md hover:border-[#C17B2A]/60 transition-all cursor-pointer group">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold px-2 py-1 bg-amber-500/10 text-[#C17B2A] rounded">
+                      {card.trade}
+                    </span>
+                    <span className="text-[10px] text-gray-500 uppercase tracking-widest">{card.loc}</span>
+                  </div>
+                  <p className="text-sm text-gray-300 font-medium group-hover:text-white transition-colors">{card.desc}</p>
+                  <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    {card.contact}
+                  </div>
+                </div>
+              ))}
+
+              {mockCards.filter(card => card.col === index).length === 0 && (
+                <div className="h-24 flex items-center justify-center text-gray-600 text-xs italic border border-dashed border-gray-700/50 rounded">
+                  No active intercepts
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

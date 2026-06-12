@@ -97,7 +97,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   };
 
   return (
-    <div className="flex bg-natural-bg min-h-screen font-sans relative">
+    <div className="flex bg-natural-bg min-h-screen font-sans">
       <aside className="w-72 bg-natural-sidebar border-r border-natural-border flex flex-col pt-10">
         <div className="px-8 mb-12 flex items-center gap-3">
           <div className="w-10 h-10 bg-natural-accent rounded-xl flex items-center justify-center text-white">
@@ -159,7 +159,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-24 border-b border-natural-border flex items-center justify-between px-10 bg-white/40 backdrop-blur-md sticky top-0 z-10">
           <div>
             <h2 className="text-3xl font-serif italic text-natural-heading leading-tight">Morning Dispatch</h2>
@@ -198,7 +198,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         </header>
 
         <div className={cn(
-          "flex-1 p-10 transition-all duration-500",
+          "flex-1 overflow-y-auto p-10 transition-all duration-500",
           view === "grid" ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 auto-rows-min" : "flex flex-col gap-3"
         )}>
           {leads.length === 0 ? (
@@ -207,13 +207,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 <Layers className="w-10 h-10 opacity-20" />
               </div>
               <p className="font-serif italic text-2xl">Fields are currently dormant.</p>
-              <button
-                onClick={handleScout}
-                className="mt-6 bg-natural-accent hover:bg-natural-accent/90 text-white text-xs uppercase tracking-[0.2em] font-bold py-3 px-6 rounded-lg transition-colors flex items-center gap-2"
-              >
-                {isScouting ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                INITIALIZE A SCOUT TO BEGIN THE HARVEST
-              </button>
+              <p className="text-xs uppercase tracking-[0.2em] mt-3 font-bold">Initialize a scout to begin the harvest.</p>
             </div>
           ) : (
             leads.map((lead: any, i) => (

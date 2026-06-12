@@ -15,7 +15,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <span className="text-amber-500 font-bold text-lg tracking-wider">B</span>
             </div>
             <h1 className="text-xl font-bold tracking-widest text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]">
-              BARATRUST
+              BARATRUST SUITE
             </h1>
           </Link>
         </div>
@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Bot className="w-4 h-4 text-indigo-400" />
                 Brix AI
               </Link>
-              <Link href="/pioneer" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
+              <Link href="/dashboard/fetch" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
                 <Zap className="w-4 h-4 text-amber-400" />
                 Regular Ass Fetch
               </Link>
@@ -75,18 +75,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link href="/dashboard/della" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-purple-400 hover:bg-purple-900/20 hover:border-purple-500/30 border border-transparent transition-all shadow-sm">
                 <Send className="w-4 h-4 text-purple-400" />
                 Della (Screener)
-              </Link>
-              <Link href="/dashboard/gemma" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20 hover:border-emerald-500/30 border border-transparent transition-all shadow-sm">
-                <Database className="w-4 h-4 text-emerald-400" />
-                Gemma (Logistics)
-              </Link>
-              <Link href="/dashboard/fleet" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-[#C17B2A] hover:bg-[#C17B2A]/20 hover:border-[#C17B2A]/30 border border-transparent transition-all shadow-sm">
-                <RefreshCcw className="w-4 h-4 text-[#C17B2A]" />
-                Flynn (Fleet)
-              </Link>
-              <Link href="/dashboard/financials" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-500 hover:bg-emerald-900/20 hover:border-emerald-600/30 border border-transparent transition-all shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                Cole (Financials)
               </Link>
             </div>
           </div>

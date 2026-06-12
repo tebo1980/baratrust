@@ -11,10 +11,18 @@ export async function POST(req: Request) {
     try {
         const lead = await req.json();
 
-        // 1. WAKE UP BRIX
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // 1. WAKE UP BRIX AND STREAM TO PREVENT EDGE TIMEOUT
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+            async start(controller) {
+                const heartbeat = setInterval(() => {
+                    controller.enqueue(encoder.encode(" "));
+                }, 3000);
 
-        const prompt = `
+                try {
+                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+                    const prompt = `
       You are Brix, an expert HVAC and Electrical estimating AI.
       Analyze this job lead and provide a JSON response with estimated costs in CENTS (multiply dollars by 100).
       Do not use formatting blocks, just raw JSON.
@@ -33,25 +41,39 @@ export async function POST(req: Request) {
       }
     `;
 
-        const result = await model.generateContent(prompt);
-        const textResponse = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-        const estimate = JSON.parse(textResponse);
+                    const result = await model.generateContent(prompt);
+                    const textResponse = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+                    const estimate = JSON.parse(textResponse);
 
-        // 2. INSERT INTO YOUR DATABASE
-        const [newBid] = await db.insert(bids).values({
-            projectId: lead.leadId, // FIXED: Now explicitly maps to your Drizzle schema
-            status: "presented",
-            laborCost: estimate.laborCost,
-            equipmentCost: estimate.equipmentCost,
-            materialsCost: estimate.materialsCost,
-            grantMoneyFound: estimate.grantMoneyFound || 0,
-        }).returning();
+                    // 2. INSERT INTO YOUR DATABASE
+                    const [newBid] = await db.insert(bids).values({
+                        projectId: lead.leadId,
+                        status: "presented",
+                        laborCost: estimate.laborCost,
+                        equipmentCost: estimate.equipmentCost,
+                        materialsCost: estimate.materialsCost,
+                        grantMoneyFound: estimate.grantMoneyFound || 0,
+                    }).returning();
 
+                    // 3. PURGE THE SERVER CACHE
+                    revalidatePath("/", "layout");
 
-        // 3. PURGE THE SERVER CACHE
-        revalidatePath("/", "layout");
+                    clearInterval(heartbeat);
+                    controller.enqueue(encoder.encode(JSON.stringify({ success: true, bid: newBid, agentNotes: estimate.notes })));
+                    controller.close();
+                } catch (error: any) {
+                    console.error("Brix Agent Error:", error);
+                    clearInterval(heartbeat);
+                    controller.enqueue(encoder.encode(JSON.stringify({ success: false, error: "Failed to engage agent" })));
+                    controller.close();
+                }
+            }
+        });
 
-        return NextResponse.json({ success: true, bid: newBid, agentNotes: estimate.notes });
+        return new Response(stream, {
+            headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" }
+        });
+
     } catch (error) {
         console.error("Brix Agent Error:", error);
         return NextResponse.json({ success: false, error: "Failed to engage agent" }, { status: 500 });

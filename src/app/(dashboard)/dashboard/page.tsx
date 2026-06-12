@@ -82,13 +82,14 @@ export default function MasterDashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {agents.map((agent) => {
-              const isFetch = agent.id === 'fetch';
               const agentPath = (() => {
-                if (agent.id === 'fetch') return "/pioneer";
-                if (agent.id === 'nova') return "/internal/opportunitywatch-v2";
-
-                return `/dashboard/${agent.id}`;
+                if (agent.id === 'fetch') return '/pioneer';
+                if (agent.id === 'brix') return '/dashboard/brix';
+                if (agent.id === 'nova') return '/internal/opportunitywatch-v2';
+                return `/agents?agent=${agent.id}`;
               })();
+
+              const isFetch = agent.id === 'fetch';
               const Icon = isFetch ? Activity : Bot;
               const colorTheme = isFetch ? "amber" : "blue";
 

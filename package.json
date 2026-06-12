@@ -30,7 +30,8 @@
     "stripe": "^22.1.1",
     "svix": "^1.93.0",
     "tailwind-merge": "^2.3.0",
-    "vite": "^8.0.13"
+    "vite": "^8.0.13",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20",

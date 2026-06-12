@@ -67,11 +67,24 @@ export const leads = pgTable('leads', {
   price: text('price'),
   summary: text('summary'),
   city: text('city'),
-  status: text('status').default('new'),
+  tradeSector: text('trade_sector'),
+  prospectContact: text('prospect_contact'),
+  geographicMetadata: text('geographic_metadata'),
+  status: text('status').default('Inbound Intercepts'),
   createdAt: timestamp('created_at').defaultNow(),
   source: text('source').unique(), // ADDED UNIQUE to source URL
   originalText: text('original_text'),
   draftReply: text('draft_reply'),
+});
+
+export const partsOrders = pgTable('parts_orders', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  leadId: integer('lead_id').references(() => leads.id).notNull(),
+  requiredMaterials: jsonb('required_materials').$type<string[]>().notNull().default([]),
+  supplierName: text('supplier_name'),
+  quotedPrice: integer('quoted_price').default(0),
+  status: text('status').notNull().default('Sourcing'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 // --- ORIGINAL SELF-PROSPECTING LEADS TABLE (DO NOT DELETE) ---

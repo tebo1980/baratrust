@@ -4,16 +4,23 @@ import { AgentRegistry } from "@/lib/agents";
 
 // Increase max duration to prevent Vercel from violently severing the connection during long DB writes
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     // 1. Robust Payload Parsing
     // The frontend sends { agent: string, input: string }
-    const payload = await req.json();
+    let payload;
+    try {
+      payload = await req.json();
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid or empty JSON payload" }, { status: 400 });
+    }
+    
     const agentId = payload.agent || payload.agentId; // Catch both variations just in case
     const input = payload.input;
 
-    if (!agentId || !input) {
+    if (!agentId || typeof agentId !== 'string' || !input) {
       console.error("[ORCHESTRATOR] Malformed Payload:", payload);
       return NextResponse.json({ error: "Missing agent identifier or input" }, { status: 400 });
     }

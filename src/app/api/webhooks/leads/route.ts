@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({ 
         leadId: newLead.id, 
         title: newLead.title || newLead.tradeSector, 
+        tradeSector: newLead.tradeSector,
         description: newLead.summary || newLead.prospectContact, 
         region: newLead.geographicMetadata 
       })

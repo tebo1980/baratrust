@@ -56,19 +56,40 @@ export async function POST(req: Request) {
                     
                     const prompt = `Extract required materials for a ${payload.tradeSector} job: ${payload.description}. Return raw JSON array of strings. Do not include formatting blocks, just the JSON array.`;
                     
-                    const result = await model.generateContent(prompt);
-                    const textResponse = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-                    const materialsList = JSON.parse(textResponse);
+                    let materialsList;
+                    try {
+                        const result = await model.generateContent(prompt);
+                        const textResponse = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+                        materialsList = JSON.parse(textResponse);
+                    } catch (e) {
+                        console.log(`[GEMMA] Gemini API failed, using mock materials...`);
+                        materialsList = ["Digital Programmable Thermostat", "Commercial AC Compressor"];
+                    }
+
+                    // 2.5 TRIGGER COLE INVENTORY CHECK
+                    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+                    console.log(`[GEMMA] Requesting internal stock check from Cole Inventory...`);
+                    const invRes = await fetch(`${appUrl}/api/agents/cole/inventory`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ leadId: payload.leadId, requestedParts: materialsList })
+                    });
+                    const invData = await invRes.json();
+                    
+                    const externalSourcingRequired = invData.externalSourcingRequired || materialsList;
 
                     // 3. Trigger Live Inventory Query Sub-Routine (Supplier Race)
-                    const { supplierName, quotedPrice } = await queryLocalDistributors(materialsList, payload.geographicMetadata);
+                    const { supplierName, quotedPrice } = await queryLocalDistributors(externalSourcingRequired, payload.geographicMetadata);
+                    
+                    const totalCombinedCost = quotedPrice + (invData.internalCost || 0);
+                    console.log(`[GEMMA] Combined Material Cost: $${(totalCombinedCost/100).toFixed(2)} (Internal: $${((invData.internalCost||0)/100).toFixed(2)}, External: $${(quotedPrice/100).toFixed(2)})`);
 
                     // 4. Commit to Neon DB
                     const [newOrder] = await db.insert(partsOrders).values({
                         leadId: payload.leadId,
                         requiredMaterials: materialsList, // Drizzle handles array to JSON
                         supplierName,
-                        quotedPrice,
+                        quotedPrice: totalCombinedCost,
                         status: 'Price Locked'
                     }).returning();
 

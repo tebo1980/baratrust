@@ -108,7 +108,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <button className="text-slate-400 hover:text-cyan-400 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
             </button>
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-9 h-9 border border-indigo-500/40 shadow-[0_0_10px_rgba(79,70,229,0.2)]" } }} />
+            {process.env.TEST_ENV === 'true' ? (
+              <div className="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/40"></div>
+            ) : (
+              <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: "w-9 h-9 border border-indigo-500/40 shadow-[0_0_10px_rgba(79,70,229,0.2)]" } }} />
+            )}
           </div>
         </header>
 

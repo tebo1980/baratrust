@@ -42,30 +42,6 @@ function CommandCenterContent() {
     loadAgents();
   }, [requestedAgentId]);
 
-  const searchParams = useSearchParams();
-  const requestedAgentId = searchParams.get("agent");
-
-  // 1. Dynamically fetch the live agents from the registry on mount
-  useEffect(() => {
-    async function loadAgents() {
-      try {
-        const res = await fetch('/api/agents');
-        const data = await res.json();
-
-        if (data.agents && data.agents.length > 0) {
-          setAgents(data.agents);
-
-          // Try to find the requested agent via query param, otherwise fallback to the first engine
-          const targetAgent = data.agents.find((a: UIAgent) => a.id === requestedAgentId);
-          setSelectedAgent(targetAgent || data.agents[0]);
-        }
-      } catch (err) {
-        console.error("Failed to load agent registry:", err);
-      }
-    }
-    loadAgents();
-  }, [requestedAgentId]);
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim().length === 0 || isTyping || !selectedAgent) return;

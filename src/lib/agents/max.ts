@@ -36,10 +36,10 @@ CRITICAL INSTRUCTION: You must output your final response strictly as a valid JS
       });
 
       console.log(`[MAX] Successfully triaged dispatch and saved to agent_actions.`);
-
+      
     } catch (err) {
       console.error(`[MAX] Failed to parse or save dispatch action:`, err);
-
+      
       await db.insert(agentActions).values({
         agentId: "max",
         actionType: 'dispatch_optimized_fallback',

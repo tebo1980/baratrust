@@ -36,10 +36,10 @@ CRITICAL INSTRUCTION: You must output your final response strictly as a valid JS
       });
 
       console.log(`[DELLA] Successfully screened lead and saved to agent_actions.`);
-
+      
     } catch (err) {
       console.error(`[DELLA] Failed to parse or save screening action:`, err);
-
+      
       await db.insert(agentActions).values({
         agentId: "della",
         actionType: 'lead_screened_fallback',

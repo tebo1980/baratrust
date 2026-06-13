@@ -4,8 +4,8 @@ import { agentActions } from '@/db/schema';
 
 export const RexAgent: AgentConfig = {
   id: "rex",
-  systemPrompt: `You are Rex, the Reputation and Review Manager for BaraTrust. Your job is to monitor and respond to Google and Yelp reviews for local blue-collar trades (HVAC, plumbing, electrical).
-
+  systemPrompt: `You are Rex, the Reputation and Review Manager for BaraTrust. Your job is to monitor and respond to Google and Yelp reviews for local blue-collar trades (HVAC, plumbing, electrical). 
+  
 Your tone must be authentic, professional, and blue-collar—accountability and a clear path to resolution are key for negative reviews, while genuine gratitude is key for positive ones. Avoid corporate jargon.
 
 CRITICAL INSTRUCTION: You must output your final response strictly as a valid JSON object. Do not include markdown formatting like \`\`\`json. Your response must precisely match this schema:
@@ -36,10 +36,10 @@ CRITICAL INSTRUCTION: You must output your final response strictly as a valid JS
       });
 
       console.log(`[REX] Successfully processed review and saved to agent_actions.`);
-
+      
     } catch (err) {
       console.error(`[REX] Failed to parse or save review action:`, err);
-
+      
       await db.insert(agentActions).values({
         agentId: "rex",
         actionType: 'review_processed_fallback',

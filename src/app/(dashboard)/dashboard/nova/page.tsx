@@ -17,14 +17,14 @@ export default function NovaDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prospectId: 'OVERRIDE' })
       });
-
+      
       if (res.ok) {
-         setLogs(prev => [...prev, {
-            id: Date.now(),
-            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-            action: "MANUAL DISPATCH",
-            target: "System Override Activated",
-            status: "Sent"
+         setLogs(prev => [...prev, { 
+            id: Date.now(), 
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), 
+            action: "MANUAL DISPATCH", 
+            target: "System Override Activated", 
+            status: "Sent" 
          }]);
       }
     } catch (err) {

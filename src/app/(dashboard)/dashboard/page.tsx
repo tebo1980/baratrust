@@ -88,11 +88,11 @@ export default function MasterDashboard() {
                 if (agent.id === 'nova') return '/internal/opportunitywatch-v2';
                 return `/agents?agent=${agent.id}`;
               })();
-
+              
               const isFetch = agent.id === 'fetch';
               const Icon = isFetch ? Activity : Bot;
               const colorTheme = isFetch ? "amber" : "blue";
-
+              
               return (
                 <Link key={agent.id} href={agentPath}>
                   <motion.div whileHover={{ y: -5 }} className={`group relative bg-zinc-900 rounded-2xl p-8 border border-zinc-800 overflow-hidden hover:border-${colorTheme}-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all h-full flex flex-col`}>

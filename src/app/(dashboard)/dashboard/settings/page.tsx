@@ -20,10 +20,10 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-cyan-400 uppercase tracking-widest">Gemini API Key</label>
             <div className="flex items-center gap-4">
-              <input
-                type="text"
+              <input 
+                type="text" 
                 readOnly
-                defaultValue="••••••••••••••••••••••••"
+                defaultValue="••••••••••••••••••••••••" 
                 className="bg-[#0A1019] border border-indigo-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
               <span className="text-xs text-rose-400 font-semibold border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 rounded-md shrink-0">
@@ -36,25 +36,26 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-cyan-400 uppercase tracking-widest">Neon Database</label>
             <div className="flex items-center gap-4">
-              <input
-                type="text"
+              <input 
+                type="text" 
                 readOnly
-                defaultValue="••••••••••••••••••••••••"
+                defaultValue="••••••••••••••••••••••••" 
                 className="bg-[#0A1019] border border-emerald-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
               <span className="text-xs text-emerald-400 font-semibold border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 rounded-md shrink-0">
                 Connected
               </span>
             </div>
+            <p className="text-xs text-slate-500 mt-1">Required for automated payment capture logic in Max engine.</p>
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-cyan-400 uppercase tracking-widest">Stripe Webhook Secret</label>
             <div className="flex items-center gap-4">
-              <input
-                type="text"
+              <input 
+                type="text" 
                 readOnly
-                defaultValue="••••••••••••••••••••••••"
+                defaultValue="••••••••••••••••••••••••" 
                 className="bg-[#0A1019] border border-emerald-500/30 rounded-lg px-4 py-2 w-full text-slate-300"
               />
               <span className="text-xs text-emerald-400 font-semibold border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 rounded-md shrink-0">

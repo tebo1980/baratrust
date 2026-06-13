@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     // 2. Token Guard
     const authHeader = req.headers.get("Authorization");
     const secretKey = process.env.WEBHOOK_SECRET_KEY;
-
+    
     if (!secretKey || authHeader !== `Bearer ${secretKey}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -50,11 +50,12 @@ export async function POST(req: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       // Mocking the required payload for Brix/Della based on typical engage input
-      body: JSON.stringify({
-        leadId: newLead.id,
-        title: newLead.title || newLead.tradeSector,
-        description: newLead.summary || newLead.prospectContact,
-        region: newLead.geographicMetadata
+      body: JSON.stringify({ 
+        leadId: newLead.id, 
+        title: newLead.title || newLead.tradeSector, 
+        tradeSector: newLead.tradeSector,
+        description: newLead.summary || newLead.prospectContact, 
+        region: newLead.geographicMetadata 
       })
     }).catch((err) => console.error("Concurrent dispatch failed:", err));
 

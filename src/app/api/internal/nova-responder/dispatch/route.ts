@@ -4,14 +4,14 @@ import { getProspect, updateProspect } from '@/lib/self-prospecting/db'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-
+    
     // Intercept manual override payloads
     if (body.prospectId === 'OVERRIDE') {
       console.log(`[NOVA DISPATCH] MANUAL OVERRIDE AUTHORIZED`);
-      return NextResponse.json({
-        success: true,
+      return NextResponse.json({ 
+        success: true, 
         message: 'Manual override dispatched successfully',
-        prospect: { status: 'sent', drafted_message: 'Diagnostic Override Sent' }
+        prospect: { status: 'sent', drafted_message: 'Diagnostic Override Sent' } 
       });
     }
 

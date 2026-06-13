@@ -28,9 +28,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { trade, location, context } = body;
 
-    const model = genAI.getGenerativeModel({
+    const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
-      systemInstruction: SYSTEM_PROMPT
+      systemInstruction: SYSTEM_PROMPT 
     });
 
     const userPrompt = `Find ${trade} leads in ${location}. ${context ? `Additional context: ${context}` : ''}`;

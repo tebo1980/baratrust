@@ -1,6 +1,11 @@
 import React from 'react';
+import { db } from "@/db";
+import { leads } from "@/db/schema";
+import { desc } from "drizzle-orm";
 
-export default function PipelinePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function PipelinePage() {
   const columns = [
     { title: "Inbound Intercepts", color: "border-indigo-500/30 text-indigo-400" },
     { title: "Triage & Estimate", color: "border-amber-500/30 text-amber-400" },
@@ -9,12 +14,41 @@ export default function PipelinePage() {
     { title: "Invoiced / Complete", color: "border-purple-500/30 text-purple-400" }
   ];
 
-  const mockCards = [
-    { id: 1, col: 0, trade: "HVAC", desc: "A/C blowing warm air", contact: "John D.", loc: "Louisville, KY" },
-    { id: 2, col: 0, trade: "Plumbing", desc: "Leaking water heater", contact: "Sarah M.", loc: "New Albany, IN" },
-    { id: 3, col: 1, trade: "Electrical", desc: "Panel upgrade quote", contact: "Mike T.", loc: "Jeffersonville, IN" },
-    { id: 4, col: 2, trade: "HVAC", desc: "Full system replacement", contact: "Emily R.", loc: "Louisville, KY" }
-  ];
+  let liveCards: any[] = [];
+  let fetchError = false;
+
+  try {
+    const rawLeads = await db.select().from(leads).orderBy(desc(leads.createdAt));
+    
+    liveCards = rawLeads.map(lead => {
+      let colIndex = 0;
+      switch (lead.status) {
+        case 'Inbound Intercepts': colIndex = 0; break;
+        case 'Triage & Estimate': colIndex = 1; break;
+        case 'Ready to Dispatch': colIndex = 2; break;
+        case 'Scheduled Work': colIndex = 3; break;
+        case 'Invoiced / Complete': colIndex = 4; break;
+        default: colIndex = 0;
+      }
+      
+      return {
+        id: lead.id,
+        col: colIndex,
+        trade: lead.tradeSector || 'General',
+        desc: lead.summary || lead.title || 'Incoming Request',
+        contact: lead.prospectContact || 'Unknown',
+        loc: lead.city || lead.geographicMetadata || 'Local'
+      };
+    });
+  } catch (error) {
+    console.error("Pipeline Page DB Fetch Error:", error);
+    fetchError = true;
+    
+    // Fallback UI data
+    liveCards = [
+      { id: 'fallback-1', col: 0, trade: "SYSTEM", desc: "Database connection degraded. Displaying fallback data.", contact: "N/A", loc: "System" }
+    ];
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#1E1B16] text-slate-200 rounded-xl border border-[#C17B2A]/30 shadow-2xl p-6 overflow-hidden">
@@ -24,6 +58,12 @@ export default function PipelinePage() {
         </h1>
         <p className="text-amber-500/60 mt-1">Real-time trade Kanban board</p>
       </header>
+      
+      {fetchError && (
+        <div className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded text-red-400 text-sm">
+          ⚠️ Connection to database was reset or session expired. Displaying offline fallback UI.
+        </div>
+      )}
 
       <div className="flex gap-6 overflow-x-auto h-full pb-4">
         {columns.map((col, index) => (
@@ -31,9 +71,9 @@ export default function PipelinePage() {
             <div className={`p-4 border-b bg-gray-900/50 ${col.color}`}>
               <h2 className="text-sm font-bold uppercase tracking-wider">{col.title}</h2>
             </div>
-
+            
             <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-              {mockCards.filter(card => card.col === index).map(card => (
+              {liveCards.filter(card => card.col === index).map(card => (
                 <div key={card.id} className="bg-[#1E1B16] border border-[#C17B2A]/20 p-4 rounded shadow-md hover:border-[#C17B2A]/60 transition-all cursor-pointer group">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs font-bold px-2 py-1 bg-amber-500/10 text-[#C17B2A] rounded">
@@ -48,8 +88,8 @@ export default function PipelinePage() {
                   </div>
                 </div>
               ))}
-
-              {mockCards.filter(card => card.col === index).length === 0 && (
+              
+              {liveCards.filter(card => card.col === index).length === 0 && (
                 <div className="h-24 flex items-center justify-center text-gray-600 text-xs italic border border-dashed border-gray-700/50 rounded">
                   No active intercepts
                 </div>

@@ -4,16 +4,23 @@ import { AgentRegistry } from "@/lib/agents";
 
 // Increase max duration to prevent Vercel from violently severing the connection during long DB writes
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     // 1. Robust Payload Parsing
     // The frontend sends { agent: string, input: string }
-    const payload = await req.json();
+    let payload;
+    try {
+      payload = await req.json();
+    } catch (e) {
+      return NextResponse.json({ error: "Invalid or empty JSON payload" }, { status: 400 });
+    }
+    
     const agentId = payload.agent || payload.agentId; // Catch both variations just in case
     const input = payload.input;
 
-    if (!agentId || !input) {
+    if (!agentId || typeof agentId !== 'string' || !input) {
       console.error("[ORCHESTRATOR] Malformed Payload:", payload);
       return NextResponse.json({ error: "Missing agent identifier or input" }, { status: 400 });
     }
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const modelName = "gemini-2.5-flash";
-
+    
     // 2. Dynamic Initialization
     const model = genAI.getGenerativeModel({
       model: modelName,
@@ -49,7 +56,7 @@ export async function POST(req: Request) {
 
     // 3. Robust Optimization: Edge Stream Keep-Alive Strategy
     // By wrapping the long-running AI execution and DB commits inside a ReadableStream,
-    // we return the HTTP Response immediately. We pulse whitespace every 3 seconds to prevent
+    // we return the HTTP Response immediately. We pulse whitespace every 3 seconds to prevent 
     // Vercel's edge network from dropping the connection with a 504 Gateway Timeout.
     // The frontend's `await res.json()` will cleanly ignore the whitespace and parse the final object.
     const encoder = new TextEncoder();
@@ -133,4 +140,4 @@ export async function POST(req: Request) {
     console.error("[ORCHESTRATOR] Live execution error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-}
+}

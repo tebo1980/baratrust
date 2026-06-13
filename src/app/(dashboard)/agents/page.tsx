@@ -17,6 +17,30 @@ function CommandCenterContent() {
   const [isTyping, setIsTyping] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  
+  const searchParams = useSearchParams();
+  const requestedAgentId = searchParams.get("agent");
+
+  // 1. Dynamically fetch the live agents from the registry on mount
+  useEffect(() => {
+    async function loadAgents() {
+      try {
+        const res = await fetch('/api/agents');
+        const data = await res.json();
+        
+        if (data.agents && data.agents.length > 0) {
+          setAgents(data.agents);
+          
+          // Try to find the requested agent via query param, otherwise fallback to the first engine
+          const targetAgent = data.agents.find((a: UIAgent) => a.id === requestedAgentId);
+          setSelectedAgent(targetAgent || data.agents[0]);
+        }
+      } catch (err) {
+        console.error("Failed to load agent registry:", err);
+      }
+    }
+    loadAgents();
+  }, [requestedAgentId]);
 
   const searchParams = useSearchParams();
   const requestedAgentId = searchParams.get("agent");
@@ -80,9 +104,9 @@ function CommandCenterContent() {
 
   return (
     <div className="flex h-[calc(100vh-64px)] w-full bg-gray-950 text-white overflow-hidden">
-
+      
       {/* SPLIT VIEW LAYOUT */}
-
+      
       {/* LEFT PANEL: Chat Interface */}
       <main className="flex-1 flex flex-col relative border-r border-gray-800">
         {/* Header */}
@@ -161,18 +185,18 @@ function CommandCenterContent() {
           <h1 className="text-3xl font-bold text-white mb-1">{selectedAgent.name}</h1>
           <p className="text-blue-400 font-medium">{selectedAgent.role}</p>
         </div>
-
+        
         <div className="bg-gray-950 border border-gray-800 rounded-xl p-5 shadow-inner">
           <h4 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-3 border-b border-gray-800 pb-2">Operational Directive</h4>
           <p className="text-sm text-gray-400 leading-relaxed">
-            {selectedAgent.name} is configured to manage operations related to {selectedAgent.role.toLowerCase()}.
+            {selectedAgent.name} is configured to manage operations related to {selectedAgent.role.toLowerCase()}. 
             All output is strictly verified via JSON schema parsing before being committed to the centralized database ledger.
           </p>
         </div>
 
         <div className="bg-gray-950 border border-gray-800 rounded-xl p-5 shadow-inner">
           <h4 className="text-xs font-bold tracking-widest text-gray-500 uppercase mb-3 border-b border-gray-800 pb-2">System Status</h4>
-
+          
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Database Connection</span>
@@ -181,12 +205,12 @@ function CommandCenterContent() {
                 Secure
               </span>
             </div>
-
+            
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Memory Bank Sync</span>
               <span className="text-sm font-semibold text-blue-400">Active</span>
             </div>
-
+            
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Last Action</span>
               <span className="text-sm font-semibold text-gray-300">Just now</span>

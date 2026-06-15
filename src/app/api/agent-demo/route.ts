@@ -39,13 +39,13 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const modelName = "gemini-2.5-flash";
+    const modelName = "gemini-1.5-flash";
     
     // 2. Dynamic Initialization
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: agentConfig.systemPrompt,
-      tools: agentConfig.tools,
+      ...(agentConfig.tools ? { tools: agentConfig.tools } : {}),
     });
 
     const chat = model.startChat({

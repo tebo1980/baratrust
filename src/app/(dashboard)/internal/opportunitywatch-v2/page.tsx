@@ -71,6 +71,22 @@ export default function OpportunityWatchV2() {
   const [error, setError] = useState('')
   const [searched, setSearched] = useState(false)
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [isPaused, setIsPaused] = useState(false)
+
+  async function handleManualDispatch() {
+    try {
+      const res = await fetch('/api/internal/nova-responder/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prospectId: 'OVERRIDE' })
+      });
+      if (res.ok) {
+        alert("Manual Dispatch Override Activated");
+      }
+    } catch (err) {
+      console.error("Dispatch Failed", err);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -137,10 +153,34 @@ export default function OpportunityWatchV2() {
               }}>
                 V2 · AI-Powered
               </span>
+              <span className={`px-3 py-1 ${isPaused ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 shadow-[0_0_10px_rgba(243,24,71,0.15)]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.15)]'} border rounded-full text-xs font-bold tracking-widest uppercase flex items-center gap-2`} style={{ marginLeft: 'auto' }}>
+                <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-rose-400' : 'bg-amber-400 animate-pulse'}`}></span>
+                {isPaused ? 'PAUSED' : 'Live'}
+              </span>
             </div>
-            <p style={{ fontSize: '15px', color: 'var(--cream-dim)' }}>
-              AI searches Reddit, Craigslist, and social platforms in real time to surface contractor leads.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <p style={{ fontSize: '15px', color: 'var(--cream-dim)', maxWidth: '600px' }}>
+                AI searches Reddit, Craigslist, and social platforms in real time to surface contractor leads.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPaused(!isPaused)}
+                  className="px-4 py-2 bg-[#0A1019] border border-rose-500/30 text-rose-400 rounded-lg text-sm font-semibold hover:bg-rose-500/10 transition-colors shadow-lg flex items-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                  {isPaused ? "Resume Intake" : "Halt Intake"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleManualDispatch}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-slate-900 border border-amber-500 rounded-lg text-sm font-semibold transition-colors shadow-[0_0_15px_rgba(245,158,11,0.4)] flex items-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  Trigger Manual Dispatch
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* SEARCH FORM */}

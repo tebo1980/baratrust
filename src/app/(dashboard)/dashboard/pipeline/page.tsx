@@ -20,7 +20,7 @@ export default async function PipelinePage() {
   try {
     const rawLeads = await db.select().from(leads).orderBy(desc(leads.createdAt));
     
-    liveCards = rawLeads.map(lead => {
+    liveCards = (rawLeads ?? []).map(lead => {
       let colIndex = 0;
       switch (lead.status) {
         case 'Inbound Intercepts': colIndex = 0; break;

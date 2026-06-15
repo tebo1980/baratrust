@@ -1,0 +1,51 @@
+
+> baratrust@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.3
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 910ms
+Pipeline Page DB Fetch Error: NeonDbError: Error connecting to database: fetch failed
+    at execute (/app/.next/server/chunks/8871.js:11:6794)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async eI.execute (/app/.next/server/chunks/8871.js:34:30131)
+    at async s (/app/.next/server/app/(dashboard)/dashboard/pipeline/page.js:1:2785) {
+  code: null,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:14902:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (/app/.next/server/chunks/8871.js:11:6705)
+      at async eI.execute (/app/.next/server/chunks/8871.js:34:30131)
+      at async s (/app/.next/server/app/(dashboard)/dashboard/pipeline/page.js:1:2785) {
+    [cause]: AggregateError [ECONNREFUSED]:
+        at internalConnectMultiple (node:net:1134:18)
+        at afterConnectMultiple (node:net:1715:7)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      code: 'ECONNREFUSED',
+      [errors]: [Array]
+    }
+  }
+}
+Pipeline Page DB Fetch Error: NeonDbError: Error connecting to database: fetch failed
+    at execute (/app/.next/server/chunks/8871.js:11:6794)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async eI.execute (/app/.next/server/chunks/8871.js:34:30131)
+    at async s (/app/.next/server/app/(dashboard)/dashboard/pipeline/page.js:1:2785) {
+  code: null,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:14902:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async execute (/app/.next/server/chunks/8871.js:11:6705)
+      at async eI.execute (/app/.next/server/chunks/8871.js:34:30131)
+      at async s (/app/.next/server/app/(dashboard)/dashboard/pipeline/page.js:1:2785) {
+    [cause]: AggregateError [ECONNREFUSED]:
+        at internalConnectMultiple (node:net:1134:18)
+        at afterConnectMultiple (node:net:1715:7)
+        at TCPConnectWrap.callbackTrampoline (node:internal/async_hooks:130:17) {
+      code: 'ECONNREFUSED',
+      [errors]: [Array]
+    }
+  }
+}

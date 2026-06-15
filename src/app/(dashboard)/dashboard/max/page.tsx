@@ -43,7 +43,7 @@ export default async function MaxDashboardPage() {
               <p className="text-gray-500 italic">No vehicles active in the fleet.</p>
             ) : (
               <ul className="space-y-3">
-                {vehicles.map((v) => (
+                {vehicles?.map((v) => (
                   <li key={v.id} className="p-3 bg-[#1E1B16] border border-gray-700 rounded flex justify-between items-center">
                     <div>
                       <p className="font-bold text-emerald-400">{v.truckIdentifier}</p>
@@ -68,7 +68,7 @@ export default async function MaxDashboardPage() {
               <p className="text-gray-500 italic">No recent dispatch logs.</p>
             ) : (
               <ul className="space-y-3">
-                {logs.map((log) => (
+                {logs?.map((log) => (
                   <li key={log.id} className="p-3 bg-[#1E1B16] border border-gray-700 rounded">
                     <p className="font-bold text-amber-400 text-sm">Lead ID: {log.leadId}</p>
                     <p className="text-xs text-gray-300 mt-1">Route: {log.tripRoute}</p>

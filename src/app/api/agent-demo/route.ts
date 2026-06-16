@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     const model = genAI.getGenerativeModel({
       model: modelName,
       systemInstruction: agentConfig.systemPrompt,
-      ...(agentConfig.tools ? { tools: agentConfig.tools } : {}),
+      ...(agentConfig.tools?.length > 0 ? { tools: agentConfig.tools } : {}),
     });
 
     const chat = model.startChat({

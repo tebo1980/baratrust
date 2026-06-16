@@ -9,7 +9,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     // 1. Live Database Sourcing (Neon Postgres via Drizzle)
-    const dbAgents = await db.select().from(agentConfigs);
+    let dbAgents: any[] | undefined;
+    try {
+      dbAgents = await db.select().from(agentConfigs);
+    } catch (e) {
+      console.error("Agent Registry DB fallback triggered:", e);
+      dbAgents = [];
+    }
 
     if (dbAgents && dbAgents.length > 0) {
       const activeAgents = dbAgents.map(record => ({

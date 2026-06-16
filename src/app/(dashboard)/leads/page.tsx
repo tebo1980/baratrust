@@ -38,7 +38,7 @@ export default async function LeadsDashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-800/50 text-sm">
-                                {allLeads.map((lead) => (
+                                {(allLeads ?? []).map((lead) => (
                                     <tr key={lead.id} className="hover:bg-gray-800/40 transition-colors group">
                                         <td className="p-5 align-top font-medium text-blue-400">
                                             {lead.source || 'SYSTEM'}

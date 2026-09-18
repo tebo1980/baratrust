@@ -66,7 +66,7 @@ function BrixDashboardContent() {
       }
     }
     loadHistory();
-  }, [projectId]);
+  }, [projectId, messages.length]);
 
   const handleSaveProject = async () => {
     if (!jobName.trim()) return;

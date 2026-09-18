@@ -75,7 +75,7 @@ export default function RevenueCalculator() {
         <div className="calc-result-label">Annual Revenue Left Behind</div>
         <div className="calc-result-number">{fmt(totalLost)}</div>
         <div className="calc-result-sub">
-          That's {missedYear} missed calls × {jobsLost} jobs × {fmt(jobValue)} avg
+          That&apos;s {missedYear} missed calls × {jobsLost} jobs × {fmt(jobValue)} avg
         </div>
       </div>
 

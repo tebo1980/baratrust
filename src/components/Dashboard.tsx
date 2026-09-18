@@ -32,23 +32,24 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
   useEffect(() => {
     const unsub = firebaseService.subscribeToLeads(user.uid, setLeads);
+    
+    const loadContractor = async () => {
+      let c = await firebaseService.getContractor(user.uid);
+      if (!c) {
+        c = {
+          uid: user.uid,
+          email: user.email || "",
+          regions: ["Phoenix, AZ"],
+          categories: ["Lawn Care", "Handyman"],
+        };
+        await firebaseService.saveContractor(c);
+      }
+      setContractor(c);
+    };
+
     loadContractor();
     return unsub;
-  }, [user.uid]);
-
-  const loadContractor = async () => {
-    let c = await firebaseService.getContractor(user.uid);
-    if (!c) {
-      c = {
-        uid: user.uid,
-        email: user.email || "",
-        regions: ["Phoenix, AZ"],
-        categories: ["Lawn Care", "Handyman"],
-      };
-      await firebaseService.saveContractor(c);
-    }
-    setContractor(c);
-  };
+  }, [user.uid, user.email]);
 
   const handleScout = async () => {
     if (!contractor) return;

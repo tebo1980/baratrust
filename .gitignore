@@ -43,3 +43,5 @@ next-env.d.ts
 user_data/
 *.png
 clear_dups.ts
+
+.env.vercel

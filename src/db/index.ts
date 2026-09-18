@@ -4,11 +4,11 @@ import { drizzle } from 'drizzle-orm/neon-http';
 const dbUrl = 
   process.env.NEXT_PHASE === "phase-production-build" || 
   process.env.npm_lifecycle_event === "build" 
-    ? process.env.DATABASE_URL || "postgres://dummy:dummy@localhost:5432/dummy" 
-    : process.env.DATABASE_URL;
+    ? process.env.DATABASE_URL || process.env.POSTGRES_DATABASE_URL_UNPOOLED || process.env.POSTGRES_DATABASE_URL || "postgres://dummy:dummy@localhost:5432/dummy" 
+    : process.env.DATABASE_URL || process.env.POSTGRES_DATABASE_URL_UNPOOLED || process.env.POSTGRES_DATABASE_URL;
 
 if (!dbUrl) {
-  throw new Error('DATABASE_URL must be set in your .env.local');
+  throw new Error('DATABASE_URL or POSTGRES_DATABASE_URL_UNPOOLED must be set in your .env.local');
 }
 
 const sql = neon(dbUrl);

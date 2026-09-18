@@ -50,7 +50,7 @@ export default async function LeadsDashboard() {
                                         </td>
                                         <td className="p-5 align-top">
                                             <div className="bg-gray-950 p-4 rounded-lg border border-gray-800 text-gray-400 italic">
-                                                "{lead.draftReply || 'No draft generated'}"
+                                                &quot;{lead.draftReply || 'No draft generated'}&quot;
                                             </div>
                                             <div className="text-xs text-gray-500 mt-2">Contact: {lead.prospectContact ?? 'Not provided'}</div>
                                         </td>

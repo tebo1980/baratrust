@@ -87,6 +87,13 @@ export default function OpportunityWatchV2() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trade, location, context }),
       })
+
+      // ⚡ HARDENED FALLBACK: Intercept raw HTML payloads from Vercel's 504 timeouts BEFORE parsing
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Serverless Edge dropped the connection. Received non-JSON response.");
+      }
+
       const data = await res.json()
 
       if (!res.ok) {
@@ -95,8 +102,9 @@ export default function OpportunityWatchV2() {
         setLeads(data.leads || [])
         setSearched(true)
       }
-    } catch {
-      setError('Network error — check your connection and try again')
+    } catch (err: any) {
+      console.error("[FLIGHT DIAGNOSTICS]", err.message);
+      setError('Network drop detected — the scraping process took too long. Try narrowing the location.')
     } finally {
       setLoading(false)
     }

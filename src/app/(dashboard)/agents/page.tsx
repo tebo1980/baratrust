@@ -90,7 +90,7 @@ function CommandCenterContent() {
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-3">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              {selectedAgent.name} // Console
+              {selectedAgent.name} <span className="text-gray-500">{"// Console"}</span>
             </h2>
             <p className="text-sm text-gray-400">Secure transmission channel open.</p>
           </div>

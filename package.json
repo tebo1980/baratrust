@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:seed:shield": "npx tsx src/scripts/seedShieldDemo.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^5.7.6",
@@ -17,6 +18,7 @@
     "@types/express": "^5.0.6",
     "@vercel/postgres": "^0.10.0",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
     "drizzle-orm": "^0.30.10",
     "express": "^5.2.1",
     "firebase": "^10.11.1",

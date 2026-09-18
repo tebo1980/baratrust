@@ -187,3 +187,20 @@ export const walletTransactions = pgTable('wallet_transactions', {
   description: text('description').notNull(), // e.g., 'Auto-Refuel Injection'
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// --- FLYWHEEL INGESTION SYSTEM (DISCOVERED LEADS) ---
+export const discoveredLeads = pgTable('discovered_leads', {
+  id: serial('id').primaryKey(),
+  googlePlaceId: text('google_place_id').unique().notNull(),
+  businessName: text('business_name').notNull(),
+  website: text('website'),
+  formattedAddress: text('formatted_address'),
+  phoneNumber: text('phone_number'),
+  rating: text('rating'), // Storing as text or float depending on payload, text is safe
+  userRatingsTotal: integer('user_ratings_total'),
+  status: text('status').default('queued_for_outreach'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// --- SHIELD: STATUTORY LIEN & NOTICE CLOCK ---
+export * from './schema/index';

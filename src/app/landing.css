@@ -33,3 +33,9 @@
 .landing-wrapper p { color: var(--muted); }
 .landing-wrapper .section-intro { color: var(--muted); }
 .landing-wrapper .hero-copy { color: var(--ink) !important; }
+
+/* Final fix for header visibility */
+.landing-wrapper .site-header { background: var(--bg) !important; }
+.landing-wrapper[data-theme="dark"] .site-header { background: rgba(16,25,20, 1) !important; }
+.landing-wrapper nav a { color: var(--ink) !important; }
+.landing-wrapper[data-theme="dark"] nav a { color: var(--ink) !important; }

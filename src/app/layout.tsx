@@ -22,16 +22,16 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://baratrust.com'),
-  title: 'AI Operations Platform for Local Businesses | BaraTrust',
-  description: 'The operating layer for local businesses. 12 AI agents handling operations. Live dashboard. Profitability intelligence. 90-day guarantee. Try free.',
-  keywords: 'AI marketing for small business, local business operations platform, small business intelligence, AI agents for small business, marketing automation for contractors, salon management software, New Albany Indiana, Louisville Kentucky',
+  title: 'BaraTrust — We Fix the Digital Stuff You Never Have Time For',
+  description: 'BaraTrust helps small businesses clean up their digital presence, fix missed opportunities, and keep the basics working without learning a pile of software.',
+  keywords: 'digital cleanup for small business, small business tech support, local business marketing help, no software local operations, New Albany Indiana, Louisville Kentucky',
   alternates: {
     canonical: 'https://baratrust.com',
   },
   openGraph: {
     type: 'website',
-    title: 'AI Operations Platform for Local Businesses | BaraTrust',
-    description: 'The operating layer for local businesses. 12 AI agents handling operations. Live dashboard. Profitability intelligence. 90-day guarantee.',
+    title: 'BaraTrust — We Fix the Digital Stuff You Never Have Time For',
+    description: 'BaraTrust helps small businesses clean up their digital presence, fix missed opportunities, and keep the basics working without learning a pile of software.',
     url: 'https://baratrust.com',
     siteName: 'BaraTrust',
     images: [
@@ -39,14 +39,14 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BaraTrust — the operating layer for local businesses',
+        alt: 'BaraTrust — We fix the digital stuff you never have time for.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Operations Platform for Local Businesses | BaraTrust',
-    description: 'The operating layer for local businesses. 12 AI agents handling operations. 90-day guarantee.',
+    title: 'BaraTrust — We Fix the Digital Stuff You Never Have Time For',
+    description: 'BaraTrust helps small businesses clean up their digital presence, fix missed opportunities, and keep the basics working without learning a pile of software.',
     images: ['/og-image.png'],
   },
   robots: {

@@ -26,3 +26,10 @@
   .landing-wrapper nav { gap: 8px; font-size: .85rem; }
   .landing-wrapper .nav-cta, .landing-wrapper .theme-toggle { padding: 10px 12px; }
 }
+
+/* Overrides to fix globals.css bleed and stacking contexts */
+.landing-wrapper { isolation: isolate; }
+.landing-wrapper h1, .landing-wrapper h2, .landing-wrapper h3 { color: var(--ink) !important; }
+.landing-wrapper p { color: var(--muted); }
+.landing-wrapper .section-intro { color: var(--muted); }
+.landing-wrapper .hero-copy { color: var(--ink) !important; }

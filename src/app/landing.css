@@ -39,3 +39,13 @@
 .landing-wrapper[data-theme="dark"] .site-header { background: rgba(16,25,20, 1) !important; }
 .landing-wrapper nav a { color: var(--ink) !important; }
 .landing-wrapper[data-theme="dark"] nav a { color: var(--ink) !important; }
+
+/* Final fix for globals.css <nav> element pollution */
+.landing-wrapper nav {
+  position: static !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  height: auto !important;
+  padding: 0 !important;
+}

@@ -53,3 +53,7 @@
 /* Fix nav-cta text color overridden by previous nav a fix */
 .landing-wrapper nav a.nav-cta { color: #fff !important; }
 .landing-wrapper[data-theme="dark"] nav a.nav-cta { color: #10251a !important; }
+
+/* Fix #how section background hijacked by globals.css */
+.landing-wrapper #how { background: var(--warm) !important; }
+.landing-wrapper .step p { color: var(--muted) !important; }

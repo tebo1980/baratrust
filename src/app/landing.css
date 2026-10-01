@@ -57,3 +57,7 @@
 /* Fix #how section background hijacked by globals.css */
 .landing-wrapper #how { background: var(--warm) !important; }
 .landing-wrapper .step p { color: var(--muted) !important; }
+
+/* Fix text colors inside .section.dark that were broken by global h2 overrides */
+.landing-wrapper .section.dark h2, .landing-wrapper .section.dark h3 { color: #fff !important; }
+.landing-wrapper .section.dark p { color: #d7e1dc !important; }

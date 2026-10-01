@@ -49,3 +49,7 @@
   height: auto !important;
   padding: 0 !important;
 }
+
+/* Fix nav-cta text color overridden by previous nav a fix */
+.landing-wrapper nav a.nav-cta { color: #fff !important; }
+.landing-wrapper[data-theme="dark"] nav a.nav-cta { color: #10251a !important; }

@@ -102,7 +102,7 @@ export default function LandingPage() {
       <p><strong>No giant report. No software pitch. No obligation.</strong></p>
       <div className="starter-note">
         <strong>Your $49 can go toward the fixes.</strong>
-        <span>If you hire BaraTrust for $199+ of follow-up work within 30 days, we’ll credit the full $49 toward the project.</span>
+        <span>If you hire BaraTrust for $199+ of follow-up work within 30 days after your Reality Check report is delivered, we’ll credit the full $49 toward the project.</span>
       </div>
       <div className="cta-row"><a className="btn primary" href="#reality-check-form">Get My Reality Check</a></div>
       <p className="micro">Send a short inquiry. We review it, send you a payment link, and start your Reality Check after payment.</p>
@@ -120,12 +120,13 @@ export default function LandingPage() {
       <label>Anything else we should know? (optional)<textarea name="notes" rows={3}></textarea></label>
       <button className="btn primary full" type="submit" disabled={pending}>{pending ? "Sending..." : "Request My Reality Check"}</button>
       <p id="form-availability" className="form-note">We’ll review your inquiry and email you with next steps and the $49 payment link.</p>
+      <p className="form-note">See our <a href="/privacy" style={{textDecoration:"underline"}}>Privacy Policy</a> for how we handle your inquiry and our <a href="/service-terms" style={{textDecoration:"underline"}}>Service Terms</a> before purchasing.</p>
       <p id="form-status" className="form-note" role="status" aria-live="polite" tabIndex={-1}>{errorMsg}</p>
     </form>
   </div>
 </section>
 </main>
-<footer><div className="wrap footer-wrap"><div><strong>BaraTrust</strong><p>Practical digital help for small businesses.</p></div><div className="footer-links"><a href="mailto:todd@baratrust.com">todd@baratrust.com</a><span>© 2026 BaraTrust</span></div></div></footer>
+<footer><div className="wrap footer-wrap"><div><strong>BaraTrust</strong><p>Practical digital help for small businesses.</p></div><div className="footer-links"><a href="/service-terms">Service Terms</a><a href="/privacy">Privacy</a><a href="mailto:todd@baratrust.com">todd@baratrust.com</a><span>© 2026 BaraTrust</span></div></div></footer>
 
     </div>
   );

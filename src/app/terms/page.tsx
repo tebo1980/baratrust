@@ -18,11 +18,12 @@ export default function TermsPage() {
         <a href="/" className="nav-back">&#8592; Back to BaraTrust.com</a>
       </nav>
 
+      <aside style={{padding:"24px",textAlign:"center"}}>For new Reality Check purchases, see the <a href="/service-terms">current Service Terms</a> and <a href="/privacy">Privacy Policy</a>. This legacy page does not replace terms already agreed for an existing project.</aside>
       {/* HERO */}
       <div className="terms-hero">
         <span className="terms-tag">Legal · Client Agreement</span>
         <h1>BaraTrust Client<br /><em>Service Agreement</em></h1>
-        <p>This agreement governs the relationship between BaraTrust and its clients. We believe in plain English, no surprises, and no fine print designed to confuse you. Read this before you sign — we want you to understand exactly what you&apos;re getting and what we&apos;re committing to.</p>
+        <p>This is a legacy subscription agreement, retained for reference for existing engagements. New Digital Reality Check purchases use the Service Terms linked below. We believe in plain English, no surprises, and no fine print designed to confuse you. Read this before you sign — we want you to understand exactly what you&apos;re getting and what we&apos;re committing to.</p>
         <div className="terms-meta">
           <div className="terms-meta-item"><strong>Effective Date</strong>January 1, 2026</div>
           <div className="terms-meta-item"><strong>Governing Law</strong>State of Indiana</div>

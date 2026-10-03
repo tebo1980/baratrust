@@ -40,7 +40,7 @@ export default function ThankYouPage() {
 <p className="section-intro">We’ll review your business and email you with next steps and the $49 payment link.</p>
 <p className="section-intro">No payment has been collected. Your Reality Check starts after payment, and there’s no obligation to buy follow-up work.</p>
 <div className="cta-row"><a className="btn primary" href="/">Back to BaraTrust</a></div>
-</div></section></main><footer><div className="wrap footer-wrap"><div><strong>BaraTrust</strong><p>Practical digital help for small businesses.</p></div><div className="footer-links"><a href="mailto:todd@baratrust.com">todd@baratrust.com</a><span>© 2026 BaraTrust</span></div></div></footer>
+</div></section></main><footer><div className="wrap footer-wrap"><div><strong>BaraTrust</strong><p>Practical digital help for small businesses.</p></div><div className="footer-links"><a href="/service-terms">Service Terms</a><a href="/privacy">Privacy</a><a href="mailto:todd@baratrust.com">todd@baratrust.com</a><span>© 2026 BaraTrust</span></div></div></footer>
 
     </div>
   );

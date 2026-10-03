@@ -1,0 +1,12 @@
+.bt-legal { min-height:100vh; }
+.bt-legal .bt-legal-header { position:static; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:24px 0; border-bottom:1px solid var(--line); }
+.bt-legal .bt-legal-header a { font-weight:700; }
+.bt-legal .bt-legal-body { max-width:800px; margin:0 auto; padding:48px 0 64px; overflow-wrap:anywhere; }
+.bt-legal .bt-legal-body h1 { font-size:clamp(2.2rem,5vw,3.5rem); line-height:1.1; margin-bottom:24px; }
+.bt-legal .bt-legal-body h2 { font-size:1.45rem; line-height:1.3; letter-spacing:-.02em; margin:36px 0 12px; }
+.bt-legal .bt-legal-body p { margin:0 0 16px; line-height:1.75; }
+.bt-legal .bt-legal-body ul { list-style:disc; padding-left:24px; margin:16px 0; }
+.bt-legal .bt-legal-body li { margin-bottom:12px; }
+.bt-legal .bt-legal-body a { text-decoration:underline; text-underline-offset:3px; }
+.bt-legal .bt-legal-body hr { margin:36px 0; border:0; border-top:1px solid var(--line); }
+.bt-legal .bt-legal-footer { padding:24px 0; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; gap:24px; }

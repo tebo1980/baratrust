@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
-import Script from 'next/script'
+import ServiceAnalytics from '@/components/ServiceAnalytics'
 import { Fraunces, DM_Sans } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes' // Import the dark theme
 import './globals.css'
 
-const GA_ID = 'G-YWB4NTYLR8'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -78,21 +77,9 @@ export default function RootLayout({
       }}
     >
       <html lang="en">
-        <head>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-            strategy="afterInteractive"
-          />
-          <Script id="ga-init" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${GA_ID}');
-            `}
-          </Script>
-        </head>
+
         <body className={`${fraunces.variable} ${dmSans.variable} bg-[#050810] text-slate-200 antialiased`}>
+          <ServiceAnalytics />
           {children}
         </body>
       </html>

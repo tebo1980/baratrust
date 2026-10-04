@@ -98,32 +98,45 @@ export default function MasterDashboard() {
               })();
               
               const isFetch = agent.id === 'fetch';
+              const isBrokenAgent = agentPath.startsWith('/agents');
               const Icon = isFetch ? Activity : Bot;
               const colorTheme = isFetch ? "amber" : "blue";
               
-              return (
-                <Link key={agent.id} href={agentPath}>
-                  <motion.div whileHover={{ y: -5 }} className={`group relative bg-zinc-900 rounded-2xl p-8 border border-zinc-800 overflow-hidden hover:border-${colorTheme}-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] transition-all h-full flex flex-col`}>
-                    <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-${colorTheme}-500/10 to-transparent blur-3xl rounded-full group-hover:from-${colorTheme}-500/20 transition-colors`} />
+              const CardContent = (
+                <motion.div whileHover={{ y: isBrokenAgent ? 0 : -5 }} className={`group relative bg-zinc-900 rounded-2xl p-8 border border-zinc-800 overflow-hidden ${isBrokenAgent ? 'opacity-60 cursor-not-allowed' : `hover:border-${colorTheme}-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] cursor-pointer`} transition-all h-full flex flex-col`}>
+                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-${colorTheme}-500/10 to-transparent blur-3xl rounded-full ${!isBrokenAgent && `group-hover:from-${colorTheme}-500/20`} transition-colors`} />
 
-                    <div className="flex justify-between items-start mb-8 relative">
-                      <div className={`w-14 h-14 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center justify-center text-${colorTheme}-500 group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-7 h-7" />
-                      </div>
+                  <div className="flex justify-between items-start mb-8 relative">
+                    <div className={`w-14 h-14 bg-zinc-950 border border-zinc-800 rounded-xl flex items-center justify-center text-${colorTheme}-500 ${!isBrokenAgent && 'group-hover:scale-110'} transition-transform`}>
+                      <Icon className="w-7 h-7" />
+                    </div>
+                    {isBrokenAgent ? (
+                      <span className="px-3 py-1 bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-[10px] font-mono font-bold uppercase tracking-widest rounded-full">
+                        Offline (Beta)
+                      </span>
+                    ) : (
                       <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-widest rounded-full">
                         Online
                       </span>
-                    </div>
+                    )}
+                  </div>
 
-                    <h2 className="text-2xl font-bold text-zinc-100 mb-2">{agent.name}</h2>
-                    <p className="text-zinc-400 text-sm leading-relaxed mb-8 flex-1">
-                      {agent.role}
-                    </p>
+                  <h2 className="text-2xl font-bold text-zinc-100 mb-2">{agent.name}</h2>
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-8 flex-1">
+                    {agent.role}
+                  </p>
 
-                    <div className={`flex items-center text-${colorTheme}-500 font-mono text-xs uppercase tracking-widest font-bold group-hover:gap-3 transition-all gap-2`}>
-                      Launch {agent.name} <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </motion.div>
+                  <div className={`flex items-center text-${isBrokenAgent ? 'zinc' : colorTheme}-500 font-mono text-xs uppercase tracking-widest font-bold ${!isBrokenAgent && 'group-hover:gap-3'} transition-all gap-2`}>
+                    {isBrokenAgent ? "Agent Offline" : `Launch ${agent.name}`} {!isBrokenAgent && <ArrowRight className="w-4 h-4" />}
+                  </div>
+                </motion.div>
+              );
+
+              return isBrokenAgent ? (
+                <div key={agent.id}>{CardContent}</div>
+              ) : (
+                <Link key={agent.id} href={agentPath}>
+                  {CardContent}
                 </Link>
               );
             })}

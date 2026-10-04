@@ -4,6 +4,7 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-950">
       <SignUp 
+        fallbackRedirectUrl="/dashboard"
         appearance={{
           elements: {
             card: "bg-gray-900 border border-gray-800 shadow-2xl",

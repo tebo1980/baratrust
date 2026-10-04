@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from 'react';
 import { Wallet, ArrowDownToLine, Plus, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function WalletsPage() {
         const newTx = {
           id: data.transaction?.id ? `TRX-${data.transaction.id.substring(0, 4).toUpperCase()}` : `TRX-${Math.floor(Math.random() * 10000)}`,
           date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          job: "Manual Refuel Injection",
+          job: "[DEMO] Simulated Refuel Injection",
           amount: "$50.00",
           status: "Escrowed"
         };
@@ -80,10 +80,10 @@ export default function WalletsPage() {
           <div className="flex items-center gap-3 mb-2">
             <Wallet className="w-8 h-8 text-[#C17B2A]" />
             <h1 className="text-3xl font-bold tracking-wider text-slate-100 drop-shadow-[0_0_8px_rgba(193,123,42,0.3)]">
-              Asset & Transaction Ledger
+              Asset & Transaction Ledger <span className="text-sm bg-amber-500/20 text-amber-500 px-2 py-1 rounded ml-2 border border-amber-500/50">DEMO MODE</span>
             </h1>
           </div>
-          <p className="text-slate-400">Manage operational balances, escrow holdings, and field transaction logs.</p>
+          <p className="text-slate-400">Manage operational balances, escrow holdings, and field transaction logs. <strong className="text-amber-500">Note: This is a simulation. No real funds are moved.</strong></p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -103,12 +103,12 @@ export default function WalletsPage() {
             {isRefueling ? (
               <>
                 <Clock className="w-4 h-4 animate-spin" />
-                [ΓÅ│ REFUELING...]
+                [ΓÅ│ SIMULATING REFUEL...]
               </>
             ) : (
               <>
                 <Plus className="w-4 h-4" />
-                [ΓÜí FUND WALLET / REFUEL]
+                [ΓÜí DEMO: FUND WALLET]
               </>
             )}
           </button>

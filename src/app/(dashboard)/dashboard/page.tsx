@@ -70,9 +70,17 @@ export default function MasterDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto p-10 mt-8">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-zinc-100 tracking-tight mb-3">Command Center</h1>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-zinc-100 tracking-tight mb-3">Internal Tooling & Demos</h1>
           <p className="text-zinc-500 font-mono text-sm uppercase tracking-widest">Select an active agent protocol to begin</p>
+        </div>
+
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6 mb-12 text-amber-500">
+          <h2 className="font-bold mb-2 flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> Account Active</h2>
+          <p className="text-sm text-amber-400/90 leading-relaxed">
+            If you signed up for the $49 Reality Check, you are in the right place! Your account is secure. 
+            We handle the work human-to-human behind the scenes. The tools and agents below are <strong>internal demos and beta software</strong>—you do not need to use them.
+          </p>
         </div>
 
         {loading ? (

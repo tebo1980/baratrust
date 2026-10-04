@@ -52,10 +52,10 @@ test.describe('BaraTrust Suite Comprehensive Integration Sweep', () => {
       const messageInput = page.locator('input[placeholder*="directive"], textarea').first();
       if (await messageInput.isVisible()) {
         await messageInput.fill('System validation check');
-        await page.keyboard.press('Enter');
+        await messageInput.press('Enter');
         
         // 3. Confirm the UI handles the mutation or standard fallback gracefully
-        const consoleLog = page.locator('text=Error, text=reached, text=System');
+        const consoleLog = page.getByText(/Error|reached|System/i);
         await expect(consoleLog.first()).toBeVisible();
       }
     }

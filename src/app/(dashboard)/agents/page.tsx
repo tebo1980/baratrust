@@ -94,12 +94,6 @@ function CommandCenterContent() {
             </h2>
             <p className="text-sm text-gray-400">Secure transmission channel open.</p>
           </div>
-          {/* Easter egg back to our Stripe test */}
-          {selectedAgent.id === "atlas" && (
-            <a href="/api/atlas-gateway" className="text-xs bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded border border-gray-700 text-gray-300">
-              View Payment Gateway
-            </a>
-          )}
         </header>
 
         {/* Chat History */}

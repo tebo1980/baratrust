@@ -46,16 +46,20 @@ export async function POST(req: Request) {
 
   // The Magic: When a user signs up, build their BaraTrust profile
   if (eventType === 'user.created') {
-    const { id, first_name, last_name } = evt.data;
+    const { id, first_name, last_name, email_addresses } = evt.data;
+    const primaryEmail = Array.isArray(email_addresses) && email_addresses.length > 0
+      ? email_addresses[0].email_address
+      : null;
     
     await db.insert(businesses).values({
       clerkId: id,
       ownerName: `${first_name || 'New'} ${last_name || 'User'}`,
+      ownerEmail: primaryEmail,
       businessName: `${first_name || 'New'}'s Business`, 
       region: 'Louisville/New Albany', 
     });
     
-    console.log(`Business profile created for ${first_name}`);
+    console.log(`Business profile created for ${first_name} (${primaryEmail || 'no email'})`);
   }
 
   return new Response('', { status: 200 })

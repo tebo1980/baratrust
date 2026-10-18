@@ -22,74 +22,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <nav className="px-4 py-6 space-y-2">
-            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>
-              Dashboard
-            </Link>
-            <Link href="/dashboard/pipeline" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-              Pipeline
-            </Link>
-            <Link href="/dashboard/wallets" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
-              Wallets
+            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-400"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>
+              Partner Overview
             </Link>
             <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
-              Settings
+              Account Settings
             </Link>
           </nav>
 
-          {/* NEW ENGINES SECTION */}
+          {/* Internal Operator Section */}
           <div className="px-4 py-2 mb-6">
-            <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-3 mb-3">Engines</p>
-            <div className="space-y-2">
-              <Link href="/dashboard/brix" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
-                <Bot className="w-4 h-4 text-indigo-400" />
-                Brix AI
+            <p className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-3 mb-3">Operator Tools</p>
+            <div className="space-y-1">
+              <Link href="/internal/reviews" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                Review Studio
               </Link>
-              <Link href="/dashboard/fetch" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors">
-                <Zap className="w-4 h-4 text-amber-400" />
-                Regular Ass Fetch
+              <Link href="/leads" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-amber-400 hover:bg-slate-800/40 transition-colors">
+                <Database className="w-3.5 h-3.5 text-amber-500/70" />
+                Lead Radar
               </Link>
-              <Link href="/leads" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold bg-blue-900/20 text-blue-400 hover:bg-blue-900/40 border border-blue-900/30 shadow-sm transition-all">
-                <Database className="w-4 h-4" />
-                Lead Command Center
+              <Link href="/dashboard/pipeline" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-amber-400 hover:bg-slate-800/40 transition-colors">
+                <RefreshCcw className="w-3.5 h-3.5 text-amber-500/70" />
+                Project Pipeline
               </Link>
-              <Link href="/internal/opportunitywatch-v2" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-emerald-400 hover:bg-emerald-900/20 hover:border-emerald-500/30 border border-transparent transition-all shadow-sm">
-                <Send className="w-4 h-4 text-emerald-400" />
-                Nova Responder
+              <Link href="/internal/report-generator" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-amber-400 hover:bg-slate-800/40 transition-colors">
+                <Send className="w-3.5 h-3.5 text-amber-500/70" />
+                Report Generator
               </Link>
-              <Link href="/dashboard/iris" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-cyan-400 hover:bg-cyan-900/20 hover:border-cyan-500/30 border border-transparent transition-all shadow-sm">
-                <RefreshCcw className="w-4 h-4 text-cyan-400" />
-                Iris Sequencer
-              </Link>
-              <Link href="/dashboard/rex" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-pink-400 hover:bg-pink-900/20 hover:border-pink-500/30 border border-transparent transition-all shadow-sm">
-                <ShieldCheck className="w-4 h-4 text-pink-400" />
-                Rex (Reviews)
-              </Link>
-              <Link href="/dashboard/max" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-orange-400 hover:bg-orange-900/20 hover:border-orange-500/30 border border-transparent transition-all shadow-sm">
-                <Zap className="w-4 h-4 text-orange-400" />
-                Max (Dispatch)
-              </Link>
-              <Link href="/dashboard/della" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-purple-400 hover:bg-purple-900/20 hover:border-purple-500/30 border border-transparent transition-all shadow-sm">
-                <Send className="w-4 h-4 text-purple-400" />
-                Della (Screener)
+              <Link href="/internal/opportunitywatch-v2" className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-amber-400 hover:bg-slate-800/40 transition-colors">
+                <Zap className="w-3.5 h-3.5 text-amber-500/70" />
+                Opportunity Watch
               </Link>
             </div>
-          </div>
-        </div>
-
-        {/* Admin Section */}
-        <div className="px-4 pb-6 mt-auto">
-          <div className="pt-4 border-t border-indigo-500/20">
-            <Link href="/agents" className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 hover:shadow-[0_0_12px_rgba(239,68,68,0.2)] transition-all group">
-              <div className="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                Agent Center
-              </div>
-              <span className="text-[10px] uppercase tracking-widest font-bold bg-red-500/20 px-2 py-0.5 rounded text-red-300">Admin</span>
-            </Link>
           </div>
         </div>
       </aside>

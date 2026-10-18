@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "npx tsx --test tests/all.test.ts",
     "db:seed:shield": "npx tsx src/scripts/seedShieldDemo.ts"
   },
   "dependencies": {

@@ -6,7 +6,14 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/internal/', '/api/', '/preview/'],
+        disallow: [
+          '/internal/', 
+          '/api/', 
+          '/preview/', 
+          '/report/', 
+          '/reality-check/*/questionnaire',
+          '/dashboard/'
+        ],
       },
     ],
     sitemap: 'https://baratrust.com/sitemap.xml',

@@ -1,204 +1,124 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { EmailLink, PhoneLink, SmsLink } from '@/components/ContactLinks'
 
 export const metadata: Metadata = {
-  title: 'Client Service Agreement — BaraTrust',
+  title: 'Terms of Service — BaraTrust',
   robots: 'noindex, nofollow',
 }
 
 export default function TermsPage() {
   return (
-    <>
-      {/* NAV */}
-      <nav>
-        <a href="/" className="nav-brand">
-          <div className="nav-logo-mark">&#x1F9AB;</div>
-          BaraTrust
-        </a>
-        <a href="/" className="nav-back">&#8592; Back to BaraTrust.com</a>
-      </nav>
-
-      {/* HERO */}
-      <div className="terms-hero">
-        <span className="terms-tag">Legal · Client Agreement</span>
-        <h1>BaraTrust Client<br /><em>Service Agreement</em></h1>
-        <p>This agreement governs the relationship between BaraTrust and its clients. We believe in plain English, no surprises, and no fine print designed to confuse you. Read this before you sign — we want you to understand exactly what you&apos;re getting and what we&apos;re committing to.</p>
-        <div className="terms-meta">
-          <div className="terms-meta-item"><strong>Effective Date</strong>January 1, 2026</div>
-          <div className="terms-meta-item"><strong>Governing Law</strong>State of Indiana</div>
-          <div className="terms-meta-item"><strong>Contact</strong><EmailLink /></div>
-          <div className="terms-meta-item"><strong>Phone</strong><PhoneLink /></div>
+    <div className="min-h-screen bg-[#050810] text-slate-200 font-sans selection:bg-amber-500/30">
+      {/* Header */}
+      <header className="border-b border-slate-800/80 bg-[#080F1A]/90 backdrop-blur-md sticky top-0 z-30">
+        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+              <span className="text-amber-400 font-bold text-lg font-serif">B</span>
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white font-serif">
+              Bara<span className="text-amber-400">Trust</span>
+            </span>
+          </Link>
+          <Link href="/" className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+            &#8592; Back to BaraTrust.com
+          </Link>
         </div>
-      </div>
+      </header>
 
-      {/* TOC */}
-      <div className="terms-toc">
-        <div className="toc-label">Table of Contents</div>
-        <ul className="toc-grid">
-          <li><a href="#services">1. Services Provided</a></li>
-          <li><a href="#terms">2. Subscription Terms</a></li>
-          <li><a href="#pricing">3. Pricing and Payment</a></li>
-          <li><a href="#etf">4. Early Termination Fee</a></li>
-          <li><a href="#ownership">5. What You Own vs What We Own</a></li>
-          <li><a href="#website">6. Website Ownership</a></li>
-          <li><a href="#payment-failure">7. What Happens If Payment Fails</a></li>
-          <li><a href="#guarantee">8. The 90 Day Prove It Guarantee</a></li>
-          <li><a href="#loyalty">9. Loyalty Renewal Options</a></li>
-          <li><a href="#transfer">10. Transfer of Ownership</a></li>
-          <li><a href="#price-lock">11. Price Lock Guarantee</a></li>
-          <li><a href="#disputes">12. Dispute Resolution</a></li>
-          <li><a href="#governing">13. Governing Law</a></li>
-        </ul>
-      </div>
+      <main className="max-w-4xl mx-auto px-6 py-12 md:py-16 space-y-12">
+        <div className="space-y-4 border-b border-slate-800 pb-8">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+            Legal · Client Service Terms
+          </span>
+          <h1 className="text-3xl md:text-5xl font-bold text-white font-serif">
+            BaraTrust Terms of Service
+          </h1>
+          <p className="text-slate-300 text-base leading-relaxed">
+            We believe in plain English, no surprises, and no fine print designed to confuse you. These terms govern the free BaraTrust Business Reality Check and any scoped project or ongoing operations work you choose to do with us.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs font-mono text-slate-400">
+            <div>
+              <strong className="block text-slate-200">Effective Date</strong>
+              January 1, 2026
+            </div>
+            <div>
+              <strong className="block text-slate-200">Governing Law</strong>
+              State of Indiana
+            </div>
+            <div>
+              <strong className="block text-slate-200">Contact</strong>
+              <EmailLink />
+            </div>
+            <div>
+              <strong className="block text-slate-200">Phone</strong>
+              <PhoneLink />
+            </div>
+          </div>
+        </div>
 
-      {/* CONTENT */}
-      <div className="terms-content">
-        <TermsSection id="services" num="01" title="Services Provided">
-          <p>BaraTrust agrees to provide the services outlined in the selected subscription tier — <strong>Foundation</strong>, <strong>Operations</strong>, or <strong>Complete</strong> — as described at the time of enrollment and as detailed on the BaraTrust website at baratrust.com.</p>
-          <p>Services are delivered on a monthly basis beginning within <strong>seven business days</strong> of signed agreement and payment receipt. This seven day launch commitment is BaraTrust&apos;s promise to every client and is not subject to negotiation or extension except in cases where the client fails to provide required business information within the first 48 hours of signing.</p>
-          <p>BaraTrust reserves the right to update or expand service offerings over time. Existing clients will not have services removed without written notice of at least 30 days.</p>
-        </TermsSection>
+        <div className="space-y-8 text-sm text-slate-300 leading-relaxed">
+          <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
+            <span className="text-xs font-mono text-amber-400 font-bold">01</span>
+            <h2 className="text-xl font-bold text-white font-serif">The Free Business Reality Check</h2>
+            <p>
+              The BaraTrust Business Reality Check is provided free of charge, with no credit card required and no obligation to purchase any follow-on service. It combines automated checks of your public web presence with a hands-on human review by Todd and Noelah.
+            </p>
+            <p>
+              Every report is delivered via a private, unguessable share link so you can read or share it with your team without creating an account.
+            </p>
+          </section>
 
-        <TermsSection id="terms" num="02" title="Subscription Terms">
-          <p>New BaraTrust clients choose from three initial term options at the time of enrollment. All three are available to new clients across every tier (Foundation, Operations, Complete).</p>
-          <table className="tier-table">
-            <thead><tr><th>Agreement Type</th><th>Duration</th><th>Discount</th><th>Available To</th></tr></thead>
-            <tbody>
-              <tr><td>Six Month Standard</td><td>6 months</td><td>None — standard rate</td><td>All new clients</td></tr>
-              <tr><td>Twelve Month Commitment</td><td>12 months</td><td>10% off monthly rate</td><td>All new clients</td></tr>
-              <tr><td>Twenty Four Month Commitment</td><td>24 months</td><td>15% off monthly rate</td><td>All new clients</td></tr>
-              <tr><td>Month to Month</td><td>Ongoing</td><td>None — no price lock</td><td>Loyalty clients only*</td></tr>
-            </tbody>
-          </table>
-          <p>*Month to month billing is available exclusively to clients who have completed at least one full initial term (six, twelve, or twenty-four months) in good standing.</p>
-          <div className="highlight-box"><p>The six month minimum initial term exists to give the BaraTrust system enough time to deliver measurable results and to protect both parties from the churn that defines the rest of this industry.</p></div>
-          <p>Agreements renew automatically at the end of each term at the then-current standard rate unless the client provides written notice of cancellation at least <strong>30 days before</strong> the renewal date.</p>
-        </TermsSection>
+          <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
+            <span className="text-xs font-mono text-amber-400 font-bold">02</span>
+            <h2 className="text-xl font-bold text-white font-serif">Scoped Projects & Ongoing Help</h2>
+            <p>
+              If you ask BaraTrust for help implementing fixes, building assets, or handling ongoing growth and operations work after reviewing your Reality Check, we will provide a clear, written scope and price before any paid work begins.
+            </p>
+            <p>
+              You will never be billed for any service without your explicit written approval of the scope and pricing.
+            </p>
+          </section>
 
-        <TermsSection id="pricing" num="03" title="Pricing and Payment">
-          <p>Current recurring monthly subscription rates by tier and term:</p>
-          <table className="tier-table">
-            <thead><tr><th>Tier</th><th>6 Month (standard)</th><th>12 Month (10% off)</th><th>24 Month (15% off)</th></tr></thead>
-            <tbody>
-              <tr><td>Foundation</td><td>$499/mo</td><td>$449/mo</td><td>$424/mo</td></tr>
-              <tr><td>Operations</td><td>$899/mo</td><td>$809/mo</td><td>$764/mo</td></tr>
-              <tr><td>Complete</td><td>$1,499/mo</td><td>$1,349/mo</td><td>$1,274/mo</td></tr>
-            </tbody>
-          </table>
-          <p>Current one-time and add-on rates:</p>
-          <ul>
-            <li><strong>BaraTrust Ads — Custom AI-Generated Commercial</strong> — $499 per commercial (standalone purchase available without subscription; one commercial per quarter included free with annual Complete)</li>
-          </ul>
-          <p>The first ten BaraTrust clients receive <strong>no setup fee</strong> at any tier and on any term. Standard setup fees apply thereafter and will be disclosed at the time of enrollment.</p>
-          <p>Payment is due on the same date each month for recurring subscriptions. One-time and add-on services are billed in full at time of order. BaraTrust uses Stripe for all payment processing.</p>
-        </TermsSection>
+          <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
+            <span className="text-xs font-mono text-amber-400 font-bold">03</span>
+            <h2 className="text-xl font-bold text-white font-serif">What You Own</h2>
+            <p>
+              BaraTrust will never hold your website, your Google Business Profile, your domain name, or your customer data hostage. You retain full ownership of:
+            </p>
+            <ul className="list-disc pl-5 space-y-1.5 text-slate-300">
+              <li>Your domain name and all domain registrations</li>
+              <li>All website content, photos, logos, SOPs, and brand assets created or provided for your business upon payment of any agreed project balance</li>
+              <li>Your Google Business Profile, social accounts, and customer reviews</li>
+              <li>Your customer lists, contact data, and business records</li>
+            </ul>
+          </section>
 
-        <TermsSection id="etf" num="04" title="Early Termination Fee">
-          <p>Clients who terminate their agreement before the end of their contracted term are subject to an Early Termination Fee equal to <strong>fifty percent of the remaining monthly payments</strong> on their contract.</p>
-          <div className="example-box"><strong>Example Calculation</strong>A client on a twelve month Operations agreement at $809 per month (10% off rate) who cancels after month four has eight months remaining. Their Early Termination Fee is 50% of those eight remaining payments: 8 × $809 × 50% = <strong>$3,236</strong>.</div>
-          <p>The Early Termination Fee is due within 30 days of the cancellation date.</p>
-          <div className="highlight-box"><p>Clients who receive a free month under the 90 Day Prove It Guarantee are not eligible for early termination without payment of the full ETF.</p></div>
-          <p>ETF is waived in the event of the client&apos;s verified permanent business closure.</p>
-        </TermsSection>
+          <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
+            <span className="text-xs font-mono text-amber-400 font-bold">04</span>
+            <h2 className="text-xl font-bold text-white font-serif">Privacy & Respect for Your Information</h2>
+            <p>
+              Information you submit through the Reality Check intake form or optional owner questionnaire is used solely to prepare your diagnostic review and communicate with you about your business. We do not sell, rent, or trade your contact details or operational notes to third parties.
+            </p>
+          </section>
 
-        <TermsSection id="ownership" num="05" title="What You Own vs What We Own">
-          <p>We believe in complete transparency about ownership.</p>
-          <p><strong>You own — always, from day one:</strong></p>
-          <ul>
-            <li>Your domain name and all domain registrations</li>
-            <li>All website content including written copy, photos, logos, and brand assets you provided</li>
-            <li>Your Google Business Profile and all associated reviews</li>
-            <li>All business directory listings created during the engagement</li>
-            <li>Your business name, brand identity, and all trademarks</li>
-            <li>All customer data, contact lists, and business records</li>
-            <li>Any ad accounts created using your business name and payment method</li>
-          </ul>
-          <p><strong>BaraTrust owns:</strong></p>
-          <ul>
-            <li>All ad account structures, campaign architecture, and keyword strategies built by BaraTrust</li>
-            <li>BaraTrust dashboard configurations and reporting templates</li>
-            <li>The Intelligence Loop system methodology and Business Health Score framework</li>
-            <li>The Money Map dashboard configuration and design</li>
-            <li>All proprietary BaraTrust systems, tools, and processes</li>
-            <li>The CallRail tracking number if assigned by BaraTrust</li>
-          </ul>
-          <div className="sage-box"><p>BaraTrust will never hold your website, your Google Business Profile, or your customer data hostage. These belong to you and will be returned to you promptly upon request at any time.</p></div>
-        </TermsSection>
+          <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
+            <span className="text-xs font-mono text-amber-400 font-bold">05</span>
+            <h2 className="text-xl font-bold text-white font-serif">Governing Law & Direct Resolution</h2>
+            <p>
+              We believe any questions or disagreements should be resolved through an honest, direct conversation. You can reach Todd and Noelah directly at <PhoneLink />, <SmsLink />, or <EmailLink />. These terms are governed by the laws of the State of Indiana.
+            </p>
+          </section>
+        </div>
+      </main>
 
-        <TermsSection id="website" num="06" title="Website Ownership">
-          <p>The website built by BaraTrust during the engagement is the <strong>property of the client</strong> upon termination, provided all outstanding balances are paid in full.</p>
-          <p>BaraTrust will deliver all website files to the client within <strong>fourteen business days</strong> of final payment receipt.</p>
-        </TermsSection>
-
-        <TermsSection id="payment-failure" num="07" title="What Happens If Payment Fails">
-          <p>BaraTrust understands that payment issues can arise. Here is exactly what happens and when:</p>
-          <ul>
-            <li><strong>Day 1 after failed payment</strong> — BaraTrust notifies the client by both email and text message.</li>
-            <li><strong>Day 7</strong> — All active services are suspended until the account is brought current.</li>
-            <li><strong>Day 14</strong> — BaraTrust sends a final written notice by email.</li>
-            <li><strong>Day 30</strong> — The agreement is considered terminated. Early Termination Fees apply.</li>
-          </ul>
-          <div className="sage-box"><p>Suspended services are restored within 24 hours of payment receipt. No additional fees are charged for reinstatement during the first 30 days.</p></div>
-        </TermsSection>
-
-        <TermsSection id="guarantee" num="08" title="The 90 Day Prove It Guarantee">
-          <p>BaraTrust guarantees a minimum of <strong>ten tracked inbound calls</strong> within the first ninety days of active service.</p>
-          <div className="highlight-box"><p>A tracked call is defined as a unique inbound call lasting thirty seconds or longer, originating from a person searching for the client&apos;s type of business.</p></div>
-          <p>If ten qualifying tracked calls are not delivered within ninety days <strong>the client&apos;s fourth month of service is provided at no charge</strong>.</p>
-        </TermsSection>
-
-        <TermsSection id="loyalty" num="09" title="Loyalty Renewal Options">
-          <p>Upon successful completion of an initial term (six, twelve, or twenty-four months) clients in good standing unlock the month-to-month renewal option, which is not offered to new clients. Loyalty clients may also renew on a fresh commitment term at the same discount structure available to new clients.</p>
-          <table className="tier-table">
-            <thead><tr><th>Option</th><th>Discount</th><th>Price Lock</th><th>Cancellation</th></tr></thead>
-            <tbody>
-              <tr><td>Month to Month (loyalty exclusive)</td><td>None</td><td>No</td><td>30 days written notice</td></tr>
-              <tr><td>Twelve Month Renewal</td><td>10% off</td><td>Yes — 12 months</td><td>ETF if cancelled early</td></tr>
-              <tr><td>Twenty Four Month Renewal</td><td>15% off</td><td>Yes — 24 months</td><td>ETF if cancelled early</td></tr>
-            </tbody>
-          </table>
-        </TermsSection>
-
-        <TermsSection id="transfer" num="10" title="Transfer of Ownership">
-          <p>If a client sells their business the new owner may assume the existing BaraTrust agreement subject to written notice within <strong>30 days</strong> of the sale.</p>
-        </TermsSection>
-
-        <TermsSection id="price-lock" num="11" title="Price Lock Guarantee">
-          <div className="sage-box"><p>Your monthly rate will not increase during your active contract term regardless of any changes to BaraTrust&apos;s standard pricing.</p></div>
-        </TermsSection>
-
-        <TermsSection id="disputes" num="12" title="Dispute Resolution">
-          <p>BaraTrust believes that most disagreements can be resolved through honest conversation.</p>
-          <ul>
-            <li><strong>Step one — Direct conversation.</strong> Contact BaraTrust at <PhoneLink /> or <EmailLink />.</li>
-            <li><strong>Step two — Written resolution attempt.</strong></li>
-            <li><strong>Step three — Binding arbitration</strong> in the state of Indiana.</li>
-          </ul>
-        </TermsSection>
-
-        <TermsSection id="governing" num="13" title="Governing Law">
-          <p>This agreement is governed by the laws of the <strong>State of Indiana</strong>.</p>
-          <div className="highlight-box"><p>Questions about this agreement? Call <PhoneLink /> or text <SmsLink /> or email <EmailLink />.</p></div>
-        </TermsSection>
-      </div>
-
-      {/* FOOTER */}
-      <div className="terms-footer">
-        <div className="footer-logo">&#x1F9AB; BaraTrust</div>
-        <p>© 2026 BaraTrust · New Albany, Indiana</p>
-        <p>Questions? <PhoneLink /> &nbsp;·&nbsp; <EmailLink /></p>
-        <p style={{ marginTop: '20px' }}><a href="/">&#8592; Back to BaraTrust.com</a></p>
-      </div>
-    </>
-  )
-}
-
-function TermsSection({ id, num, title, children }: { id: string; num: string; title: string; children: React.ReactNode }) {
-  return (
-    <div className="terms-section" id={id}>
-      <div className="section-num">{num}</div>
-      <div className="section-heading">{title}</div>
-      {children}
+      <footer className="border-t border-slate-800/80 py-10 bg-[#04070D]">
+        <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-mono">
+          <p>© 2026 BaraTrust · New Albany, Indiana · Practical small-business growth and operations partner.</p>
+          <Link href="/" className="hover:text-amber-400 transition-colors">&#8592; Back to BaraTrust.com</Link>
+        </div>
+      </footer>
     </div>
   )
 }

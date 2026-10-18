@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { sql } from '@vercel/postgres';
 import { stripe } from '../../../../lib/stripe/client';
+import { db } from '@/db';
+import { businesses } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 // The webhook secret from the Stripe Dashboard / CLI
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -25,19 +27,30 @@ export async function POST(req: Request) {
     case 'checkout.session.completed':
       const session = event.data.object as Stripe.Checkout.Session;
       const customerEmail = session.customer_details?.email;
+      const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+      const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
       
       if (customerEmail) {
         try {
-          // The Database Handshake: Upgrade the user via raw SQL
-          await sql`
-            UPDATE users 
-            SET tier = 'Founding Member', is_active = true 
-            WHERE email = ${customerEmail};
-          `;
-          console.log(`BaraTrust account upgraded for: ${customerEmail}`);
+          // Schema-consistent update on businesses table
+          const updated = await db.update(businesses)
+            .set({
+              tier: 'Active Member',
+              isActive: true,
+              stripeCustomerId: customerId || null,
+              stripeSubscriptionId: subscriptionId || null,
+              updatedAt: new Date(),
+            })
+            .where(eq(businesses.ownerEmail, customerEmail))
+            .returning();
+
+          if (updated.length > 0) {
+            console.log(`BaraTrust account entitlement upgraded for: ${customerEmail}`);
+          } else {
+            console.warn(`Stripe payment confirmed for ${customerEmail}, but no business record matched ownerEmail yet.`);
+          }
         } catch (dbError) {
-          console.error('Database update failed:', dbError);
-          // We return 500 so Stripe knows our DB failed and will retry the webhook later
+          console.error('Database update failed in Stripe webhook:', dbError);
           return new NextResponse('Database Error', { status: 500 });
         }
       }
@@ -45,12 +58,25 @@ export async function POST(req: Request) {
 
     case 'customer.subscription.deleted':
       const subscription = event.data.object as Stripe.Subscription;
-      // In a real scenario, you'd fetch the user by Stripe Customer ID here
-      console.log(`Subscription canceled for customer: ${subscription.customer}`);
+      const subId = subscription.id;
+      if (subId) {
+        try {
+          await db.update(businesses)
+            .set({
+              tier: 'Canceled',
+              isActive: false,
+              updatedAt: new Date(),
+            })
+            .where(eq(businesses.stripeSubscriptionId, subId));
+          console.log(`Subscription canceled for Stripe subscription ID: ${subId}`);
+        } catch (subError) {
+          console.error('Database update failed on subscription cancellation:', subError);
+        }
+      }
       break;
 
     default:
-      console.log(`Unhandled event type: ${event.type}`);
+      console.log(`Unhandled Stripe event type: ${event.type}`);
   }
 
   return new NextResponse('Webhook processed successfully', { status: 200 });

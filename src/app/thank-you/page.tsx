@@ -32,7 +32,7 @@ export default function ThankYouPage() {
 
   return (
     <div className="landing-wrapper" data-theme={theme} style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--ink)" }}>
-      <header className="site-header"><div className="wrap nav-wrap"><a className="brand" href="/#top"><span className="brand-mark">B</span><span>BaraTrust</span></a><nav><a href="/#pillars">What we help with</a><a href="/#how-it-works">How it works</a><a href="/#who">Who it’s for</a><a className="nav-cta" href="/#start">Get your free Reality Check</a><button id="theme-toggle" className="theme-toggle" type="button" aria-pressed={theme === "dark"} onClick={toggleTheme}>Night mode</button></nav></div></header>
+      <header className="site-header"><div className="wrap nav-wrap"><a className="brand" href="/#top"><span className="brand-mark">B</span><span>BaraTrust</span></a><nav><a href="/#services">What we help with</a><a href="/#how">How it works</a><a href="/#who">Who it’s for</a><a className="nav-cta" href="/#start">Get your free Reality Check</a><button id="theme-toggle" className="theme-toggle" type="button" aria-pressed={theme === "dark"} onClick={toggleTheme}>{theme === "dark" ? "Day mode" : "Night mode"}</button></nav></div></header>
       <main><section className="section"><div className="wrap">
         <p className="eyebrow">BaraTrust Business Reality Check</p>
         <h1>We received your request.</h1>

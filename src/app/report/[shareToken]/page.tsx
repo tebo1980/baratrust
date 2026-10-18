@@ -91,7 +91,7 @@ export default async function PublishedRealityCheckReportPage({
               Review In Progress
             </span>
             <h2 className="text-2xl font-bold font-serif text-white">
-              {check.businessName}
+              {check.businessName || check.website}
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
               Todd and Noelah are currently completing the hands-on human review for this business. You will receive an email as soon as your Reality Check report is ready.
@@ -184,14 +184,18 @@ export default async function PublishedRealityCheckReportPage({
         <div className="space-y-4 border-b border-slate-800 pb-8 print:border-b-2 print:border-black">
           <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-slate-400 print:text-slate-700">
             <span>BaraTrust Business Reality Check</span>
-            <span>•</span>
-            <span className="text-white font-semibold print:text-black">{check.cityState}</span>
+            {check.cityState && (
+              <>
+                <span>•</span>
+                <span className="text-white font-semibold print:text-black">{check.cityState}</span>
+              </>
+            )}
             <span>•</span>
             <span className="text-amber-400 font-semibold print:text-black">{check.businessType || "Small Business"}</span>
           </div>
 
           <h1 className="text-4xl md:text-5xl font-bold text-white font-serif tracking-tight print:text-black">
-            {check.businessName}
+            {check.businessName || check.website}
           </h1>
 
           <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-400 pt-1 print:text-slate-700">

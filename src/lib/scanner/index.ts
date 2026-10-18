@@ -14,8 +14,8 @@ export * from './scoring';
 
 export interface ExecuteScanOptions {
   websiteUrl: string;
-  businessName: string;
-  cityState: string;
+  businessName?: string | null;
+  cityState?: string | null;
 }
 
 /**
@@ -52,6 +52,8 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
       categoryScores,
       findings: fallbackFindings,
       normalizedUrl: fetchResult.normalizedUrl,
+      derivedBusinessName: null,
+      derivedCityState: null,
       httpStatus: fetchResult.httpStatus,
       scannedAt,
     };
@@ -59,14 +61,14 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
 
   // 3. Parse HTML
   const rawData = fetchResult.data;
-  const parsed = parseHtmlForBusinessSignals(rawData.html, cityState);
+  const parsed = parseHtmlForBusinessSignals(rawData.html, cityState || undefined);
 
   // 4. Run deterministic checks
   const findings = runDeterministicChecks({
     rawData,
     parsed,
-    businessName,
-    cityState,
+    businessName: businessName || parsed.derivedBusinessName || null,
+    cityState: cityState || parsed.derivedCityState || null,
   });
 
   // 5. Calculate scores
@@ -81,6 +83,8 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     categoryScores,
     findings,
     normalizedUrl: rawData.normalizedUrl,
+    derivedBusinessName: parsed.derivedBusinessName,
+    derivedCityState: parsed.derivedCityState,
     httpStatus: rawData.httpStatus,
     responseTimeMs: rawData.responseTimeMs,
     scannedAt,

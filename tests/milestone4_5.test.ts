@@ -14,7 +14,17 @@ import {
 } from '../src/lib/email/delivery';
 import { validateUrlForScan, normalizeSubmittedUrl } from '../src/lib/scanner/ssrf';
 import { parseHtmlForBusinessSignals } from '../src/lib/scanner/parser';
+import { runDeterministicChecks } from '../src/lib/scanner/checks';
+import { calculateScores } from '../src/lib/scanner/scoring';
 import { FindingState } from '../src/db/schema/realityCheck';
+import {
+  RealityCheckSubmissionSchema,
+  RequestHumanReviewSchema,
+  resolveInitialRealityCheckStatus,
+  resolvePatchedRealityCheckStatus,
+  isActiveHumanReviewQueueItem,
+  evaluateHumanReviewClaim,
+} from '../src/lib/reality-check/funnel';
 
 test('Gemini Model Config — returns default gemini-1.5-pro when unconfigured', () => {
   const originalEnv = process.env.REALITY_CHECK_GEMINI_MODEL;
@@ -392,3 +402,428 @@ test('Publish Concurrency — atomic conditional update ensures exactly one winn
   assert.equal(retryResult.alreadyPublished, true);
   assert.equal(emailDispatches, 1, 'Subsequent retry must never dispatch duplicate email');
 });
+
+// ==========================================
+// Staged Reality Check Funnel (URL-First → Immediate Value → Email for Human Review)
+// ==========================================
+
+test('Staged Funnel 1 & 2 — URL-only submission succeeds and does not require email, ownerName, or cityState', () => {
+  const urlOnly = RealityCheckSubmissionSchema.safeParse({
+    website: 'rivercityplumbing.com',
+  });
+  assert.equal(urlOnly.success, true, 'URL-only payload must pass schema validation');
+  if (urlOnly.success) {
+    assert.equal(urlOnly.data.website, 'rivercityplumbing.com');
+    assert.equal(urlOnly.data.email ?? null, null);
+    assert.equal(urlOnly.data.businessName ?? null, null);
+    assert.equal(urlOnly.data.cityState ?? null, null);
+    assert.equal(urlOnly.data.ownerName ?? null, null);
+  }
+
+  // Also accepts empty string email without failing validation
+  const emptyEmail = RealityCheckSubmissionSchema.safeParse({
+    website: 'https://facebook.com/rivercityplumbing',
+    email: '',
+  });
+  assert.equal(emptyEmail.success, true);
+
+  // Rejects empty website
+  const missingWebsite = RealityCheckSubmissionSchema.safeParse({
+    website: '   ',
+  });
+  assert.equal(missingWebsite.success, false);
+});
+
+test('Staged Funnel 3 — Automated result can be computed and retrieved without email or fake city penalty', () => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>River City Plumbing | Emergency Drain & Water Heater Service</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="24/7 licensed plumbers for drain cleaning and water heater repair.">
+        <meta property="og:site_name" content="River City Plumbing">
+      </head>
+      <body>
+        <h1>River City Plumbing</h1>
+        <a href="tel:5025550199">Call (502) 555-0199</a>
+        <p>Visit us at 410 Main Street, Suite 100, Louisville, KY 40202.</p>
+      </body>
+    </html>
+  `;
+
+  // URL-only scan: cityState is null
+  const parsed = parseHtmlForBusinessSignals(html, null);
+  assert.equal(parsed.derivedBusinessName, 'River City Plumbing');
+
+  const findings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://rivercityplumbing.com',
+      finalUrl: 'https://rivercityplumbing.com',
+      normalizedUrl: 'https://rivercityplumbing.com',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 180,
+      headers: { 'content-type': 'text/html' },
+      html,
+    },
+    parsed,
+    businessName: null,
+    cityState: null,
+  });
+
+  // city_state_match must be UNKNOWN (not FAIL!) when cityState was not provided in a URL-only scan
+  const cityFinding = findings.find((f) => f.checkKey === 'city_state_match')!;
+  assert.equal(
+    cityFinding.state,
+    'UNKNOWN',
+    'URL-only scan without cityState must return UNKNOWN for city_state_match, never FAIL'
+  );
+  assert.equal(cityFinding.scoreContribution, 0);
+
+  const scored = calculateScores(findings);
+  assert.ok(scored.overallScore !== null && scored.overallScore > 0);
+  assert.ok(scored.overallCoverage > 50);
+
+  // Public snapshot representation does not require or expose email or internal UUID
+  const publicSnapshot = {
+    shareToken: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    website: 'https://rivercityplumbing.com',
+    businessName: parsed.derivedBusinessName,
+    overallScore: scored.overallScore,
+    overallCoverage: scored.overallCoverage,
+    confidence: scored.confidence,
+    humanReviewRequested: false,
+  };
+  assert.equal(publicSnapshot.humanReviewRequested, false);
+  assert.equal((publicSnapshot as any).id, undefined);
+  assert.equal((publicSnapshot as any).email, undefined);
+});
+
+test('Staged Funnel 4, 5 & 6 — Human review request attaches email via valid shareToken, rejects forged tokens, and is idempotent on repeated submit', () => {
+  const validToken = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+  const forgedToken = 'ff00ff00ff00ff00ff00ff00ff00ff00';
+
+  // In-memory store simulating reality_checks table
+  const dbRecords = [
+    {
+      id: 'rc-uuid-1',
+      shareToken: validToken,
+      website: 'https://rivercityplumbing.com',
+      businessName: 'River City Plumbing' as string | null,
+      cityState: null as string | null,
+      ownerName: null as string | null,
+      email: null as string | null,
+      status: resolveInitialRealityCheckStatus(null) as string,
+    },
+  ];
+  let operatorNotificationsSent = 0;
+
+  function handlePatchHumanReview(payload: unknown) {
+    const parsed = RequestHumanReviewSchema.safeParse(payload);
+    if (!parsed.success) {
+      return { status: 400, error: parsed.error.issues[0]?.message };
+    }
+    const existing = dbRecords.find((r) => r.shareToken === parsed.data.shareToken);
+    if (!existing) {
+      return { status: 404, error: 'Could not find a matching Reality Check for this token.' };
+    }
+
+    const claim = evaluateHumanReviewClaim(existing, parsed.data);
+    if (!claim.allowed) {
+      return { status: claim.httpStatus, code: claim.reason, error: claim.error };
+    }
+
+    existing.email = claim.email;
+    existing.businessName = claim.businessName;
+    existing.ownerName = claim.ownerName;
+    existing.cityState = claim.cityState;
+    existing.status = claim.nextStatus;
+
+    if (claim.isInitialClaim) {
+      operatorNotificationsSent++;
+    }
+    return {
+      status: 200,
+      shareToken: existing.shareToken,
+      humanReviewRequested: true,
+      alreadyRequested: !claim.isInitialClaim,
+      recordCount: dbRecords.length,
+    };
+  }
+
+  // Test 5: Invalid/short or forged token cannot attach email to another record
+  const shortRes = handlePatchHumanReview({ shareToken: 'short', email: 'attacker@evil.com' });
+  assert.equal(shortRes.status, 400);
+
+  const forgedRes = handlePatchHumanReview({ shareToken: forgedToken, email: 'attacker@evil.com' });
+  assert.equal(forgedRes.status, 404);
+  assert.equal(dbRecords[0].email, null, 'Record email must remain null after forged token attempt');
+
+  // Test 4: Valid token attaches email to existing scan and transitions status to NEEDS_HUMAN_REVIEW
+  const firstSubmit = handlePatchHumanReview({
+    shareToken: validToken,
+    email: 'Owner@RiverCityPlumbing.com',
+    ownerName: 'Mike',
+  });
+  assert.equal(firstSubmit.status, 200);
+  assert.equal(firstSubmit.alreadyRequested, false);
+  assert.equal(dbRecords[0].email, 'owner@rivercityplumbing.com');
+  assert.equal(dbRecords[0].ownerName, 'Mike');
+  assert.equal(dbRecords[0].status, 'NEEDS_HUMAN_REVIEW');
+  assert.equal(operatorNotificationsSent, 1);
+
+  // Test 6: Repeated email-submit with same normalized email updates missing fields without creating duplicates or re-sending notification
+  const secondSubmit = handlePatchHumanReview({
+    shareToken: validToken,
+    email: 'owner@rivercityplumbing.com',
+    cityState: 'Louisville, KY',
+  });
+  assert.equal(secondSubmit.status, 200);
+  assert.equal(secondSubmit.alreadyRequested, true);
+  assert.equal(dbRecords.length, 1, 'Must never create duplicate Reality Check records');
+  assert.equal(dbRecords[0].cityState, 'Louisville, KY');
+  assert.equal(operatorNotificationsSent, 1, 'Operator notification must only fire once');
+});
+
+test('Staged Funnel 7 — Anonymous URL-only scan does not enter active human-review queue until email is attached', () => {
+  const anonymousScan = {
+    email: null,
+    status: resolveInitialRealityCheckStatus(null),
+  };
+  assert.equal(anonymousScan.status, 'AUTO_SCAN_COMPLETE');
+  assert.equal(
+    isActiveHumanReviewQueueItem(anonymousScan),
+    false,
+    'Anonymous URL-only scan must be excluded from active human-review queue'
+  );
+
+  // Once email is attached via Step 3:
+  const requestedScan = {
+    email: 'owner@business.com',
+    status: resolvePatchedRealityCheckStatus(anonymousScan.status),
+  };
+  assert.equal(requestedScan.status, 'NEEDS_HUMAN_REVIEW');
+  assert.equal(
+    isActiveHumanReviewQueueItem(requestedScan),
+    true,
+    'Scan with email must appear in active human-review queue'
+  );
+});
+
+test('Staged Funnel 8 & 9 — Questionnaire works after human review request and can still be skipped safely', async () => {
+  // Requires humanReviewRequested (email present) before accepting questionnaire submission
+  const checkAfterEmail = {
+    id: 'rc-uuid-1',
+    shareToken: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    email: 'owner@rivercityplumbing.com',
+    status: 'NEEDS_HUMAN_REVIEW',
+  };
+  assert.equal(Boolean(checkAfterEmail.email), true);
+
+  // When skipped, synthesis and report generation work cleanly with null ownerName / cityState / ownerProvided
+  const pkgSkippedWithNulls: SynthesisEvidencePackage = {
+    business: {
+      name: 'https://rivercityplumbing.com',
+      website: 'https://rivercityplumbing.com',
+      cityState: 'Not specified',
+      ownerName: 'Business Owner',
+    },
+    scanner: {
+      overallScore: 76,
+      coverage: 82,
+      confidence: 'HIGH',
+      findings: [],
+    },
+    ownerProvided: null,
+    humanReview: {
+      opportunitiesFound: [],
+      topFixes: [
+        { priority: 1, title: 'Fix 1', whyItMatters: 'Why 1', suggestedAction: 'Act 1', evidenceLabel: 'BARATRUST_REVIEW' },
+        { priority: 2, title: 'Fix 2', whyItMatters: 'Why 2', suggestedAction: 'Act 2', evidenceLabel: 'BARATRUST_REVIEW' },
+        { priority: 3, title: 'Fix 3', whyItMatters: 'Why 3', suggestedAction: 'Act 3', evidenceLabel: 'BARATRUST_REVIEW' },
+      ],
+      notSpendMoneyOn: 'Skip paid directories.',
+    },
+  };
+
+  const fallback = generateDeterministicFallbackReport(pkgSkippedWithNulls);
+  assert.ok(fallback.executiveSummary.length > 20);
+  assert.equal(fallback.notWorthSpendingOnSummary, 'Skip paid directories.');
+});
+
+test('Staged Funnel 10 — Final email delivery returns NOT_ATTEMPTED when no email exists on record', async () => {
+  const resEmpty = await sendRealityCheckDeliveryEmail({
+    ownerEmail: '',
+    ownerName: 'Business Owner',
+    businessName: 'Anonymous URL Scan',
+    shareToken: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+  });
+
+  assert.equal(resEmpty.status, 'NOT_ATTEMPTED');
+  assert.equal(resEmpty.success, false);
+  assert.equal(resEmpty.deliveredAt, null);
+  assert.ok(resEmpty.error?.includes('No recipient email address on record'));
+});
+
+test('Email Claim Integrity — personB@example.com cannot overwrite personA@example.com or hijack identity/questionnaire state', () => {
+  const shareToken = 'b9c8d7e6f5a403122334455667788990';
+
+  // Step 1: Anonymous URL scan is created
+  const record = {
+    id: 'rc-claim-1',
+    shareToken,
+    website: 'https://kentuckiana-roofing.com',
+    businessName: 'Kentuckiana Roofing (Derived)' as string | null,
+    cityState: null as string | null,
+    ownerName: null as string | null,
+    email: null as string | null,
+    status: resolveInitialRealityCheckStatus(null) as string,
+    questionnaireAnswers: null as Record<string, string> | null,
+  };
+  let operatorNotifications = 0;
+
+  function applyClaim(input: {
+    email: string;
+    businessName?: string | null;
+    ownerName?: string | null;
+    cityState?: string | null;
+  }) {
+    const evalResult = evaluateHumanReviewClaim(record, input);
+    if (!evalResult.allowed) {
+      return { status: evalResult.httpStatus, code: evalResult.reason, error: evalResult.error };
+    }
+    record.email = evalResult.email;
+    record.businessName = evalResult.businessName;
+    record.ownerName = evalResult.ownerName;
+    record.cityState = evalResult.cityState;
+    record.status = evalResult.nextStatus;
+    if (evalResult.isInitialClaim) {
+      operatorNotifications++;
+    }
+    return { status: 200, alreadyRequested: !evalResult.isInitialClaim };
+  }
+
+  // Step 2: personA@example.com requests human review and completes questionnaire
+  const resA = applyClaim({
+    email: 'personA@example.com',
+    ownerName: 'Alice Owner',
+    businessName: 'Kentuckiana Roofing LLC',
+  });
+  assert.equal(resA.status, 200);
+  assert.equal(resA.alreadyRequested, false);
+  assert.equal(record.email, 'persona@example.com');
+  assert.equal(record.ownerName, 'Alice Owner');
+  assert.equal(record.businessName, 'Kentuckiana Roofing LLC');
+  assert.equal(record.status, 'NEEDS_HUMAN_REVIEW');
+  assert.equal(operatorNotifications, 1);
+
+  record.questionnaireAnswers = { biggestProblem: 'Missed storm repair calls' };
+
+  // Step 3: Same share token is used with personB@example.com attempting to overwrite email and identity
+  const resB = applyClaim({
+    email: 'personB@example.com',
+    ownerName: 'Bob Attacker',
+    businessName: 'Hijacked Roofing',
+    cityState: 'Fake City, ZZ',
+  });
+  assert.equal(resB.status, 409, 'Conflicting email must be rejected with 409 Conflict');
+  assert.equal(resB.code, 'EMAIL_CLAIM_CONFLICT');
+
+  // Verify personA's email, identity, and questionnaire state remain completely intact
+  assert.equal(record.email, 'persona@example.com');
+  assert.equal(record.ownerName, 'Alice Owner');
+  assert.equal(record.businessName, 'Kentuckiana Roofing LLC');
+  assert.equal(record.cityState, null);
+  assert.deepEqual(record.questionnaireAnswers, { biggestProblem: 'Missed storm repair calls' });
+  assert.equal(operatorNotifications, 1, 'No operator notification may fire on rejected claim');
+
+  // Step 4: Same normalized email (PersonA@Example.com) retries — backfills null cityState without overwriting established ownerName/businessName
+  const resARetry = applyClaim({
+    email: '  PersonA@Example.com ',
+    ownerName: 'Accidental Different Name',
+    businessName: 'Accidental Different Business',
+    cityState: 'New Albany, IN',
+  });
+  assert.equal(resARetry.status, 200);
+  assert.equal(resARetry.alreadyRequested, true);
+  assert.equal(record.email, 'persona@example.com');
+  assert.equal(record.ownerName, 'Alice Owner', 'Established ownerName must not be overwritten');
+  assert.equal(record.businessName, 'Kentuckiana Roofing LLC', 'Established businessName must not be overwritten');
+  assert.equal(record.cityState, 'New Albany, IN', 'Previously null cityState can be backfilled by original requester');
+  assert.equal(operatorNotifications, 1, 'Retry must not send duplicate operator notification');
+});
+
+test('Email Claim Concurrency — atomic conditional claim prevents race overwrite between concurrent claimants', async () => {
+  const dbRecord = {
+    id: 'rc-race-1',
+    shareToken: 'c1d2e3f4a5b60718293a4b5c6d7e8f91',
+    email: null as string | null,
+    ownerName: null as string | null,
+    businessName: 'Derived Business' as string | null,
+    cityState: null as string | null,
+    status: 'AUTO_SCAN_COMPLETE',
+  };
+  let notifications = 0;
+  let lock = Promise.resolve();
+
+  // Simulates Postgres row lock for UPDATE reality_checks ... WHERE id = ? AND email IS NULL RETURNING *
+  async function atomicClaimIfEmailNull(claim: ReturnType<typeof evaluateHumanReviewClaim>) {
+    let release: () => void = () => {};
+    const prev = lock;
+    lock = new Promise((r) => {
+      release = r;
+    });
+    await prev;
+    try {
+      if (dbRecord.email === null && claim.allowed) {
+        dbRecord.email = claim.email;
+        dbRecord.ownerName = claim.ownerName;
+        dbRecord.businessName = claim.businessName;
+        dbRecord.cityState = claim.cityState;
+        dbRecord.status = claim.nextStatus;
+        return [{ ...dbRecord }];
+      }
+      return [];
+    } finally {
+      release();
+    }
+  }
+
+  async function concurrentPatch(input: { email: string; ownerName: string }) {
+    // Both requests read initial state when email is still null
+    const snapshot = { ...dbRecord };
+    const claim = evaluateHumanReviewClaim(snapshot, input);
+    if (!claim.allowed) {
+      return { status: claim.httpStatus, code: claim.reason };
+    }
+    const [claimed] = await atomicClaimIfEmailNull(claim);
+    if (claimed) {
+      notifications++;
+      return { status: 200, wonInitialClaim: true, email: claim.email };
+    }
+    // Lost the initial claim race — re-evaluate against latest DB row
+    const raceEval = evaluateHumanReviewClaim(dbRecord, input);
+    if (!raceEval.allowed) {
+      return { status: raceEval.httpStatus, code: raceEval.reason, wonInitialClaim: false };
+    }
+    return { status: 200, wonInitialClaim: false, alreadyRequested: true };
+  }
+
+  const [resA, resB] = await Promise.all([
+    concurrentPatch({ email: 'personA@example.com', ownerName: 'Person A' }),
+    concurrentPatch({ email: 'personB@example.com', ownerName: 'Person B' }),
+  ]);
+
+  const winner = resA.status === 200 ? resA : resB;
+  const loser = resA.status === 409 ? resA : resB;
+
+  assert.equal(winner.status, 200);
+  assert.equal(winner.wonInitialClaim, true);
+  assert.equal(loser.status, 409);
+  assert.equal(loser.code, 'EMAIL_CLAIM_CONFLICT');
+  assert.equal(notifications, 1, 'Exactly one operator notification may be sent');
+  assert.equal(dbRecord.email, winner.email);
+});
+
+

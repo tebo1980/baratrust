@@ -24,6 +24,7 @@ export interface QueueItem {
   businessType: string;
   ownerName: string;
   email: string;
+  humanReviewRequested: boolean;
   overallScore: number | null;
   scoreBreakdown: any;
   scanStatus: string;
@@ -40,9 +41,20 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
+  // Active human-review leads vs anonymous URL-only auto-scans
+  const activeReviewItems = useMemo(
+    () => items.filter((item) => item.humanReviewRequested),
+    [items]
+  );
+  const anonymousScanItems = useMemo(
+    () => items.filter((item) => !item.humanReviewRequested),
+    [items]
+  );
+
   // Filtered queue items
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
+    const sourcePool = statusFilter === "ANONYMOUS_SCANS" ? anonymousScanItems : activeReviewItems;
+    return sourcePool.filter((item) => {
       // Search filter
       const q = searchTerm.toLowerCase().trim();
       const matchesSearch =
@@ -51,12 +63,13 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
         item.cityState.toLowerCase().includes(q) ||
         item.website.toLowerCase().includes(q) ||
         item.ownerName.toLowerCase().includes(q) ||
+        item.email.toLowerCase().includes(q) ||
         item.businessType.toLowerCase().includes(q);
 
       if (!matchesSearch) return false;
 
       // Status tab filter
-      if (statusFilter === "ALL") return true;
+      if (statusFilter === "ALL" || statusFilter === "ANONYMOUS_SCANS") return true;
       if (statusFilter === "NEEDS_REVIEW") {
         return (
           item.status === "NEEDS_HUMAN_REVIEW" ||
@@ -77,21 +90,22 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
 
       return true;
     });
-  }, [items, searchTerm, statusFilter]);
+  }, [activeReviewItems, anonymousScanItems, searchTerm, statusFilter]);
 
-  // Aggregate stats
-  const totalCount = items.length;
-  const needsReviewCount = items.filter(
+  // Aggregate stats (for active human-review leads so anonymous scans never inflate operator workload)
+  const totalCount = activeReviewItems.length;
+  const needsReviewCount = activeReviewItems.filter(
     (i) =>
       i.status === "NEEDS_HUMAN_REVIEW" ||
       i.status === "AUTO_SCAN_COMPLETE" ||
       i.status === "NEW" ||
       i.status === "pending_review"
   ).length;
-  const inReviewCount = items.filter((i) => i.status === "IN_REVIEW").length;
-  const publishedCount = items.filter(
+  const inReviewCount = activeReviewItems.filter((i) => i.status === "IN_REVIEW").length;
+  const publishedCount = activeReviewItems.filter(
     (i) => i.status === "READY_TO_PUBLISH" || i.status === "PUBLISHED" || i.status === "completed"
   ).length;
+  const anonymousCount = anonymousScanItems.length;
 
   return (
     <div className="space-y-6">
@@ -99,7 +113,7 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
       {/* KPI Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-4 space-y-1">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Total Checks</span>
+          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Review Requests</span>
           <p className="text-2xl font-bold font-serif text-white">{totalCount}</p>
         </div>
 
@@ -131,7 +145,7 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                 : "text-slate-400 hover:text-white hover:bg-slate-800/60"
             }`}
           >
-            All ({totalCount})
+            All Requested ({totalCount})
           </button>
           <button
             onClick={() => setStatusFilter("NEEDS_REVIEW")}
@@ -162,6 +176,17 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
             }`}
           >
             Ready / Published ({publishedCount})
+          </button>
+          <button
+            onClick={() => setStatusFilter("ANONYMOUS_SCANS")}
+            className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
+              statusFilter === "ANONYMOUS_SCANS"
+                ? "bg-slate-700/60 text-slate-200 border border-slate-600"
+                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/60"
+            }`}
+            title="Inspect URL-only scans where the visitor has not yet submitted an email for human review"
+          >
+            Auto-Scans Only ({anonymousCount})
           </button>
         </div>
 

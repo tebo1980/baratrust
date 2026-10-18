@@ -1,40 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
+import RealityCheckFunnel from "@/components/RealityCheckFunnel";
 import "./landing.css";
-
-interface ScanSummary {
-  realityCheckId: string;
-  shareToken: string;
-  scanStatus: "completed" | "failed" | "blocked" | "timeout";
-  overallScore: number | null;
-  overallCoverage?: number;
-  confidence?: "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT";
-  scoreBreakdown: {
-    digitalPresence: number | null;
-    customerJourney: number | null;
-    trustReputation: number | null;
-    localDiscovery: number | null;
-    opportunityCapture: number | null;
-    coverage?: {
-      overall: number;
-      confidence: "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT";
-      digitalPresence: number;
-      customerJourney: number;
-      trustReputation: number;
-      localDiscovery: number;
-      opportunityCapture: number;
-    };
-  } | null;
-  findingsCount: number;
-}
 
 export default function LandingPage() {
   const [theme, setTheme] = useState("light");
-  const [pending, setPending] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [scanSummary, setScanSummary] = useState<ScanSummary | null>(null);
 
   useEffect(() => {
     const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
@@ -63,73 +34,6 @@ export default function LandingPage() {
     try {
       localStorage.setItem("baratrust-theme", newTheme);
     } catch (_) {}
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (pending) return;
-    const form = e.target as HTMLFormElement;
-    if (!form.reportValidity()) return;
-
-    setPending(true);
-    setErrorMsg("");
-
-    const formData = new FormData(form);
-    const payload = {
-      businessName: formData.get("business")?.toString().trim() || "",
-      website: formData.get("website")?.toString().trim() || "",
-      cityState: formData.get("city")?.toString().trim() || "",
-      ownerName: formData.get("name")?.toString().trim() || "",
-      email: formData.get("email")?.toString().trim() || "",
-      phone: formData.get("phone")?.toString().trim() || null,
-      businessType: formData.get("business_type")?.toString().trim() || null,
-      primaryHeadache: formData.get("problem")?.toString().trim() || null,
-    };
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 28000);
-
-    try {
-      const response = await fetch("/api/reality-check", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Submission could not be completed.");
-      }
-
-      setScanSummary({
-        realityCheckId: result.realityCheckId,
-        shareToken: result.shareToken,
-        scanStatus: result.scanStatus,
-        overallScore: result.overallScore,
-        overallCoverage: result.overallCoverage,
-        confidence: result.confidence,
-        scoreBreakdown: result.scoreBreakdown,
-        findingsCount: result.findingsCount || 0,
-      });
-    } catch (err: any) {
-      if (err.name === "AbortError") {
-        setErrorMsg(
-          "The scan took longer than expected. Your submission has been received and queued for human review by Todd and Noelah."
-        );
-      } else {
-        setErrorMsg(
-          err.message ||
-            "We couldn’t confirm your request. Your details are still here. Please try again or email todd@baratrust.com."
-        );
-      }
-    } finally {
-      clearTimeout(timeout);
-      setPending(false);
-    }
   };
 
   return (
@@ -175,13 +79,13 @@ export default function LandingPage() {
               </p>
               <div className="cta-row">
                 <a className="btn primary" href="#start">
-                  Get Your Free Reality Check
+                  Run My Free Reality Check
                 </a>
                 <a className="btn secondary" href="#services">
                   See What We Can Help With
                 </a>
               </div>
-              <p className="micro">Free. No credit card. No giant sales pitch.</p>
+              <p className="micro">Paste your business link and see what we find. No email required to see your first results.</p>
             </div>
 
             <aside className="reality-card">
@@ -263,7 +167,7 @@ export default function LandingPage() {
               <article className="service-card">
                 <span className="number">03</span>
                 <h3>Cut Unnecessary Costs</h3>
-                <p>Spot recurring waste and Trim expenses that aren’t earning their keep.</p>
+                <p>Spot recurring waste and trim expenses that aren’t earning their keep.</p>
                 <ul>
                   <li>Supplier and vendor research</li>
                   <li>Software and subscription cleanup</li>
@@ -307,16 +211,16 @@ export default function LandingPage() {
             <div className="steps">
               <div className="step">
                 <span>1</span>
-                <h3>Free Reality Check</h3>
+                <h3>Paste Your Link</h3>
                 <p>
-                  Tell us who you are, share your website, and answer a few optional questions. Our system checks your public web presence first, then Todd and Noelah review the business like a real customer and operator would.
+                  Paste your website, Google Business page, or Facebook page. Our system runs an instant automated scan so you can see your initial snapshot right away — no email required.
                 </p>
               </div>
               <div className="step">
                 <span>2</span>
-                <h3>We Look Deeper</h3>
+                <h3>Request Human Review</h3>
                 <p>
-                  We check findability, customer experience, missed opportunities, competitors, reputation patterns, social presence, and practical growth opportunities.
+                  Want the full Reality Check? Add your email and optionally answer a few quick questions so Todd and Noelah can review the parts software can’t.
                 </p>
               </div>
               <div className="step">
@@ -370,26 +274,26 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 9. FREE REALITY CHECK + 10. INTAKE SECTION */}
+        {/* 9. FREE REALITY CHECK + 10. STAGED INTAKE SECTION */}
         <section id="start" className="section start-section">
           <div className="wrap start-grid">
             <div>
               <p className="eyebrow">Start simple</p>
-              <h2 className="offer-title">Start With the Free Business Reality Check</h2>
+              <h2 className="offer-title">Start With Your Business</h2>
               <p className="section-intro">
-                <strong>Not sure what your business actually needs? That’s the point. Start with the Reality Check.</strong>
+                <strong>Paste your business link and see what we find.</strong>
               </p>
-              <p>What the Reality Check includes:</p>
+              <p>What the full Reality Check includes:</p>
               <ul className="offer-details">
-                <li>Automated website and digital-presence checks</li>
-                <li>Optional owner context questionnaire</li>
+                <li>Instant automated website and digital-presence snapshot</li>
                 <li>Human review by Todd and Noelah</li>
+                <li>Optional owner context questionnaire</li>
                 <li>Competitor and findability look</li>
                 <li>Clear priorities in plain English</li>
                 <li>What we would NOT recommend spending money on</li>
               </ul>
               <p>
-                <strong>100% free. No credit card required. No giant report. No software pitch. No obligation.</strong>
+                <strong>100% free. No email required to see your first results. No credit card. No obligation.</strong>
               </p>
               <div className="starter-note">
                 <strong>How follow-up work is scoped</strong>
@@ -399,7 +303,7 @@ export default function LandingPage() {
               </div>
               <div className="cta-row">
                 <a className="btn primary" href="#reality-check-form">
-                  Get My Free Reality Check
+                  Run My Free Reality Check
                 </a>
               </div>
               <p className="micro">
@@ -407,120 +311,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {scanSummary ? (
-              <div id="reality-check-form" className="lead-form" aria-live="polite">
-                <p className="eyebrow" style={{ marginBottom: "8px" }}>
-                  Submission Saved &amp; Initial Scan Complete
-                </p>
-                <h3 id="intake-title">Your Reality Check is underway.</h3>
-                <p>
-                  We’ve saved your submission and completed the initial automated checks. Todd and Noelah will personally review your local findability, reputation, and competitors next.
-                </p>
-
-                {scanSummary.overallScore !== null ? (
-                  <div className="starter-note" style={{ marginTop: "18px", marginBottom: "18px" }}>
-                    <strong>Initial Automated Score: {scanSummary.overallScore} / 100</strong>
-                    <span>
-                      {scanSummary.confidence === "HIGH"
-                        ? "Verified automated coverage across your public web presence."
-                        : `Provisional automated check (${scanSummary.overallCoverage ?? 0}% coverage) — queued for human review.`}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="starter-note" style={{ marginTop: "18px", marginBottom: "18px" }}>
-                    <strong>Queued for Human Review</strong>
-                    <span>
-                      Your website had bot/firewall restrictions during the automated probe, so Todd and Noelah will inspect it directly by hand.
-                    </span>
-                  </div>
-                )}
-
-                <div className="starter-note" style={{ marginTop: "18px", marginBottom: "22px" }}>
-                  <strong>Optional Step 2: Owner Context (~2 minutes)</strong>
-                  <span>
-                    Want to share where your customers come from, whether calls or quotes get missed, or what busywork wastes your time? Answer a few optional questions so Todd and Noelah can tailor your review.
-                  </span>
-                </div>
-
-                <Link
-                  className="btn primary full"
-                  href={`/reality-check/${scanSummary.shareToken}/questionnaire`}
-                >
-                  Answer Optional Context Questions
-                </Link>
-              </div>
-            ) : (
-              <form
-                id="reality-check-form"
-                className="lead-form"
-                onSubmit={handleSubmit}
-                aria-labelledby="intake-title"
-                aria-describedby="intake-note form-availability"
-              >
-                <h3 id="intake-title">Tell us about your business.</h3>
-                <p id="intake-note">
-                  Start with the basics. We’ll save your submission first, run the automated checks, and then give you the option to answer a few extra questions so Todd and Noelah have more context.
-                </p>
-                <label>
-                  Business name
-                  <input name="business" type="text" autoComplete="organization" required />
-                </label>
-                <label>
-                  Website / primary page address
-                  <input
-                    name="website"
-                    type="text"
-                    inputMode="url"
-                    autoCapitalize="none"
-                    spellCheck={false}
-                    placeholder="e.g., yourbusiness.com"
-                    required
-                  />
-                </label>
-                <label>
-                  City &amp; State
-                  <input
-                    name="city"
-                    type="text"
-                    placeholder="e.g., New Albany, IN or Louisville, KY"
-                    required
-                  />
-                </label>
-                <label>
-                  Owner / contact name
-                  <input name="name" type="text" autoComplete="name" required />
-                </label>
-                <label>
-                  Email
-                  <input name="email" type="email" autoComplete="email" required />
-                </label>
-                <label>
-                  Phone (optional)
-                  <input name="phone" type="tel" autoComplete="tel" />
-                </label>
-                <label>
-                  Business type (optional)
-                  <input
-                    name="business_type"
-                    type="text"
-                    placeholder="e.g., contractor, restaurant, retailer"
-                  />
-                </label>
-                <label>
-                  Biggest bottleneck right now (optional)
-                  <textarea name="problem" rows={3}></textarea>
-                </label>
-                <button className="btn primary full" type="submit" disabled={pending}>
-                  {pending ? "Saving & Running Checks..." : "Start My Free Reality Check"}
-                </button>
-                <p id="form-availability" className="form-note">
-                  No payment. No obligation.
-                </p>
-                <p id="form-status" className="form-note" role="status" aria-live="polite" tabIndex={-1}>
-                  {errorMsg}
-                </p>
-              </form>
-            )}
+            <RealityCheckFunnel variant="embedded" />
           </div>
         </section>
       </main>

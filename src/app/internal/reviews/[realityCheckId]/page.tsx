@@ -110,10 +110,10 @@ export default async function IndividualReviewWorkspacePage({
             <span className="text-slate-600 font-mono text-xs">/</span>
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold font-serif text-white">
-                {check.businessName}
+                {check.businessName || check.website}
               </span>
               <span className="text-xs text-slate-400 font-mono">
-                ({check.cityState})
+                ({check.cityState || 'Location not specified'})
               </span>
             </div>
           </div>

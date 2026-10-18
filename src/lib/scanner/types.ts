@@ -76,6 +76,8 @@ export interface ScanResult {
   categoryScores: CategoryScore[];
   findings: EvaluatedFinding[];
   normalizedUrl?: string;
+  derivedBusinessName?: string | null;
+  derivedCityState?: string | null;
   httpStatus?: number;
   responseTimeMs?: number;
   scannedAt: string;

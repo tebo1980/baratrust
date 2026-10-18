@@ -17,14 +17,13 @@ import {
 } from "lucide-react";
 
 interface BusinessData {
-  id: string;
-  businessName: string;
+  businessName: string | null;
   website: string;
-  cityState: string;
-  ownerName: string;
+  cityState: string | null;
   businessType?: string | null;
   primaryHeadache?: string | null;
   status: string;
+  humanReviewRequested?: boolean;
 }
 
 export default function OwnerQuestionnairePage() {
@@ -112,6 +111,12 @@ export default function OwnerQuestionnairePage() {
         throw new Error(data.error || "Failed to save questionnaire responses.");
       }
 
+      try {
+        if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
+          (window as any).gtag("event", "questionnaire_completed");
+        }
+      } catch {}
+
       setSubmitted(true);
       window.scrollTo({ top: 100, behavior: "smooth" });
     } catch (err: any) {
@@ -157,36 +162,53 @@ export default function OwnerQuestionnairePage() {
         {/* Title & Context */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400">
-            <span>Reality Check Step 2 of 2</span>
+            <span>Optional Owner Context</span>
             <span>•</span>
             <span className="text-amber-400 font-bold">100% Optional</span>
             {business && (
               <>
                 <span>•</span>
-                <span className="text-slate-300">{business.businessName}</span>
-                <span>({business.cityState})</span>
+                <span className="text-slate-300">{business.businessName || business.website}</span>
+                {business.cityState && <span>({business.cityState})</span>}
               </>
             )}
           </div>
           <h1 className="text-3xl md:text-5xl font-bold text-white font-serif tracking-tight">
-            Tell Todd & Noelah What the Website Can’t See
+            Want Us to Make the Human Review More Useful?
           </h1>
           <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-            Our automated scanner evaluated your public website code and speed. These 8 questions give Todd and Noelah the hidden operational context needed to find missed revenue and recommend practical fixes.
+            Answer a few quick questions so Todd and Noelah understand what matters most to your business.
           </p>
 
           <div className="p-4 bg-[#0A101D] border border-slate-800 rounded-xl flex items-start gap-3 text-xs text-slate-300">
             <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-white">Your Lead Is Already Safe & Queued</p>
+              <p className="font-semibold text-white">Your Reality Check Request Is Already Safe &amp; Queued</p>
               <p className="text-slate-400 mt-0.5">
-                Completing this questionnaire is never mandatory. If you are short on time, you can answer whatever you want or leave questions blank. Every response is strictly private and tagged as <strong className="text-purple-300">[OWNER PROVIDED]</strong> in your review dossier.
+                Completing this questionnaire is never mandatory. If you are short on time, you can answer whatever you want, leave questions blank, or skip this page entirely. Every response is strictly private and tagged as <strong className="text-purple-300">[OWNER PROVIDED]</strong> in your review dossier.
               </p>
             </div>
           </div>
         </div>
 
-        {submitted ? (
+        {business && !business.humanReviewRequested ? (
+          <div className="bg-[#0E1524] border border-amber-500/40 rounded-2xl p-8 text-center space-y-5 shadow-2xl">
+            <h2 className="text-2xl font-bold text-white font-serif">
+              Request Your Full Human Review First
+            </h2>
+            <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+              Before answering the optional owner-context questions, please add your email on your scan snapshot so Todd &amp; Noelah know where to send your finished Reality Check report.
+            </p>
+            <div className="pt-2">
+              <Link
+                href={`/reality-check?scan=${encodeURIComponent(shareToken)}`}
+                className="inline-flex items-center gap-2 px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-sm transition-colors shadow-lg"
+              >
+                Return to Scan Snapshot &amp; Add Email <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        ) : submitted ? (
           /* SUCCESS CONFIRMATION */
           <div className="bg-[#0E1524] border border-emerald-500/40 rounded-2xl p-8 md:p-12 text-center space-y-6 shadow-2xl">
             <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400">
@@ -194,17 +216,17 @@ export default function OwnerQuestionnairePage() {
             </div>
             <div className="space-y-2">
               <h2 className="text-2xl md:text-3xl font-bold text-white font-serif">
-                Context Received & Added to Your Dossier
+                Context Received &amp; Added to Your Dossier
               </h2>
               <p className="text-sm md:text-base text-slate-300 max-w-xl mx-auto">
-                Thank you, {business?.ownerName || 'there'}! Todd and Noelah now have both your technical scan data and your operational context. They are personally preparing your Reality Check report.
+                Thank you! Todd and Noelah now have both your technical scan data and your operational context. They are personally preparing your Reality Check report.
               </p>
             </div>
 
             <div className="p-4 bg-[#080E1C] border border-slate-800 rounded-xl max-w-md mx-auto text-left text-xs text-slate-400 space-y-2 font-mono">
               <div className="flex justify-between">
                 <span>Business:</span>
-                <span className="text-white font-bold">{business?.businessName}</span>
+                <span className="text-white font-bold">{business?.businessName || business?.website}</span>
               </div>
               <div className="flex justify-between">
                 <span>Evidence Tag:</span>

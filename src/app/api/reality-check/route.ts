@@ -1,23 +1,103 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { z } from 'zod';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/db';
-import { realityChecks, scanFindings } from '@/db/schema';
+import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
 import { executeDeterministicScan } from '@/lib/scanner';
+import {
+  RealityCheckSubmissionSchema,
+  RequestHumanReviewSchema,
+  resolveInitialRealityCheckStatus,
+  evaluateHumanReviewClaim,
+} from '@/lib/reality-check/funnel';
 
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
 
-const RealityCheckSubmissionSchema = z.object({
-  businessName: z.string().min(1, 'Business name is required').max(200),
-  website: z.string().min(1, 'Website or social URL is required').max(500),
-  cityState: z.string().min(1, 'City and state are required').max(100),
-  ownerName: z.string().min(1, 'Owner name is required').max(100),
-  email: z.string().email('Valid email address is required').max(200),
-  phone: z.string().max(50).optional().nullable(),
-  businessType: z.string().max(100).optional().nullable(),
-  primaryHeadache: z.string().max(2000).optional().nullable(),
-});
+function formatPublicFinding(f: {
+  category: string;
+  checkKey: string;
+  title: string;
+  state: string;
+  scoreContribution: number;
+  maxPoints: number;
+  supportingDetail: string | null;
+}) {
+  return {
+    category: f.category,
+    checkKey: f.checkKey,
+    title: f.title,
+    state: f.state as 'PASS' | 'FAIL' | 'UNKNOWN',
+    scoreContribution: f.scoreContribution,
+    maxPoints: f.maxPoints,
+    supportingDetail: f.supportingDetail || '',
+  };
+}
+
+/**
+ * GET /api/reality-check?shareToken=...
+ * Safely retrieves the public automated scan snapshot for a Reality Check so browser refresh
+ * or back/forward navigation restores state without re-running the scan or leaking PII.
+ */
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const shareToken = searchParams.get('shareToken')?.trim();
+
+    if (!shareToken || shareToken.length < 16) {
+      return NextResponse.json({ error: 'Valid share token is required' }, { status: 400 });
+    }
+
+    const [check] = await db
+      .select()
+      .from(realityChecks)
+      .where(eq(realityChecks.shareToken, shareToken))
+      .limit(1);
+
+    if (!check) {
+      return NextResponse.json({ error: 'Reality Check not found' }, { status: 404 });
+    }
+
+    const findings = await db
+      .select()
+      .from(scanFindings)
+      .where(eq(scanFindings.realityCheckId, check.id));
+
+    const [ownerResp] = await db
+      .select()
+      .from(ownerResponses)
+      .where(eq(ownerResponses.realityCheckId, check.id))
+      .limit(1);
+
+    const coverage = check.scoreBreakdown?.coverage;
+
+    return NextResponse.json({
+      success: true,
+      shareToken: check.shareToken,
+      website: check.website,
+      normalizedUrl: check.normalizedUrl || check.website,
+      businessName: check.businessName || null,
+      cityState: check.cityState || null,
+      status: check.status,
+      scanStatus: check.scanStatus,
+      scanFailureReason: check.scanFailureReason || null,
+      overallScore: check.overallScore,
+      overallCoverage: coverage?.overall ?? 0,
+      confidence: coverage?.confidence ?? 'INSUFFICIENT',
+      scoreBreakdown: check.scoreBreakdown || null,
+      findingsCount: findings.length,
+      findings: findings.map(formatPublicFinding),
+      humanReviewRequested: Boolean(check.email),
+      questionnaireCompleted: Boolean(ownerResp),
+    });
+  } catch (err: any) {
+    console.error('[REALITY CHECK GET ERROR]', err);
+    return NextResponse.json(
+      { error: err.message || 'Failed to load Reality Check snapshot.' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -35,21 +115,25 @@ export async function POST(req: Request) {
     }
 
     const data = validation.data;
+    const cleanEmail = data.email ? data.email.toLowerCase().trim() : null;
+    const cleanBusinessName = data.businessName ? data.businessName.trim() : null;
+    const cleanCityState = data.cityState ? data.cityState.trim() : null;
+    const cleanOwnerName = data.ownerName ? data.ownerName.trim() : null;
     const shareToken = crypto.randomBytes(16).toString('hex');
 
     // 1. Create the persistent Reality Check record in Postgres
-    // This guarantees the lead is preserved even if the scanner fails or times out
+    // Real NULLs are used for unprovided fields — never fake placeholders.
     const [record] = await db
       .insert(realityChecks)
       .values({
-        businessName: data.businessName,
-        website: data.website,
-        cityState: data.cityState,
-        ownerName: data.ownerName,
-        email: data.email.toLowerCase().trim(),
-        phone: data.phone || null,
-        businessType: data.businessType || null,
-        primaryHeadache: data.primaryHeadache || null,
+        businessName: cleanBusinessName,
+        website: data.website.trim(),
+        cityState: cleanCityState,
+        ownerName: cleanOwnerName,
+        email: cleanEmail,
+        phone: data.phone ? data.phone.trim() : null,
+        businessType: data.businessType ? data.businessType.trim() : null,
+        primaryHeadache: data.primaryHeadache ? data.primaryHeadache.trim() : null,
         status: 'NEW',
         scanStatus: 'pending',
         shareToken,
@@ -60,9 +144,9 @@ export async function POST(req: Request) {
     let scanResult;
     try {
       scanResult = await executeDeterministicScan({
-        websiteUrl: data.website,
-        businessName: data.businessName,
-        cityState: data.cityState,
+        websiteUrl: data.website.trim(),
+        businessName: cleanBusinessName,
+        cityState: cleanCityState,
       });
     } catch (scanErr: any) {
       console.error('[SCANNER ERROR]', scanErr);
@@ -70,9 +154,14 @@ export async function POST(req: Request) {
         scanStatus: 'failed' as const,
         scanFailureReason: `Unexpected scanner error: ${scanErr.message || 'unknown'}`,
         overallScore: null,
+        overallCoverage: 0,
+        confidence: 'INSUFFICIENT' as const,
         scoreBreakdown: null,
+        categoryScores: [],
         findings: [],
-        normalizedUrl: data.website,
+        normalizedUrl: data.website.trim(),
+        derivedBusinessName: null,
+        derivedCityState: null,
         scannedAt: new Date().toISOString(),
       };
     }
@@ -100,18 +189,25 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Update the Reality Check record with scores and scan status
+    // 4. Determine provisional business name / cityState if reliably derived by scanner
+    const effectiveBusinessName = cleanBusinessName || scanResult.derivedBusinessName || null;
+    const effectiveCityState = cleanCityState || scanResult.derivedCityState || null;
+
+    const nextStatus = resolveInitialRealityCheckStatus(cleanEmail);
+
+    // 5. Update the Reality Check record with scores, scan status, and derived metadata
     try {
-      const { eq } = await import('drizzle-orm');
       await db
         .update(realityChecks)
         .set({
-          status: scanResult.scanStatus === 'completed' ? 'AUTO_SCAN_COMPLETE' : 'NEEDS_HUMAN_REVIEW',
+          businessName: effectiveBusinessName,
+          cityState: effectiveCityState,
+          status: nextStatus,
           scanStatus: scanResult.scanStatus,
           scanFailureReason: scanResult.scanFailureReason || null,
           overallScore: scanResult.overallScore,
           scoreBreakdown: scanResult.scoreBreakdown,
-          normalizedUrl: scanResult.normalizedUrl || data.website,
+          normalizedUrl: scanResult.normalizedUrl || data.website.trim(),
           updatedAt: new Date(),
         })
         .where(eq(realityChecks.id, record.id));
@@ -119,34 +215,43 @@ export async function POST(req: Request) {
       console.error('[DB UPDATE ERROR] Failed to update reality check record:', updateErr);
     }
 
-    // 5. Operator Notification (email to Todd & Noelah)
-    // Non-blocking so notification service delays never block user response
-    sendOperatorNotification({
-      businessName: data.businessName,
-      ownerName: data.ownerName,
-      email: data.email,
-      phone: data.phone || 'None provided',
-      website: data.website,
-      cityState: data.cityState,
-      primaryHeadache: data.primaryHeadache || 'None noted',
-      overallScore: scanResult.overallScore,
-      scanStatus: scanResult.scanStatus,
-      shareToken,
-    }).catch((notifErr) => {
-      console.warn('[OPERATOR NOTIFICATION WARNING]', notifErr.message);
-    });
+    // 6. Operator Notification (only when human review is requested with an email)
+    if (cleanEmail) {
+      sendOperatorNotification({
+        businessName: effectiveBusinessName || data.website.trim(),
+        ownerName: cleanOwnerName || 'Not provided',
+        email: cleanEmail,
+        phone: data.phone || 'None provided',
+        website: data.website.trim(),
+        cityState: effectiveCityState || 'Not specified',
+        primaryHeadache: data.primaryHeadache || 'None noted',
+        overallScore: scanResult.overallScore,
+        scanStatus: scanResult.scanStatus,
+        shareToken,
+      }).catch((notifErr) => {
+        console.warn('[OPERATOR NOTIFICATION WARNING]', notifErr.message);
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      realityCheckId: record.id,
       shareToken,
+      website: data.website.trim(),
+      normalizedUrl: scanResult.normalizedUrl || data.website.trim(),
+      businessName: effectiveBusinessName,
+      cityState: effectiveCityState,
+      status: nextStatus,
       scanStatus: scanResult.scanStatus,
+      scanFailureReason: scanResult.scanFailureReason || null,
       overallScore: scanResult.overallScore,
       overallCoverage: scanResult.overallCoverage,
       confidence: scanResult.confidence,
       scoreBreakdown: scanResult.scoreBreakdown,
+      categoryScores: scanResult.categoryScores || [],
       findingsCount: scanResult.findings.length,
-      message: 'Business Reality Check successfully initiated.',
+      findings: scanResult.findings.map(formatPublicFinding),
+      humanReviewRequested: Boolean(cleanEmail),
+      message: 'Business Reality Check scan completed.',
     });
   } catch (err: any) {
     console.error('[REALITY CHECK SUBMISSION ERROR]', err);
@@ -158,7 +263,153 @@ export async function POST(req: Request) {
 }
 
 /**
- * Sends notification email to Todd and Noelah about the new submission.
+ * PATCH /api/reality-check
+ * Step 3: Attaches the visitor's email (and optional businessName/ownerName/cityState) to the existing
+ * Reality Check record identified by its unguessable shareToken, and transitions status to NEEDS_HUMAN_REVIEW.
+ * Safe against double-clicks, retries, and token tampering.
+ */
+export async function PATCH(req: Request) {
+  try {
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    const validation = RequestHumanReviewSchema.safeParse(body);
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message || 'Validation failed';
+      return NextResponse.json({ error: firstError, details: validation.error.format() }, { status: 400 });
+    }
+
+    const data = validation.data;
+
+    const [existing] = await db
+      .select()
+      .from(realityChecks)
+      .where(eq(realityChecks.shareToken, data.shareToken))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Could not find a matching Reality Check for this token.' },
+        { status: 404 }
+      );
+    }
+
+    const claim = evaluateHumanReviewClaim(existing, data);
+    if (!claim.allowed) {
+      return NextResponse.json(
+        { error: claim.error, code: claim.reason },
+        { status: claim.httpStatus }
+      );
+    }
+
+    let wonInitialClaim = false;
+    let finalBusinessName = claim.businessName;
+    let finalOwnerName = claim.ownerName;
+    let finalCityState = claim.cityState;
+    let finalStatus = claim.nextStatus;
+
+    if (claim.isInitialClaim) {
+      // Atomic conditional claim: only succeeds if email is still NULL
+      const [claimedRow] = await db
+        .update(realityChecks)
+        .set({
+          email: claim.email,
+          businessName: claim.businessName,
+          ownerName: claim.ownerName,
+          cityState: claim.cityState,
+          status: claim.nextStatus,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(realityChecks.id, existing.id), isNull(realityChecks.email)))
+        .returning();
+
+      if (claimedRow) {
+        wonInitialClaim = true;
+      } else {
+        // Concurrent request claimed this scan first — verify whether it was the same email or a conflicting email
+        const [latest] = await db
+          .select()
+          .from(realityChecks)
+          .where(eq(realityChecks.id, existing.id))
+          .limit(1);
+
+        if (!latest) {
+          return NextResponse.json(
+            { error: 'Could not find a matching Reality Check for this token.' },
+            { status: 404 }
+          );
+        }
+
+        const raceEval = evaluateHumanReviewClaim(latest, data);
+        if (!raceEval.allowed) {
+          return NextResponse.json(
+            { error: raceEval.error, code: raceEval.reason },
+            { status: raceEval.httpStatus }
+          );
+        }
+
+        finalBusinessName = raceEval.businessName;
+        finalOwnerName = raceEval.ownerName;
+        finalCityState = raceEval.cityState;
+        finalStatus = raceEval.nextStatus;
+      }
+    } else {
+      // Idempotent retry by the same normalized email: only backfill previously-null optional fields
+      await db
+        .update(realityChecks)
+        .set({
+          businessName: claim.businessName,
+          ownerName: claim.ownerName,
+          cityState: claim.cityState,
+          status: claim.nextStatus,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(realityChecks.id, existing.id), eq(realityChecks.email, existing.email!)));
+    }
+
+    // Strictly dispatch operator notification once on the winning initial transition
+    if (wonInitialClaim) {
+      sendOperatorNotification({
+        businessName: finalBusinessName || existing.website,
+        ownerName: finalOwnerName || 'Not provided',
+        email: claim.email,
+        phone: existing.phone || 'None provided',
+        website: existing.website,
+        cityState: finalCityState || 'Not specified',
+        primaryHeadache: existing.primaryHeadache || 'None noted',
+        overallScore: existing.overallScore,
+        scanStatus: existing.scanStatus,
+        shareToken: existing.shareToken,
+      }).catch((notifErr) => {
+        console.warn('[OPERATOR NOTIFICATION WARNING]', notifErr.message);
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      shareToken: existing.shareToken,
+      businessName: finalBusinessName,
+      cityState: finalCityState,
+      status: finalStatus,
+      humanReviewRequested: true,
+      alreadyRequested: !wonInitialClaim,
+      message: 'Human review requested. Todd & Noelah will review your business and email your finished report.',
+    });
+  } catch (err: any) {
+    console.error('[REALITY CHECK PATCH ERROR]', err);
+    return NextResponse.json(
+      { error: err.message || 'Failed to save human review request.' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Sends notification email to Todd and Noelah about the new human-review request.
  * Non-blocking, fails gracefully.
  */
 async function sendOperatorNotification(info: {
@@ -175,7 +426,7 @@ async function sendOperatorNotification(info: {
 }) {
   const subject = `[New Reality Check] ${info.businessName} (${info.cityState}) — Score: ${info.overallScore !== null ? info.overallScore : 'Pending Review'}`;
   const message = [
-    `New Business Reality Check received:`,
+    `New Business Reality Check human review requested:`,
     ``,
     `Business: ${info.businessName}`,
     `Location: ${info.cityState}`,
@@ -190,7 +441,6 @@ async function sendOperatorNotification(info: {
     `Internal Review Token: ${info.shareToken}`,
   ].join('\n');
 
-  // If Formspree notification webhook is available in env or fallback endpoint
   const endpoint = process.env.FORMSPREE_OPERATOR_ENDPOINT || 'https://formspree.io/f/xeaovlgo';
   try {
     await fetch(endpoint, {

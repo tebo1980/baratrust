@@ -1,9 +1,9 @@
 export type DeliveryStatus = 'NOT_ATTEMPTED' | 'ACCEPTED_BY_PROVIDER' | 'FAILED';
 
 export interface DeliveryEmailOptions {
-  ownerEmail: string;
-  ownerName: string;
-  businessName: string;
+  ownerEmail?: string | null;
+  ownerName?: string | null;
+  businessName?: string | null;
   shareToken: string;
   baseUrl?: string;
 }
@@ -26,14 +26,16 @@ export function buildDeliveryEmailContent({
   businessName,
   reportUrl,
 }: {
-  ownerName: string;
-  businessName: string;
+  ownerName?: string | null;
+  businessName?: string | null;
   reportUrl: string;
 }) {
-  const subject = `Your BaraTrust Reality Check is ready — ${businessName}`;
-  const text = `Hi ${ownerName},
+  const safeOwnerName = ownerName && ownerName.trim() ? ownerName.trim() : 'there';
+  const safeBusinessName = businessName && businessName.trim() ? businessName.trim() : 'your business';
+  const subject = `Your BaraTrust Reality Check is ready — ${safeBusinessName}`;
+  const text = `Hi ${safeOwnerName},
 
-We finished the human review of ${businessName}. Your Reality Check is ready at the link below:
+We finished the human review of ${safeBusinessName}. Your Reality Check is ready at the link below:
 
 ${reportUrl}
 
@@ -46,8 +48,8 @@ BaraTrust (baratrust.com)`;
 
   const html = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6; padding: 20px;">
-  <p>Hi ${ownerName},</p>
-  <p>We finished the human review of <strong>${businessName}</strong>. Your Reality Check is ready at the link below:</p>
+  <p>Hi ${safeOwnerName},</p>
+  <p>We finished the human review of <strong>${safeBusinessName}</strong>. Your Reality Check is ready at the link below:</p>
   
   <p style="margin: 28px 0;">
     <a href="${reportUrl}" style="background-color: #f59e0b; color: #0f172a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
@@ -73,6 +75,7 @@ BaraTrust (baratrust.com)`;
  * Sends the Reality Check delivery email to the business owner upon report publication.
  * 
  * Production behavior:
+ * - Requires a real captured recipient email address; if none exists, returns NOT_ATTEMPTED immediately.
  * - Checks for a true transactional provider (RESEND_API_KEY or TRANSACTIONAL_EMAIL_WEBHOOK_URL).
  * - Distinguishes between NOT_ATTEMPTED, ACCEPTED_BY_PROVIDER, and FAILED.
  * - Never claims delivery succeeded when no real provider accepted the message.
@@ -83,6 +86,20 @@ export async function sendRealityCheckDeliveryEmail(
   const host = opts.baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://www.baratrust.com';
   const cleanHost = host.replace(/\/$/, '');
   const reportUrl = `${cleanHost}/report/${opts.shareToken}`;
+  const cleanRecipient = opts.ownerEmail ? opts.ownerEmail.trim() : '';
+
+  // Safeguard: If no email was ever supplied, never attempt delivery or mark successful
+  if (!cleanRecipient || !cleanRecipient.includes('@')) {
+    return {
+      status: 'NOT_ATTEMPTED',
+      success: false,
+      messageId: null,
+      deliveredAt: null,
+      recipient: '',
+      reportUrl,
+      error: 'No recipient email address on record for this Reality Check.',
+    };
+  }
 
   const { subject, text, html } = buildDeliveryEmailContent({
     ownerName: opts.ownerName,
@@ -100,7 +117,7 @@ export async function sendRealityCheckDeliveryEmail(
         success: false,
         messageId: null,
         deliveredAt: null,
-        recipient: opts.ownerEmail,
+        recipient: cleanRecipient,
         reportUrl,
         error: 'Simulated transactional email provider failure in test mode',
       };
@@ -111,7 +128,7 @@ export async function sendRealityCheckDeliveryEmail(
         success: false,
         messageId: null,
         deliveredAt: null,
-        recipient: opts.ownerEmail,
+        recipient: cleanRecipient,
         reportUrl,
         error: 'No transactional email provider configured',
       };
@@ -122,7 +139,7 @@ export async function sendRealityCheckDeliveryEmail(
       success: true,
       messageId: `rc-deliv-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       deliveredAt: now,
-      recipient: opts.ownerEmail,
+      recipient: cleanRecipient,
       reportUrl,
     };
   }
@@ -140,7 +157,7 @@ export async function sendRealityCheckDeliveryEmail(
         },
         body: JSON.stringify({
           from: fromEmail,
-          to: opts.ownerEmail,
+          to: cleanRecipient,
           reply_to: 'todd@baratrust.com',
           subject,
           text,
@@ -150,13 +167,13 @@ export async function sendRealityCheckDeliveryEmail(
 
       const data = await resp.json().catch(() => ({}));
       if (resp.ok && data.id) {
-        console.log(`[DELIVERY_EMAIL_ACCEPTED] Resend messageId: ${data.id} to ${opts.ownerEmail}`);
+        console.log(`[DELIVERY_EMAIL_ACCEPTED] Resend messageId: ${data.id} to ${cleanRecipient}`);
         return {
           status: 'ACCEPTED_BY_PROVIDER',
           success: true,
           messageId: data.id,
           deliveredAt: now,
-          recipient: opts.ownerEmail,
+          recipient: cleanRecipient,
           reportUrl,
         };
       } else {
@@ -165,7 +182,7 @@ export async function sendRealityCheckDeliveryEmail(
         return {
           status: 'FAILED',
           success: false,
-          recipient: opts.ownerEmail,
+          recipient: cleanRecipient,
           reportUrl,
           error: `Resend provider error: ${errorMsg}`,
         };
@@ -175,7 +192,7 @@ export async function sendRealityCheckDeliveryEmail(
       return {
         status: 'FAILED',
         success: false,
-        recipient: opts.ownerEmail,
+        recipient: cleanRecipient,
         reportUrl,
         error: `Network error contacting provider: ${err.message}`,
       };
@@ -190,7 +207,7 @@ export async function sendRealityCheckDeliveryEmail(
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: opts.ownerEmail,
+          to: cleanRecipient,
           from: 'todd@baratrust.com',
           subject,
           text,
@@ -203,20 +220,20 @@ export async function sendRealityCheckDeliveryEmail(
       if (resp.ok) {
         const data = await resp.json().catch(() => ({}));
         const messageId = data.id || `webhook-${Date.now()}`;
-        console.log(`[DELIVERY_EMAIL_ACCEPTED] Webhook accepted for ${opts.ownerEmail}`);
+        console.log(`[DELIVERY_EMAIL_ACCEPTED] Webhook accepted for ${cleanRecipient}`);
         return {
           status: 'ACCEPTED_BY_PROVIDER',
           success: true,
           messageId,
           deliveredAt: now,
-          recipient: opts.ownerEmail,
+          recipient: cleanRecipient,
           reportUrl,
         };
       } else {
         return {
           status: 'FAILED',
           success: false,
-          recipient: opts.ownerEmail,
+          recipient: cleanRecipient,
           reportUrl,
           error: `Webhook returned status ${resp.status}`,
         };
@@ -225,7 +242,7 @@ export async function sendRealityCheckDeliveryEmail(
       return {
         status: 'FAILED',
         success: false,
-        recipient: opts.ownerEmail,
+        recipient: cleanRecipient,
         reportUrl,
         error: `Webhook exception: ${err.message}`,
       };
@@ -233,13 +250,13 @@ export async function sendRealityCheckDeliveryEmail(
   }
 
   // 3. No transactional email provider is configured
-  console.log(`[DELIVERY_EMAIL_NOT_ATTEMPTED] No transactional provider configured for ${opts.ownerEmail}. Link: ${reportUrl}`);
+  console.log(`[DELIVERY_EMAIL_NOT_ATTEMPTED] No transactional provider configured for ${cleanRecipient}. Link: ${reportUrl}`);
   return {
     status: 'NOT_ATTEMPTED',
     success: false,
     messageId: null,
     deliveredAt: null,
-    recipient: opts.ownerEmail,
+    recipient: cleanRecipient,
     reportUrl,
     error: 'No transactional email provider configured. Please set RESEND_API_KEY or TRANSACTIONAL_EMAIL_WEBHOOK_URL.',
   };

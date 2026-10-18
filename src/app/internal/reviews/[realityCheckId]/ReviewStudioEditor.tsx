@@ -578,13 +578,13 @@ export default function ReviewStudioEditor({
             <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-6 space-y-5">
               <div className="border-b border-slate-800 pb-3">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Intake Dossier</span>
-                <h3 className="text-xl font-bold font-serif text-white mt-1">{check.businessName}</h3>
+                <h3 className="text-xl font-bold font-serif text-white mt-1">{check.businessName || check.website}</h3>
               </div>
 
               <div className="space-y-3 text-xs">
                 <div className="flex items-center gap-2 text-slate-300">
                   <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                  <span>{check.cityState}</span>
+                  <span>{check.cityState || "Location not specified"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-300">
                   <Globe className="w-4 h-4 text-slate-500 flex-shrink-0" />
@@ -604,10 +604,14 @@ export default function ReviewStudioEditor({
                 </div>
                 <div className="flex items-center gap-2 text-slate-300">
                   <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                  <a href={`mailto:${check.email}`} className="hover:text-white underline">
-                    {check.email}
-                  </a>
-                  <span className="text-slate-500">({check.ownerName})</span>
+                  {check.email ? (
+                    <a href={`mailto:${check.email}`} className="hover:text-white underline">
+                      {check.email}
+                    </a>
+                  ) : (
+                    <span className="text-slate-500 italic">No email provided yet</span>
+                  )}
+                  {check.ownerName && <span className="text-slate-500">({check.ownerName})</span>}
                 </div>
                 {check.phone && (
                   <div className="flex items-center gap-2 text-slate-300">

@@ -79,12 +79,12 @@ export interface CompetitorEntry {
 
 export const realityChecks = pgTable('reality_checks', {
   id: uuid('id').defaultRandom().primaryKey(),
-  businessName: text('business_name').notNull(),
+  businessName: text('business_name'),
   website: text('website').notNull(),
   normalizedUrl: text('normalized_url'),
-  cityState: text('city_state').notNull(),
-  ownerName: text('owner_name').notNull(),
-  email: text('email').notNull(),
+  cityState: text('city_state'),
+  ownerName: text('owner_name'),
+  email: text('email'),
   phone: text('phone'),
   businessType: text('business_type'),
   primaryHeadache: text('primary_headache'),

@@ -64,13 +64,15 @@ export async function POST(
       .where(eq(humanReviews.realityCheckId, realityCheckId))
       .limit(1);
 
+    const cleanDomain = check.website.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0] || check.website;
+
     // Build complete, source-labeled evidence package
     const evidencePkg: SynthesisEvidencePackage = {
       business: {
-        name: check.businessName,
+        name: check.businessName || cleanDomain,
         website: check.website,
-        cityState: check.cityState,
-        ownerName: check.ownerName,
+        cityState: check.cityState || 'Local Area',
+        ownerName: check.ownerName || 'Business Owner',
         businessType: check.businessType,
         primaryHeadache: check.primaryHeadache,
       },

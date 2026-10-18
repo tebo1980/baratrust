@@ -44,17 +44,17 @@ export async function GET(req: Request) {
       .where(eq(ownerResponses.realityCheckId, check.id))
       .limit(1);
 
+    // Do not expose internal database UUID or owner PII on public GET
     return NextResponse.json({
       success: true,
       business: {
-        id: check.id,
-        businessName: check.businessName,
+        businessName: check.businessName || null,
         website: check.website,
-        cityState: check.cityState,
-        ownerName: check.ownerName,
-        businessType: check.businessType,
-        primaryHeadache: check.primaryHeadache,
+        cityState: check.cityState || null,
+        businessType: check.businessType || null,
+        primaryHeadache: check.primaryHeadache || null,
         status: check.status,
+        humanReviewRequested: Boolean(check.email),
       },
       responses: existing ? existing.responses : null,
     });
@@ -90,6 +90,14 @@ export async function POST(req: Request) {
 
     if (!check) {
       return NextResponse.json({ error: 'Reality check record not found for this token' }, { status: 404 });
+    }
+
+    // Questionnaire is only available after the user requests the human-reviewed report (Step 3)
+    if (!check.email) {
+      return NextResponse.json(
+        { error: 'Please add your email to request the human-reviewed Reality Check before submitting owner context.' },
+        { status: 400 }
+      );
     }
 
     // 2. Prepare structured response object with mandatory evidence label

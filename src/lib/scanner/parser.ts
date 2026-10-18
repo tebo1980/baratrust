@@ -5,10 +5,13 @@ export interface ParsedHtmlData {
   faviconUrl: string | null;
   ogTags: {
     title?: string;
+    siteName?: string;
     image?: string;
     description?: string;
     type?: string;
   };
+  derivedBusinessName: string | null;
+  derivedCityState: string | null;
   jsonLdSchemas: any[];
   hasLocalBusinessSchema: boolean;
   hasOrganizationSchema: boolean;
@@ -71,7 +74,7 @@ export function decodeHtmlEntities(str: string): string {
 /**
  * Robust, dependency-free HTML extraction for deterministic business checks.
  */
-export function parseHtmlForBusinessSignals(html: string, targetCityState?: string): ParsedHtmlData {
+export function parseHtmlForBusinessSignals(html: string, targetCityState?: string | null): ParsedHtmlData {
   const visibleText = extractVisibleText(html);
 
   // 1. Title
@@ -108,13 +111,16 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
   // 5. OpenGraph
   const ogTags: ParsedHtmlData['ogTags'] = {};
   const ogTitleMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:title["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogTitleMatch) ogTags.title = ogTitleMatch[1].trim();
+  if (ogTitleMatch) ogTags.title = decodeHtmlEntities(ogTitleMatch[1].trim());
+
+  const ogSiteNameMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:site_name["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
+  if (ogSiteNameMatch) ogTags.siteName = decodeHtmlEntities(ogSiteNameMatch[1].trim());
 
   const ogImgMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:image["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
   if (ogImgMatch) ogTags.image = ogImgMatch[1].trim();
 
   const ogDescMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:description["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogDescMatch) ogTags.description = ogDescMatch[1].trim();
+  if (ogDescMatch) ogTags.description = decodeHtmlEntities(ogDescMatch[1].trim());
 
   const ogTypeMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:type["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
   if (ogTypeMatch) ogTags.type = ogTypeMatch[1].trim();
@@ -123,6 +129,8 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
   const jsonLdSchemas: any[] = [];
   let hasLocalBusinessSchema = false;
   let hasOrganizationSchema = false;
+  let jsonLdBusinessName: string | null = null;
+  let derivedCityState: string | null = null;
 
   const scriptRegex = /<script\b[^>]*type\s*=\s*["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi;
   let match: RegExpExecArray | null;
@@ -146,12 +154,30 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
           'barsorpub', 'cafeorcoffeeshop', 'professionalservice', 'homeservices', 'homeandconstructionbusiness'
         ];
 
-        if (localBusinessSubtypes.some(sub => typeStr.toLowerCase().includes(sub))) {
+        const isLocalBiz = localBusinessSubtypes.some(sub => typeStr.toLowerCase().includes(sub));
+        const isOrg = typeStr.toLowerCase().includes('organization');
+
+        if (isLocalBiz) {
           hasLocalBusinessSchema = true;
         }
 
-        if (typeStr.toLowerCase().includes('organization')) {
+        if (isOrg) {
           hasOrganizationSchema = true;
+        }
+
+        if ((isLocalBiz || isOrg) && typeof item.name === 'string' && item.name.trim().length > 1 && !jsonLdBusinessName) {
+          jsonLdBusinessName = decodeHtmlEntities(item.name.trim());
+        }
+
+        if (item.address && typeof item.address === 'object' && !derivedCityState) {
+          const addr = Array.isArray(item.address) ? item.address[0] : item.address;
+          if (addr && typeof addr.addressLocality === 'string' && addr.addressLocality.trim().length > 1) {
+            const locality = addr.addressLocality.trim();
+            const region = typeof addr.addressRegion === 'string' && addr.addressRegion.trim()
+              ? `, ${addr.addressRegion.trim()}`
+              : '';
+            derivedCityState = `${locality}${region}`;
+          }
         }
 
         if (item['@graph'] && Array.isArray(item['@graph'])) {
@@ -370,12 +396,50 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     visibleText.length < 180 && (hasSpaMount || /<script\b[^>]+src=/i.test(html))
   );
 
+  // 22. Reliable Business Name Derivation (do not invent names from weak evidence)
+  const genericTitles = new Set([
+    'home', 'welcome', 'index', 'untitled', 'website', 'official site', 'official website',
+    'facebook', 'log into facebook', 'google', 'google maps', 'instagram', 'just a moment...',
+    'attention required! | cloudflare', 'access denied', '403 forbidden', '404 not found'
+  ]);
+  const cleanCandidateName = (raw: string | null | undefined): string | null => {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed.length < 2 || trimmed.length > 80) return null;
+    if (genericTitles.has(trimmed.toLowerCase())) return null;
+    return trimmed;
+  };
+
+  let derivedBusinessName: string | null =
+    cleanCandidateName(jsonLdBusinessName) ||
+    cleanCandidateName(ogTags.siteName);
+
+  if (!derivedBusinessName) {
+    const rawTitle = ogTags.title || title;
+    if (rawTitle) {
+      // Split on common title separators (" | ", " - ", " — ", " – ", " : ")
+      const parts = rawTitle
+        .split(/\s*(?:\||—|–|-|:)\s*/)
+        .map(p => p.trim())
+        .filter(Boolean);
+      for (const part of parts) {
+        const cleaned = cleanCandidateName(part);
+        if (cleaned && cleaned.length <= 50) {
+          derivedBusinessName = cleaned;
+          break;
+        }
+      }
+    }
+  }
+
   return {
     title,
     viewportMeta,
     metaDescription,
     faviconUrl,
     ogTags,
+    derivedBusinessName,
+    derivedCityState,
     jsonLdSchemas,
     hasLocalBusinessSchema,
     hasOrganizationSchema,

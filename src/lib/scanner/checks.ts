@@ -4,8 +4,8 @@ import { ParsedHtmlData } from './parser';
 export interface EvaluateInput {
   rawData: RawPageData;
   parsed: ParsedHtmlData;
-  businessName: string;
-  cityState: string;
+  businessName?: string | null;
+  cityState?: string | null;
 }
 
 /**
@@ -414,21 +414,38 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   // ==========================================
 
   // Check 1: Target City / Regional Mentions (40 pts)
-  const targetCity = (cityState || '').split(',')[0].trim().toLowerCase();
+  const effectiveCityState = (cityState || parsed.derivedCityState || '').trim();
+  const targetCity = effectiveCityState.split(',')[0].trim().toLowerCase();
   const textLower = parsed.textSnippet.toLowerCase();
   const titleLower = (parsed.title || '').toLowerCase();
-  const hasCityMatch = targetCity.length > 2 && (textLower.includes(targetCity) || titleLower.includes(targetCity));
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasCityMatch,
-    passPoints: 40,
-    category: 'local_discovery',
-    checkKey: 'city_state_match',
-    title: 'Target City / Regional Mentions',
-    observedValue: { targetCity, matched: hasCityMatch },
-    passDetail: `Target city "${cityState}" mentioned prominently in page content or search title.`,
-    failDetail: `Target city "${cityState}" not clearly identified in headline text or title tag.`,
-  }));
+
+  if (targetCity.length <= 2) {
+    findings.push({
+      category: 'local_discovery',
+      checkKey: 'city_state_match',
+      title: 'Target City / Regional Mentions',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 40,
+      observedValue: { targetCity: null, matched: false, reason: 'CITY_NOT_SPECIFIED' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: 'Target city not specified in URL-only scan; regional keyword check deferred to Todd & Noelah review.',
+    });
+  } else {
+    const hasCityMatch = textLower.includes(targetCity) || titleLower.includes(targetCity);
+    findings.push(evaluateContentCheck({
+      isSpa,
+      found: hasCityMatch,
+      passPoints: 40,
+      category: 'local_discovery',
+      checkKey: 'city_state_match',
+      title: 'Target City / Regional Mentions',
+      observedValue: { targetCity, matched: hasCityMatch },
+      passDetail: `Target city "${effectiveCityState}" mentioned prominently in page content or search title.`,
+      failDetail: `Target city "${effectiveCityState}" not clearly identified in headline text or title tag.`,
+    }));
+  }
 
   // Check 2: Service Area Coverage Language (30 pts)
   const hasServiceArea = 

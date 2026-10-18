@@ -96,15 +96,24 @@ export default async function OperatorReviewQueuePage() {
     }
 
     const review = reviewMap.get(check.id);
+    const cleanDomain = check.website.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0] || check.website;
+    const humanReviewRequested =
+      Boolean(check.email) ||
+      check.status === 'NEEDS_HUMAN_REVIEW' ||
+      check.status === 'IN_REVIEW' ||
+      check.status === 'READY_TO_PUBLISH' ||
+      check.status === 'PUBLISHED' ||
+      check.status === 'completed';
 
     return {
       id: check.id,
-      businessName: check.businessName,
+      businessName: check.businessName || cleanDomain,
       website: check.website,
-      cityState: check.cityState,
+      cityState: check.cityState || 'Location not specified',
       businessType: check.businessType || 'Small Business',
-      ownerName: check.ownerName,
-      email: check.email,
+      ownerName: check.ownerName || 'Owner not specified',
+      email: check.email || '',
+      humanReviewRequested,
       overallScore: check.overallScore,
       scoreBreakdown: check.scoreBreakdown,
       scanStatus: check.scanStatus,

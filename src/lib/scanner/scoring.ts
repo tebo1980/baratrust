@@ -1,4 +1,11 @@
-import { EvaluatedFinding, CategoryKey, CategoryScore, ScoreBreakdown, ConfidenceLevel } from './types';
+import {
+  EvaluatedFinding,
+  CategoryKey,
+  CategoryScore,
+  ScoreBreakdown,
+  ConfidenceLevel,
+  PlatformClassification,
+} from './types';
 
 export const CATEGORY_CONFIG: Record<CategoryKey, { label: string; weight: number }> = {
   digital_presence: { label: 'Digital Presence', weight: 0.20 },
@@ -20,14 +27,20 @@ function getConfidenceLevel(coveragePercent: number): ConfidenceLevel {
  * - category score = performance on evidence we can legitimately evaluate
  * - category coverage/confidence = percentage of expected evidence actually evaluated
  * - does not invent failing evidence when something is UNKNOWN
+ * - withholds numeric overallScore for hosted third-party profiles/pages
  */
-export function calculateScores(findings: EvaluatedFinding[]): {
+export function calculateScores(
+  findings: EvaluatedFinding[],
+  platform?: PlatformClassification
+): {
   overallScore: number | null;
   overallCoverage: number;
   confidence: ConfidenceLevel;
   scoreBreakdown: ScoreBreakdown | null;
   categoryScores: CategoryScore[];
 } {
+  const isHostedProfile = Boolean(platform?.isHostedProfile);
+
   const categoryScores: CategoryScore[] = (Object.keys(CATEGORY_CONFIG) as CategoryKey[]).map(cat => {
     const catFindings = findings.filter(f => f.category === cat);
     // Scored checks (exclude informational observations from point totals)
@@ -45,7 +58,7 @@ export function calculateScores(findings: EvaluatedFinding[]): {
     const confidence = getConfidenceLevel(coveragePercent);
 
     let score: number | null = null;
-    if (evaluatedMax > 0) {
+    if (!isHostedProfile && evaluatedMax > 0) {
       score = Math.min(100, Math.max(0, Math.round((earned / evaluatedMax) * 100)));
     }
 
@@ -72,9 +85,10 @@ export function calculateScores(findings: EvaluatedFinding[]): {
 
   const overallConfidence = getConfidenceLevel(overallCoverage);
 
-  // If overall coverage is below 25%, insufficient evidence exists to claim a defensible score
+  // If overall coverage is below 25%, or if the URL is a hosted third-party profile,
+  // withhold the numeric website score.
   let overallScore: number | null = null;
-  if (overallCoverage >= 25) {
+  if (!isHostedProfile && overallCoverage >= 25) {
     let weightedSum = 0;
     let evaluableWeight = 0;
     for (const cs of categoryScores) {
@@ -100,6 +114,9 @@ export function calculateScores(findings: EvaluatedFinding[]): {
     trustReputation: tr?.score ?? null,
     localDiscovery: ld?.score ?? null,
     opportunityCapture: oc?.score ?? null,
+    sourceType: platform?.sourceType ?? 'standalone_website',
+    platformKey: platform?.platformKey ?? null,
+    platformLabel: platform?.platformLabel ?? null,
     coverage: {
       overall: overallCoverage,
       confidence: overallConfidence,
@@ -115,7 +132,7 @@ export function calculateScores(findings: EvaluatedFinding[]): {
     overallScore,
     overallCoverage,
     confidence: overallConfidence,
-    scoreBreakdown: overallCoverage > 0 ? scoreBreakdown : null,
+    scoreBreakdown: overallCoverage > 0 || isHostedProfile ? scoreBreakdown : null,
     categoryScores,
   };
 }

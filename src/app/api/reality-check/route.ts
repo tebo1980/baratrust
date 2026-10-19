@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
-import { executeDeterministicScan } from '@/lib/scanner';
+import { executeDeterministicScan, classifySubmittedUrl } from '@/lib/scanner';
 import {
   RealityCheckSubmissionSchema,
   RequestHumanReviewSchema,
@@ -13,6 +13,16 @@ import {
 
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
+
+const PLATFORM_INFRASTRUCTURE_CHECK_KEYS = new Set([
+  'https_enabled',
+  'page_responds',
+  'mobile_viewport',
+  'has_favicon',
+  'opengraph_presence',
+  'local_business_schema',
+  'terms_privacy',
+]);
 
 function formatPublicFinding(f: {
   category: string;
@@ -69,6 +79,94 @@ export async function GET(req: Request) {
       .where(eq(ownerResponses.realityCheckId, check.id))
       .limit(1);
 
+    const platform = classifySubmittedUrl(check.website, check.normalizedUrl || undefined);
+    const isUnclaimedLegacyHostedScan =
+      platform.isHostedProfile &&
+      !check.scoreBreakdown?.sourceType &&
+      !check.email &&
+      !ownerResp &&
+      (check.status === 'AUTO_SCAN_COMPLETE' || check.status === 'NEW');
+
+    if (isUnclaimedLegacyHostedScan) {
+      try {
+        const refreshed = await executeDeterministicScan({
+          websiteUrl: check.website,
+          businessName: check.businessName,
+          cityState: check.cityState,
+        });
+
+        await db.delete(scanFindings).where(eq(scanFindings.realityCheckId, check.id));
+        if (refreshed.findings.length > 0) {
+          await db.insert(scanFindings).values(
+            refreshed.findings.map((f) => ({
+              realityCheckId: check.id,
+              category: f.category,
+              checkKey: f.checkKey,
+              title: f.title,
+              state: f.state,
+              scoreContribution: f.scoreContribution,
+              maxPoints: f.maxPoints,
+              observedValue: f.observedValue,
+              evidenceSource: f.evidenceSource,
+              evidenceLabel: f.evidenceLabel,
+              supportingDetail: f.supportingDetail,
+            }))
+          );
+        }
+
+        const effectiveBusinessName = check.businessName || refreshed.derivedBusinessName || null;
+        const effectiveCityState = check.cityState || refreshed.derivedCityState || null;
+
+        await db
+          .update(realityChecks)
+          .set({
+            businessName: effectiveBusinessName,
+            cityState: effectiveCityState,
+            scanStatus: refreshed.scanStatus,
+            scanFailureReason: refreshed.scanFailureReason || null,
+            overallScore: refreshed.overallScore,
+            scoreBreakdown: refreshed.scoreBreakdown,
+            normalizedUrl: refreshed.normalizedUrl || check.website,
+            updatedAt: new Date(),
+          })
+          .where(eq(realityChecks.id, check.id));
+
+        return NextResponse.json({
+          success: true,
+          shareToken: check.shareToken,
+          website: check.website,
+          normalizedUrl: refreshed.normalizedUrl || check.website,
+          businessName: effectiveBusinessName,
+          cityState: effectiveCityState,
+          sourceType: refreshed.sourceType || platform.sourceType,
+          platformKey: refreshed.platformKey ?? platform.platformKey,
+          platformLabel: refreshed.platformLabel ?? platform.platformLabel,
+          status: check.status,
+          scanStatus: refreshed.scanStatus,
+          scanFailureReason: refreshed.scanFailureReason || null,
+          overallScore: null,
+          overallCoverage: refreshed.overallCoverage,
+          confidence: refreshed.confidence,
+          scoreBreakdown: refreshed.scoreBreakdown,
+          findingsCount: refreshed.findings.length,
+          findings: refreshed.findings.map(formatPublicFinding),
+          humanReviewRequested: false,
+          questionnaireCompleted: false,
+        });
+      } catch (refreshErr) {
+        console.warn('[HOSTED PROFILE SNAPSHOT REFRESH WARNING]', refreshErr);
+      }
+    }
+
+    const sourceType = check.scoreBreakdown?.sourceType || platform.sourceType;
+    const platformKey = check.scoreBreakdown?.platformKey ?? platform.platformKey;
+    const platformLabel = check.scoreBreakdown?.platformLabel ?? platform.platformLabel;
+    const isHostedProfile = sourceType === 'hosted_profile' || platform.isHostedProfile;
+
+    const filteredFindings = isHostedProfile
+      ? findings.filter((f) => !PLATFORM_INFRASTRUCTURE_CHECK_KEYS.has(f.checkKey))
+      : findings;
+
     const coverage = check.scoreBreakdown?.coverage;
 
     return NextResponse.json({
@@ -78,15 +176,18 @@ export async function GET(req: Request) {
       normalizedUrl: check.normalizedUrl || check.website,
       businessName: check.businessName || null,
       cityState: check.cityState || null,
+      sourceType,
+      platformKey,
+      platformLabel,
       status: check.status,
       scanStatus: check.scanStatus,
       scanFailureReason: check.scanFailureReason || null,
-      overallScore: check.overallScore,
+      overallScore: isHostedProfile ? null : check.overallScore,
       overallCoverage: coverage?.overall ?? 0,
       confidence: coverage?.confidence ?? 'INSUFFICIENT',
       scoreBreakdown: check.scoreBreakdown || null,
-      findingsCount: findings.length,
-      findings: findings.map(formatPublicFinding),
+      findingsCount: filteredFindings.length,
+      findings: filteredFindings.map(formatPublicFinding),
       humanReviewRequested: Boolean(check.email),
       questionnaireCompleted: Boolean(ownerResp),
     });
@@ -233,6 +334,11 @@ export async function POST(req: Request) {
       });
     }
 
+    const fallbackPlatform = classifySubmittedUrl(
+      data.website.trim(),
+      scanResult.normalizedUrl || undefined
+    );
+
     return NextResponse.json({
       success: true,
       shareToken,
@@ -240,6 +346,9 @@ export async function POST(req: Request) {
       normalizedUrl: scanResult.normalizedUrl || data.website.trim(),
       businessName: effectiveBusinessName,
       cityState: effectiveCityState,
+      sourceType: scanResult.sourceType || fallbackPlatform.sourceType,
+      platformKey: scanResult.platformKey ?? fallbackPlatform.platformKey,
+      platformLabel: scanResult.platformLabel ?? fallbackPlatform.platformLabel,
       status: nextStatus,
       scanStatus: scanResult.scanStatus,
       scanFailureReason: scanResult.scanFailureReason || null,

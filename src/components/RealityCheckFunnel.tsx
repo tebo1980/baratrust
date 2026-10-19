@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
+import { decodeHtmlEntities } from "@/lib/scanner/parser";
 
 export interface PublicFinding {
   category: string;
@@ -19,6 +20,9 @@ export interface ScanSnapshot {
   normalizedUrl: string;
   businessName: string | null;
   cityState: string | null;
+  sourceType?: "standalone_website" | "hosted_profile";
+  platformKey?: string | null;
+  platformLabel?: string | null;
   status: string;
   scanStatus: "completed" | "failed" | "blocked" | "timeout";
   scanFailureReason: string | null;
@@ -31,6 +35,9 @@ export interface ScanSnapshot {
     trustReputation: number | null;
     localDiscovery: number | null;
     opportunityCapture: number | null;
+    sourceType?: "standalone_website" | "hosted_profile";
+    platformKey?: string | null;
+    platformLabel?: string | null;
     coverage?: {
       overall: number;
       confidence: "HIGH" | "MEDIUM" | "LOW" | "INSUFFICIENT";
@@ -93,8 +100,11 @@ export default function RealityCheckFunnel({
           shareToken: data.shareToken,
           website: data.website,
           normalizedUrl: data.normalizedUrl || data.website,
-          businessName: data.businessName || null,
-          cityState: data.cityState || null,
+          businessName: data.businessName ? decodeHtmlEntities(data.businessName) : null,
+          cityState: data.cityState ? decodeHtmlEntities(data.cityState) : null,
+          sourceType: data.sourceType || data.scoreBreakdown?.sourceType || "standalone_website",
+          platformKey: data.platformKey ?? data.scoreBreakdown?.platformKey ?? null,
+          platformLabel: data.platformLabel ?? data.scoreBreakdown?.platformLabel ?? null,
           status: data.status,
           scanStatus: data.scanStatus,
           scanFailureReason: data.scanFailureReason || null,
@@ -108,8 +118,8 @@ export default function RealityCheckFunnel({
           questionnaireCompleted: Boolean(data.questionnaireCompleted),
         });
         setHumanReviewRequested(Boolean(data.humanReviewRequested));
-        setBusinessNameInput(data.businessName || "");
-        setCityStateInput(data.cityState || "");
+        setBusinessNameInput(data.businessName ? decodeHtmlEntities(data.businessName) : "");
+        setCityStateInput(data.cityState ? decodeHtmlEntities(data.cityState) : "");
       }
     } catch {
       // Ignore restore errors silently
@@ -191,8 +201,11 @@ export default function RealityCheckFunnel({
         shareToken: data.shareToken,
         website: data.website || trimmedUrl,
         normalizedUrl: data.normalizedUrl || trimmedUrl,
-        businessName: data.businessName || null,
-        cityState: data.cityState || null,
+        businessName: data.businessName ? decodeHtmlEntities(data.businessName) : null,
+        cityState: data.cityState ? decodeHtmlEntities(data.cityState) : null,
+        sourceType: data.sourceType || data.scoreBreakdown?.sourceType || "standalone_website",
+        platformKey: data.platformKey ?? data.scoreBreakdown?.platformKey ?? null,
+        platformLabel: data.platformLabel ?? data.scoreBreakdown?.platformLabel ?? null,
         status: data.status,
         scanStatus: data.scanStatus,
         scanFailureReason: data.scanFailureReason || null,
@@ -207,8 +220,8 @@ export default function RealityCheckFunnel({
 
       setSnapshot(nextSnapshot);
       setHumanReviewRequested(Boolean(data.humanReviewRequested));
-      setBusinessNameInput(data.businessName || "");
-      setCityStateInput(data.cityState || "");
+      setBusinessNameInput(data.businessName ? decodeHtmlEntities(data.businessName) : "");
+      setCityStateInput(data.cityState ? decodeHtmlEntities(data.cityState) : "");
 
       trackFunnelEvent("automated_scan_completed", {
         scan_status: data.scanStatus,
@@ -388,16 +401,26 @@ export default function RealityCheckFunnel({
     );
   }
 
+  const isHostedProfile =
+    snapshot.sourceType === "hosted_profile" ||
+    snapshot.scoreBreakdown?.sourceType === "hosted_profile";
+  const platformLabel =
+    snapshot.platformLabel ||
+    snapshot.scoreBreakdown?.platformLabel ||
+    "hosted business page";
+
   // Compute key findings for Step 2 Immediate Value display
   const passingFindings = snapshot.findings.filter((f) => f.state === "PASS");
   const failingFindings = snapshot.findings.filter((f) => f.state === "FAIL");
   const unknownFindings = snapshot.findings.filter((f) => f.state === "UNKNOWN");
 
-  const highlightedFindings: PublicFinding[] = [
-    ...failingFindings.slice(0, 3),
-    ...passingFindings.slice(0, 3),
-    ...unknownFindings.slice(0, 2),
-  ].slice(0, 6);
+  const highlightedFindings: PublicFinding[] = isHostedProfile
+    ? [...passingFindings.slice(0, 4), ...unknownFindings.slice(0, 3)].slice(0, 6)
+    : [
+        ...failingFindings.slice(0, 3),
+        ...passingFindings.slice(0, 3),
+        ...unknownFindings.slice(0, 2),
+      ].slice(0, 6);
 
   const displayTarget =
     snapshot.businessName ||
@@ -418,7 +441,7 @@ export default function RealityCheckFunnel({
         }}
       >
         <p className="eyebrow" style={{ margin: 0 }}>
-          Automated Scan Snapshot
+          {isHostedProfile ? "Limited Automated Scan" : "Automated Scan Snapshot"}
         </p>
         <button
           type="button"
@@ -439,14 +462,47 @@ export default function RealityCheckFunnel({
       </div>
 
       <h3 id="intake-title" style={{ marginBottom: "6px" }}>
-        {displayTarget}
+        {decodeHtmlEntities(displayTarget)}
       </h3>
       <p className="form-note" style={{ marginTop: 0, marginBottom: "16px", wordBreak: "break-all" }}>
         Scanned link: {snapshot.normalizedUrl}
       </p>
 
       {/* Score & Coverage Box */}
-      {snapshot.overallScore !== null ? (
+      {isHostedProfile ? (
+        <div className="starter-note" style={{ marginTop: "12px", marginBottom: "18px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              flexWrap: "wrap",
+              gap: "8px",
+            }}
+          >
+            <strong style={{ fontSize: "1.08rem" }}>
+              Automated Score Withheld
+            </strong>
+            <span
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                display: "inline",
+              }}
+            >
+              {snapshot.confidence} Confidence ({snapshot.overallCoverage}% Coverage)
+            </span>
+          </div>
+          <p style={{ margin: "8px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
+            We could only evaluate a limited portion of the standard website checks because this is a {platformLabel} rather than a standalone website.
+          </p>
+          <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.5, color: "var(--muted)" }}>
+            This is a {platformLabel}, so some website-specific checks don’t apply. We were able to verify a few public signals, but the most useful part of this Reality Check will come from human review.
+          </p>
+        </div>
+      ) : snapshot.overallScore !== null ? (
         <div className="starter-note" style={{ marginTop: "12px", marginBottom: "18px" }}>
           <div
             style={{
@@ -466,16 +522,17 @@ export default function RealityCheckFunnel({
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
+                display: "inline",
               }}
             >
               {snapshot.confidence} Confidence ({snapshot.overallCoverage}% Coverage)
             </span>
           </div>
-          <span style={{ marginTop: "6px", fontSize: "0.9rem" }}>
+          <p style={{ margin: "6px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
             {snapshot.confidence === "HIGH"
               ? `Our scanner verified ${passingFindings.length} passing signals and flagged ${failingFindings.length} areas that may be costing you inquiries.`
               : `Provisional score based on ${snapshot.overallCoverage}% observable static web signals (${unknownFindings.length} checks require human verification).`}
-          </span>
+          </p>
         </div>
       ) : (
         <div className="starter-note" style={{ marginTop: "12px", marginBottom: "18px" }}>
@@ -487,9 +544,9 @@ export default function RealityCheckFunnel({
               ? "Site Timed Out During Automated Probe"
               : "Insufficient Static HTML Coverage"}
           </strong>
-          <span style={{ marginTop: "6px", fontSize: "0.9rem" }}>
-            We never invent or penalize your score when a site blocks automated crawlers, uses a social platform login wall, or renders entirely in the browser ({snapshot.overallCoverage}% static coverage). Instead, we mark unobservable checks as <strong>UNKNOWN</strong> so a human can inspect them directly.
-          </span>
+          <p style={{ margin: "6px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
+            We never invent or penalize your score when a site blocks automated crawlers, uses a social platform login wall, or renders entirely in the browser ({snapshot.overallCoverage}% static coverage). Instead, we mark unobservable checks as <strong style={{ display: "inline" }}>UNKNOWN</strong> so a human can inspect them directly.
+          </p>
         </div>
       )}
 
@@ -497,7 +554,9 @@ export default function RealityCheckFunnel({
       {highlightedFindings.length > 0 && (
         <div style={{ marginTop: "16px", marginBottom: "18px" }}>
           <strong style={{ display: "block", fontSize: "0.92rem", marginBottom: "10px" }}>
-            Key Findings From Your First Scan:
+            {isHostedProfile
+              ? "Public Business Signals & Human-Review Checks:"
+              : "Key Findings From Your First Scan:"}
           </strong>
           <ul
             style={{
@@ -538,7 +597,7 @@ export default function RealityCheckFunnel({
                       marginBottom: "2px",
                     }}
                   >
-                    <strong>{f.title}</strong>
+                    <strong>{decodeHtmlEntities(f.title)}</strong>
                     <span
                       style={{
                         fontSize: "0.7rem",
@@ -551,7 +610,7 @@ export default function RealityCheckFunnel({
                     </span>
                   </div>
                   <span style={{ display: "block", fontSize: "0.82rem", opacity: 0.9 }}>
-                    {f.supportingDetail}
+                    {decodeHtmlEntities(f.supportingDetail)}
                   </span>
                 </li>
               );
@@ -565,15 +624,33 @@ export default function RealityCheckFunnel({
         className="starter-note"
         style={{ marginTop: "14px", marginBottom: "22px", padding: "14px 16px" }}
       >
-        <strong style={{ fontSize: "0.9rem" }}>
+        <strong style={{ fontSize: "0.9rem", display: "block" }}>
           What software can see vs. what requires Todd &amp; Noelah:
         </strong>
-        <span style={{ fontSize: "0.84rem", marginTop: "4px" }}>
-          <strong>Checked automatically:</strong> HTTPS security, mobile setup, search title &amp; descriptions, tap-to-call links, contact forms, and local schema markup.
-        </span>
-        <span style={{ fontSize: "0.84rem", marginTop: "4px" }}>
-          <strong>Requires human review:</strong> Whether local buyers actually find you over competitors, whether your offer and reputation build real trust, where calls or quotes slip through the cracks, and what you should <em>not</em> waste money on.
-        </span>
+        <p
+          style={{
+            margin: "8px 0 0",
+            fontSize: "0.84rem",
+            lineHeight: 1.5,
+            color: "var(--muted)",
+          }}
+        >
+          <strong style={{ display: "inline", color: "var(--text)" }}>Checked automatically:</strong>{" "}
+          {isHostedProfile
+            ? "Public business name, location signals, category or offerings summary, public page activity, and any direct contact or website links exposed in static HTML."
+            : "HTTPS security, mobile setup, search title & descriptions, tap-to-call links, contact forms, and local schema markup."}
+        </p>
+        <p
+          style={{
+            margin: "6px 0 0",
+            fontSize: "0.84rem",
+            lineHeight: 1.5,
+            color: "var(--muted)",
+          }}
+        >
+          <strong style={{ display: "inline", color: "var(--text)" }}>Requires human review:</strong>{" "}
+          Whether local buyers actually find you over competitors, whether your offer and reputation build real trust, where calls or quotes slip through the cracks, and what you should <em>not</em> waste money on.
+        </p>
       </div>
 
       {/* STEP 3: ASK FOR EMAIL AFTER VALUE */}
@@ -584,17 +661,21 @@ export default function RealityCheckFunnel({
             borderTop: "1px solid var(--line)",
             paddingTop: "20px",
             marginTop: "16px",
+            display: "grid",
+            gap: "14px",
           }}
         >
-          <p className="eyebrow" style={{ marginBottom: "6px" }}>
-            Next Step — Human Review
-          </p>
-          <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
-            Want the full human-reviewed Reality Check?
-          </h3>
-          <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: "16px" }}>
-            Add your email and Todd &amp; Noelah will review the parts software can’t. We’ll send you the finished report when it’s ready.
-          </p>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: "6px" }}>
+              Next Step — Human Review
+            </p>
+            <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
+              Want the full human-reviewed Reality Check?
+            </h3>
+            <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: 0 }}>
+              Add your email and Todd &amp; Noelah will review the parts software can’t. We’ll send you the finished report when it’s ready.
+            </p>
+          </div>
 
           <label htmlFor="rc-email-input">
             Email address (to receive your finished report)
@@ -627,42 +708,34 @@ export default function RealityCheckFunnel({
             </label>
           )}
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: "12px",
-            }}
-          >
-            <label htmlFor="rc-owner-name-input">
-              Your name (optional)
+          <label htmlFor="rc-owner-name-input">
+            Your name (optional)
+            <input
+              id="rc-owner-name-input"
+              name="ownerName"
+              type="text"
+              autoComplete="name"
+              placeholder="First name"
+              value={ownerNameInput}
+              onChange={(e) => setOwnerNameInput(e.target.value)}
+              disabled={submittingEmail}
+            />
+          </label>
+
+          {!snapshot.cityState && (
+            <label htmlFor="rc-city-input">
+              City &amp; State (optional)
               <input
-                id="rc-owner-name-input"
-                name="ownerName"
+                id="rc-city-input"
+                name="cityState"
                 type="text"
-                autoComplete="name"
-                placeholder="First name"
-                value={ownerNameInput}
-                onChange={(e) => setOwnerNameInput(e.target.value)}
+                placeholder="e.g., Louisville, KY"
+                value={cityStateInput}
+                onChange={(e) => setCityStateInput(e.target.value)}
                 disabled={submittingEmail}
               />
             </label>
-
-            {!snapshot.cityState && (
-              <label htmlFor="rc-city-input">
-                City &amp; State (optional)
-                <input
-                  id="rc-city-input"
-                  name="cityState"
-                  type="text"
-                  placeholder="e.g., Louisville, KY"
-                  value={cityStateInput}
-                  onChange={(e) => setCityStateInput(e.target.value)}
-                  disabled={submittingEmail}
-                />
-              </label>
-            )}
-          </div>
+          )}
 
           <button className="btn primary full" type="submit" disabled={submittingEmail}>
             {submittingEmail ? "Requesting Human Review..." : "Send Me the Full Human-Reviewed Report"}

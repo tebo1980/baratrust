@@ -1,4 +1,4 @@
-import { RawPageData, EvaluatedFinding, CategoryKey } from './types';
+import { RawPageData, EvaluatedFinding, CategoryKey, PlatformClassification } from './types';
 import { ParsedHtmlData } from './parser';
 
 export interface EvaluateInput {
@@ -6,6 +6,7 @@ export interface EvaluateInput {
   parsed: ParsedHtmlData;
   businessName?: string | null;
   cityState?: string | null;
+  platform?: PlatformClassification;
 }
 
 /**
@@ -87,11 +88,266 @@ function evaluateContentCheck(options: {
   };
 }
 
+function evaluateHostedProfileCheck(options: {
+  found: boolean;
+  passPoints: number;
+  category: CategoryKey;
+  checkKey: string;
+  title: string;
+  observedValue: Record<string, any>;
+  passDetail: string;
+  unknownDetail: string;
+}): EvaluatedFinding {
+  const { found, passPoints, category, checkKey, title, observedValue, passDetail, unknownDetail } =
+    options;
+
+  if (found) {
+    return {
+      category,
+      checkKey,
+      title,
+      state: 'PASS',
+      scoreContribution: passPoints,
+      maxPoints: passPoints,
+      observedValue,
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: passDetail,
+    };
+  }
+
+  return {
+    category,
+    checkKey,
+    title,
+    state: 'UNKNOWN',
+    scoreContribution: 0,
+    maxPoints: passPoints,
+    observedValue,
+    evidenceSource: 'HTML_PARSER',
+    evidenceLabel: 'AUTO_DETECTED',
+    supportingDetail: unknownDetail,
+  };
+}
+
+/**
+ * Evaluates business-specific public signals on a third-party hosted profile
+ * (e.g. Facebook business page, Google Business Profile, Instagram, Yelp)
+ * without crediting or penalizing platform-owned technical infrastructure.
+ */
+export function runHostedProfileChecks(input: EvaluateInput): EvaluatedFinding[] {
+  const { parsed, platform } = input;
+  const platformLabel = platform?.platformLabel || 'hosted business profile';
+  const findings: EvaluatedFinding[] = [];
+
+  // 1. DIGITAL PRESENCE (100 Points)
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: Boolean(parsed.derivedBusinessName),
+      passPoints: 35,
+      category: 'digital_presence',
+      checkKey: 'profile_business_name',
+      title: 'Public Business Name Identified',
+      observedValue: {
+        derivedBusinessName: parsed.derivedBusinessName,
+        platformKey: platform?.platformKey ?? null,
+      },
+      passDetail: `Public business name identified on ${platformLabel}: "${parsed.derivedBusinessName}".`,
+      unknownDetail: `Could not confirm the public business name from static HTML on this ${platformLabel}. Todd & Noelah will verify the profile directly.`,
+    })
+  );
+
+  const hasCategoryOrServices = Boolean(
+    parsed.detectedProfileCategory || parsed.detectedMenuOrServices
+  );
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: hasCategoryOrServices,
+      passPoints: 35,
+      category: 'digital_presence',
+      checkKey: 'profile_category_or_services',
+      title: 'Business Category & Offerings Summary',
+      observedValue: {
+        detectedProfileCategory: parsed.detectedProfileCategory,
+        detectedMenuOrServices: parsed.detectedMenuOrServices,
+      },
+      passDetail: parsed.detectedProfileCategory
+        ? `Business category or offerings summary detected on ${platformLabel}: "${parsed.detectedProfileCategory}".`
+        : `Service or menu language detected on ${platformLabel}.`,
+      unknownDetail: `Business category and service details were not visible in static HTML on this ${platformLabel}. Deferred to Todd & Noelah for human review.`,
+    })
+  );
+
+  const externalSite = parsed.externalWebsiteLinks[0] || null;
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: Boolean(externalSite),
+      passPoints: 30,
+      category: 'digital_presence',
+      checkKey: 'profile_external_website',
+      title: 'Standalone Website Link',
+      observedValue: {
+        externalWebsiteLinks: parsed.externalWebsiteLinks,
+      },
+      passDetail: `Standalone website link detected on ${platformLabel}: ${externalSite}.`,
+      unknownDetail: `Could not confirm from static HTML whether this ${platformLabel} links to a separate business website. Todd & Noelah will check whether a standalone website is linked or needed.`,
+    })
+  );
+
+  // 2. CUSTOMER JOURNEY (100 Points)
+  const contactItems = [
+    ...parsed.telLinks,
+    ...parsed.visiblePhoneNumbers,
+    ...parsed.mailtoLinks,
+  ];
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: contactItems.length > 0,
+      passPoints: 40,
+      category: 'customer_journey',
+      checkKey: 'profile_phone_or_contact',
+      title: 'Direct Phone or Contact Information',
+      observedValue: {
+        telLinks: parsed.telLinks,
+        visiblePhoneNumbers: parsed.visiblePhoneNumbers,
+        mailtoLinks: parsed.mailtoLinks,
+      },
+      passDetail: `Direct business contact information detected on ${platformLabel} (${contactItems[0]}).`,
+      unknownDetail: `Phone number and direct contact fields are not exposed in static HTML on this ${platformLabel}. Todd & Noelah will verify whether customers can easily call or reach you.`,
+    })
+  );
+
+  const hasActionCta =
+    parsed.detectedCtaKeywords.length > 0 || parsed.detectedBookingSignals;
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: hasActionCta,
+      passPoints: 30,
+      category: 'customer_journey',
+      checkKey: 'profile_action_cta',
+      title: 'Call, Message, Order, or Booking Action',
+      observedValue: {
+        detectedCtaKeywords: parsed.detectedCtaKeywords,
+        detectedBookingSignals: parsed.detectedBookingSignals,
+      },
+      passDetail: `Customer action or ordering callout detected on ${platformLabel}.`,
+      unknownDetail: `Action buttons (such as Call, Message, Menu, or Order) on this ${platformLabel} require interactive browser review. Deferred to Todd & Noelah.`,
+    })
+  );
+
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: parsed.detectedHoursSignals.length > 0,
+      passPoints: 30,
+      category: 'customer_journey',
+      checkKey: 'profile_hours_visible',
+      title: 'Business Hours Visibility',
+      observedValue: {
+        detectedHoursSignals: parsed.detectedHoursSignals,
+      },
+      passDetail: `Business hours signal detected on ${platformLabel} (${parsed.detectedHoursSignals[0]}).`,
+      unknownDetail: `Operating hours could not be verified from static HTML on this ${platformLabel}. Todd & Noelah will check if your hours are listed clearly and accurately.`,
+    })
+  );
+
+  // 3. TRUST & REPUTATION (100 Points)
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: Boolean(parsed.detectedProfileActivity),
+      passPoints: 50,
+      category: 'trust_reputation',
+      checkKey: 'profile_activity_signals',
+      title: 'Public Page Activity & Audience Presence',
+      observedValue: {
+        detectedProfileActivity: parsed.detectedProfileActivity,
+      },
+      passDetail: `Public profile activity detected on ${platformLabel}: ${parsed.detectedProfileActivity}.`,
+      unknownDetail: `Follower count, check-ins, and recent post activity could not be verified from static HTML on this ${platformLabel}. Deferred to human review.`,
+    })
+  );
+
+  const hasReviewSignal =
+    parsed.detectedRatingSignals.length > 0 || parsed.detectedReviewOrTestimonialKeywords;
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: hasReviewSignal,
+      passPoints: 50,
+      category: 'trust_reputation',
+      checkKey: 'profile_reviews_presence',
+      title: 'Customer Reviews & Recommendations',
+      observedValue: {
+        detectedRatingSignals: parsed.detectedRatingSignals,
+        detectedReviewOrTestimonialKeywords: parsed.detectedReviewOrTestimonialKeywords,
+      },
+      passDetail: parsed.detectedRatingSignals[0]
+        ? `Public rating or review signal detected on ${platformLabel} (${parsed.detectedRatingSignals[0]}).`
+        : `Customer review or recommendation signal detected on ${platformLabel}.`,
+      unknownDetail: `Customer reviews and ratings on this ${platformLabel} are loaded dynamically and require human review by Todd & Noelah.`,
+    })
+  );
+
+  // 4. LOCAL DISCOVERY (100 Points)
+  const locationText = parsed.derivedCityState || parsed.visibleAddressSignals[0] || null;
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: Boolean(locationText),
+      passPoints: 100,
+      category: 'local_discovery',
+      checkKey: 'profile_location_signals',
+      title: 'Location & Service Area Signals',
+      observedValue: {
+        derivedCityState: parsed.derivedCityState,
+        visibleAddressSignals: parsed.visibleAddressSignals,
+      },
+      passDetail: `Business location signal identified on ${platformLabel}: ${locationText}.`,
+      unknownDetail: `Address, city, and map pin details could not be confirmed from static HTML on this ${platformLabel}. Todd & Noelah will verify your local discovery setup.`,
+    })
+  );
+
+  // 5. OPPORTUNITY CAPTURE (100 Points)
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: Boolean(parsed.hasLeadCaptureForm || externalSite),
+      passPoints: 50,
+      category: 'opportunity_capture',
+      checkKey: 'profile_direct_lead_capture',
+      title: 'Lead Capture Beyond Social Messaging',
+      observedValue: {
+        hasLeadCaptureForm: parsed.hasLeadCaptureForm,
+        externalWebsiteLinks: parsed.externalWebsiteLinks,
+      },
+      passDetail: `External website or direct lead capture path linked from ${platformLabel}.`,
+      unknownDetail: `Relying solely on a ${platformLabel} can make it harder to capture quotes or follow up outside the platform. Todd & Noelah will review how inquiries are captured.`,
+    })
+  );
+
+  findings.push(
+    evaluateHostedProfileCheck({
+      found: false,
+      passPoints: 50,
+      category: 'opportunity_capture',
+      checkKey: 'profile_response_handling',
+      title: 'Inquiry & After-Hours Follow-Up Path',
+      observedValue: {
+        platformKey: platform?.platformKey ?? null,
+      },
+      passDetail: '',
+      unknownDetail: `How messages, comments, and missed calls from this ${platformLabel} are handled requires human review by Todd & Noelah.`,
+    })
+  );
+
+  return findings;
+}
+
 /**
  * Runs all deterministic checks against parsed HTML and raw page data.
  * Pure function: deterministic and repeatable.
  */
 export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[] {
+  if (input.platform?.isHostedProfile) {
+    return runHostedProfileChecks(input);
+  }
+
   const { rawData, parsed, cityState } = input;
   const isSpa = parsed.isClientRenderedSpa;
   const findings: EvaluatedFinding[] = [];
@@ -592,7 +848,73 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
  * Builds graceful UNKNOWN findings when a target website cannot be fetched
  * (due to timeout, blocking, or bot protection).
  */
-export function buildUnknownFindings(reason: string): EvaluatedFinding[] {
+export function buildUnknownFindings(
+  reason: string,
+  platform?: PlatformClassification
+): EvaluatedFinding[] {
+  if (platform?.isHostedProfile) {
+    const hostedChecks: {
+      category: CategoryKey;
+      checks: { key: string; title: string; maxPoints: number }[];
+    }[] = [
+      {
+        category: 'digital_presence',
+        checks: [
+          { key: 'profile_business_name', title: 'Public Business Name Identified', maxPoints: 35 },
+          { key: 'profile_category_or_services', title: 'Business Category & Offerings Summary', maxPoints: 35 },
+          { key: 'profile_external_website', title: 'Standalone Website Link', maxPoints: 30 },
+        ],
+      },
+      {
+        category: 'customer_journey',
+        checks: [
+          { key: 'profile_phone_or_contact', title: 'Direct Phone or Contact Information', maxPoints: 40 },
+          { key: 'profile_action_cta', title: 'Call, Message, Order, or Booking Action', maxPoints: 30 },
+          { key: 'profile_hours_visible', title: 'Business Hours Visibility', maxPoints: 30 },
+        ],
+      },
+      {
+        category: 'trust_reputation',
+        checks: [
+          { key: 'profile_activity_signals', title: 'Public Page Activity & Audience Presence', maxPoints: 50 },
+          { key: 'profile_reviews_presence', title: 'Customer Reviews & Recommendations', maxPoints: 50 },
+        ],
+      },
+      {
+        category: 'local_discovery',
+        checks: [
+          { key: 'profile_location_signals', title: 'Location & Service Area Signals', maxPoints: 100 },
+        ],
+      },
+      {
+        category: 'opportunity_capture',
+        checks: [
+          { key: 'profile_direct_lead_capture', title: 'Lead Capture Beyond Social Messaging', maxPoints: 50 },
+          { key: 'profile_response_handling', title: 'Inquiry & After-Hours Follow-Up Path', maxPoints: 50 },
+        ],
+      },
+    ];
+
+    const results: EvaluatedFinding[] = [];
+    for (const cat of hostedChecks) {
+      for (const c of cat.checks) {
+        results.push({
+          category: cat.category,
+          checkKey: c.key,
+          title: c.title,
+          state: 'UNKNOWN',
+          scoreContribution: 0,
+          maxPoints: c.maxPoints,
+          observedValue: { status: 'SCAN_DEFERRED', reason, platformKey: platform.platformKey },
+          evidenceSource: 'SYSTEM',
+          evidenceLabel: 'AUTO_DETECTED',
+          supportingDetail: `Check deferred to Todd & Noelah review: ${reason}`,
+        });
+      }
+    }
+    return results;
+  }
+
   const categories: { 
     category: CategoryKey; 
     title: string; 

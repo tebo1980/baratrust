@@ -27,6 +27,9 @@ export interface ScoreBreakdown {
   trustReputation: number | null;   // 0-100 (20% weight, or null if unobservable)
   localDiscovery: number | null;    // 0-100 (20% weight, or null if unobservable)
   opportunityCapture: number | null; // 0-100 (15% weight, or null if unobservable)
+  sourceType?: 'standalone_website' | 'hosted_profile';
+  platformKey?: string | null;
+  platformLabel?: string | null;
   coverage?: {
     overall: number;
     confidence: 'HIGH' | 'MEDIUM' | 'LOW' | 'INSUFFICIENT';

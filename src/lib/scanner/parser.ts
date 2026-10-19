@@ -1,3 +1,6 @@
+import { HostedPlatformKey } from './types';
+import { isExternalBusinessWebsiteLink } from './platform';
+
 export interface ParsedHtmlData {
   title: string | null;
   viewportMeta: string | null;
@@ -18,6 +21,7 @@ export interface ParsedHtmlData {
   telLinks: string[];
   mailtoLinks: string[];
   socialLinks: { platform: string; url: string }[];
+  externalWebsiteLinks: string[];
   hasForms: boolean;
   hasLeadCaptureForm: boolean;
   hasEmailNewsletterForm: boolean;
@@ -34,47 +38,136 @@ export interface ParsedHtmlData {
   detectedPricingSignals: boolean;
   detectedBookingSignals: boolean;
   detectedLeadMagnetSignals: boolean;
+  detectedProfileCategory: string | null;
+  detectedProfileActivity: string | null;
+  detectedHoursSignals: string[];
+  detectedRatingSignals: string[];
   isClientRenderedSpa: boolean;
   spaReason?: string;
   textSnippet: string;
+}
+
+const NAMED_HTML_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  middot: '·',
+  bull: '•',
+  mdash: '—',
+  ndash: '–',
+  rsquo: '’',
+  lsquo: '‘',
+  rdquo: '”',
+  ldquo: '“',
+  hellip: '…',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+};
+
+function decodeSinglePass(input: string): string {
+  return input
+    .replace(/&#x([0-9a-f]{1,6});?/gi, (full, hex) => {
+      const code = parseInt(hex, 16);
+      if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return full;
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return full;
+      }
+    })
+    .replace(/&#(\d{1,7});?/g, (full, dec) => {
+      const code = parseInt(dec, 10);
+      if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return full;
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return full;
+      }
+    })
+    .replace(/&([a-z0-9]+);/gi, (full, name) => {
+      const lower = name.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(NAMED_HTML_ENTITIES, lower)
+        ? NAMED_HTML_ENTITIES[lower]
+        : full;
+    });
+}
+
+export function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  // Run two passes to safely handle double-encoded entities such as &amp;#x48; or &amp;#xb7;
+  const decoded = decodeSinglePass(decodeSinglePass(str));
+  return decoded.replace(/\u00a0/g, ' ').trim();
 }
 
 /**
  * Extracts visible text content by removing scripts, styles, and tags.
  */
 export function extractVisibleText(html: string): string {
-  return html
+  const stripped = html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
     .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
     .replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gi, ' ')
     .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/<[^>]+>/g, ' ');
+  return decodeHtmlEntities(stripped).replace(/\s+/g, ' ').trim();
 }
 
-export function decodeHtmlEntities(str: string): string {
-  return str
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&nbsp;/gi, ' ')
-    .trim();
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractMetaContent(
+  html: string,
+  attrName: 'name' | 'property',
+  attrValue: string
+): string | null {
+  const escapedVal = escapeRegExp(attrValue);
+  const pattern1 = new RegExp(
+    `<meta\\b[^>]*\\b${attrName}\\s*=\\s*(?:["']${escapedVal}["']|${escapedVal}(?=[\\s/>]))[^>]*\\bcontent\\s*=\\s*(?:["']([^"']*)["']|([^\\s>"']+))`,
+    'i'
+  );
+  const pattern2 = new RegExp(
+    `<meta\\b[^>]*\\bcontent\\s*=\\s*(?:["']([^"']*)["']|([^\\s>"']+))[^>]*\\b${attrName}\\s*=\\s*(?:["']${escapedVal}["']|${escapedVal}(?=[\\s/>]))`,
+    'i'
+  );
+  const match = html.match(pattern1) || html.match(pattern2);
+  if (!match) return null;
+  const raw = (match[1] ?? match[2] ?? '').trim();
+  return raw ? decodeHtmlEntities(raw) : null;
+}
+
+const US_STATE_CODES = new Set([
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC',
+]);
+
+function extractCityStateFromTitleParts(parts: string[]): string | null {
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i].trim();
+    const m = part.match(/^([A-Z][A-Za-z .'-]{1,35}?)(?:,\s*|\s+)([A-Z]{2})$/);
+    if (m && US_STATE_CODES.has(m[2])) {
+      return `${m[1].trim()}, ${m[2]}`;
+    }
+  }
+  return null;
 }
 
 /**
  * Robust, dependency-free HTML extraction for deterministic business checks.
  */
-export function parseHtmlForBusinessSignals(html: string, targetCityState?: string | null): ParsedHtmlData {
+export function parseHtmlForBusinessSignals(
+  html: string,
+  targetCityState?: string | null,
+  platformKey?: HostedPlatformKey | null
+): ParsedHtmlData {
   const visibleText = extractVisibleText(html);
 
   // 1. Title
@@ -82,22 +175,10 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
   const title = titleMatch ? decodeHtmlEntities(titleMatch[1].replace(/\s+/g, ' ')) : null;
 
   // 2. Viewport (handles quotes, unquoted, mixed case, and attribute order)
-  let viewportMeta: string | null = null;
-  const viewportMatch = 
-    html.match(/<meta\b[^>]*name\s*=\s*["']?viewport["']?[^>]*content\s*=\s*["']([^"']+)["']/i) ||
-    html.match(/<meta\b[^>]*content\s*=\s*["']([^"']+)["'][^>]*name\s*=\s*["']?viewport["']?/i);
-  if (viewportMatch) {
-    viewportMeta = viewportMatch[1].trim();
-  }
+  const viewportMeta = extractMetaContent(html, 'name', 'viewport');
 
-  // 3. Meta description (handles quotes, unquoted, mixed case)
-  let metaDescription: string | null = null;
-  const descMatch = 
-    html.match(/<meta\b[^>]*name\s*=\s*["']?description["']?[^>]*content\s*=\s*["']([^"']+)["']/i) ||
-    html.match(/<meta\b[^>]*content\s*=\s*["']([^"']+)["'][^>]*name\s*=\s*["']?description["']?/i);
-  if (descMatch) {
-    metaDescription = descMatch[1].trim();
-  }
+  // 3. Meta description (handles quotes, unquoted, mixed case, and decodes HTML entities)
+  const metaDescription = extractMetaContent(html, 'name', 'description');
 
   // 4. Favicon
   let faviconUrl: string | null = null;
@@ -108,22 +189,22 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     faviconUrl = faviconMatch[1].trim();
   }
 
-  // 5. OpenGraph
+  // 5. OpenGraph (exact property matching so og:image never matches og:image:alt)
   const ogTags: ParsedHtmlData['ogTags'] = {};
-  const ogTitleMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:title["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogTitleMatch) ogTags.title = decodeHtmlEntities(ogTitleMatch[1].trim());
+  const ogTitle = extractMetaContent(html, 'property', 'og:title');
+  if (ogTitle) ogTags.title = ogTitle;
 
-  const ogSiteNameMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:site_name["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogSiteNameMatch) ogTags.siteName = decodeHtmlEntities(ogSiteNameMatch[1].trim());
+  const ogSiteName = extractMetaContent(html, 'property', 'og:site_name');
+  if (ogSiteName) ogTags.siteName = ogSiteName;
 
-  const ogImgMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:image["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogImgMatch) ogTags.image = ogImgMatch[1].trim();
+  const ogImage = extractMetaContent(html, 'property', 'og:image');
+  if (ogImage) ogTags.image = ogImage;
 
-  const ogDescMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:description["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogDescMatch) ogTags.description = decodeHtmlEntities(ogDescMatch[1].trim());
+  const ogDesc = extractMetaContent(html, 'property', 'og:description');
+  if (ogDesc) ogTags.description = ogDesc;
 
-  const ogTypeMatch = html.match(/<meta\b[^>]*property\s*=\s*["']?og:type["']?[^>]*content\s*=\s*["']([^"']+)["']/i);
-  if (ogTypeMatch) ogTags.type = ogTypeMatch[1].trim();
+  const ogType = extractMetaContent(html, 'property', 'og:type');
+  if (ogType) ogTags.type = ogType;
 
   // 6. JSON-LD Schemas (handles multiple blocks and malformed blocks safely)
   const jsonLdSchemas: any[] = [];
@@ -195,10 +276,11 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     }
   }
 
-  // 7. Links: tel:, mailto:, social, terms/privacy (supports unquoted or quoted hrefs)
+  // 7. Links: tel:, mailto:, social, externalWebsiteLinks, terms/privacy (supports unquoted or quoted hrefs)
   const telLinks: string[] = [];
   const mailtoLinks: string[] = [];
   const socialLinks: { platform: string; url: string }[] = [];
+  const externalWebsiteLinks: string[] = [];
   let hasPrivacyOrTermsLink = false;
 
   const anchorRegex = /<a\b[^>]*href\s*=\s*(?:["']([^"']*)["']|([^\s>]+))[^>]*>([\s\S]*?)<\/a>/gi;
@@ -232,6 +314,13 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
         if (!socialLinks.some(s => s.url === href)) {
           socialLinks.push({ platform: sp.name, url: href });
         }
+      }
+    }
+
+    if (platformKey) {
+      const externalUrl = isExternalBusinessWebsiteLink(href, platformKey);
+      if (externalUrl && !externalWebsiteLinks.includes(externalUrl) && externalWebsiteLinks.length < 5) {
+        externalWebsiteLinks.push(externalUrl);
       }
     }
 
@@ -275,11 +364,12 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
   const hasMapEmbed = /<iframe[^>]+src=["'][^"']*(?:google\.com\/maps|maps\.google\.com|embed)[^"']*["']/i.test(html) ||
                       /<a[^>]+href=["'][^"']*(?:maps\.google\.com|goo\.gl\/maps|maps\.apple\.com)[^"']*["']/i.test(html);
 
-  // 10. Phone numbers in visible text
+  // 10. Phone numbers in visible text (and meta description for hosted profiles)
+  const phoneSourceText = metaDescription ? `${visibleText} ${metaDescription}` : visibleText;
   const phoneRegex = /(?:\+?1[-.\s]?)?\(?([2-9][0-8][0-9])\)?[-.\s]?([2-9][0-9]{2})[-.\s]?([0-9]{4})/g;
   const visiblePhoneNumbers: string[] = [];
   let phoneMatch: RegExpExecArray | null;
-  while ((phoneMatch = phoneRegex.exec(visibleText)) !== null) {
+  while ((phoneMatch = phoneRegex.exec(phoneSourceText)) !== null) {
     const full = phoneMatch[0].trim();
     if (!visiblePhoneNumbers.includes(full) && visiblePhoneNumbers.length < 5) {
       visiblePhoneNumbers.push(full);
@@ -290,7 +380,7 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
   const addressRegex = /\b\d{1,5}\s+[A-Za-z0-9.\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Way|Suite|Ste|Pkwy|Highway|Hwy)\b|\b\d{5}(?:-\d{4})?\b/gi;
   const visibleAddressSignals: string[] = [];
   let addrMatch: RegExpExecArray | null;
-  while ((addrMatch = addressRegex.exec(visibleText)) !== null) {
+  while ((addrMatch = addressRegex.exec(phoneSourceText)) !== null) {
     const addr = addrMatch[0].trim();
     if (!visibleAddressSignals.includes(addr) && visibleAddressSignals.length < 3) {
       visibleAddressSignals.push(addr);
@@ -396,10 +486,10 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     visibleText.length < 180 && (hasSpaMount || /<script\b[^>]+src=/i.test(html))
   );
 
-  // 22. Reliable Business Name Derivation (do not invent names from weak evidence)
+  // 22. Reliable Business Name & Location Derivation (do not invent names from weak evidence)
   const genericTitles = new Set([
     'home', 'welcome', 'index', 'untitled', 'website', 'official site', 'official website',
-    'facebook', 'log into facebook', 'google', 'google maps', 'instagram', 'just a moment...',
+    'facebook', 'log into facebook', 'google', 'google maps', 'instagram', 'yelp', 'just a moment...',
     'attention required! | cloudflare', 'access denied', '403 forbidden', '404 not found'
   ]);
   const cleanCandidateName = (raw: string | null | undefined): string | null => {
@@ -414,21 +504,79 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     cleanCandidateName(jsonLdBusinessName) ||
     cleanCandidateName(ogTags.siteName);
 
-  if (!derivedBusinessName) {
-    const rawTitle = ogTags.title || title;
-    if (rawTitle) {
-      // Split on common title separators (" | ", " - ", " — ", " – ", " : ")
-      const parts = rawTitle
+  const rawTitle = ogTags.title || title;
+  const titleParts = rawTitle
+    ? rawTitle
         .split(/\s*(?:\||—|–|-|:)\s*/)
         .map(p => p.trim())
-        .filter(Boolean);
-      for (const part of parts) {
-        const cleaned = cleanCandidateName(part);
-        if (cleaned && cleaned.length <= 50) {
-          derivedBusinessName = cleaned;
-          break;
+        .filter(Boolean)
+    : [];
+
+  if (!derivedBusinessName && titleParts.length > 0) {
+    for (const part of titleParts) {
+      const cleaned = cleanCandidateName(part);
+      if (cleaned && cleaned.length <= 50) {
+        derivedBusinessName = cleaned;
+        break;
+      }
+    }
+  }
+
+  if (!derivedCityState && titleParts.length > 1) {
+    derivedCityState = extractCityStateFromTitleParts(titleParts);
+  }
+
+  // 23. Hosted-profile specific signals (category, audience/activity, hours, ratings)
+  let detectedProfileCategory: string | null = null;
+  let detectedProfileActivity: string | null = null;
+  const summarySource = ogTags.description || metaDescription || '';
+
+  if (summarySource) {
+    // Match Facebook / social profile activity metrics (e.g. "214 followers · 1 talking about this · 7 were here")
+    const activityMatch = summarySource.match(
+      /(\d[\d,.\sKMBkmb]*(?:likes?|followers?)(?:\s*[·•|-]\s*\d[\d,.\sKMBkmb]*(?:talking about this|were here|check-ins?|followers?|likes?|posts?))*)/i
+    );
+    if (activityMatch) {
+      detectedProfileActivity = activityMatch[1].trim();
+      const afterActivity = summarySource
+        .slice((activityMatch.index ?? 0) + activityMatch[0].length)
+        .replace(/^[.\s·•|-]+/, '')
+        .trim();
+      if (afterActivity && afterActivity.length >= 3 && afterActivity.length <= 160) {
+        detectedProfileCategory = afterActivity.replace(/\.$/, '').trim();
+      }
+
+      // If city/state wasn't in the title, check "Business Name , City." before the activity segment
+      if (!derivedCityState && typeof activityMatch.index === 'number' && activityMatch.index > 0) {
+        const beforeActivity = summarySource.slice(0, activityMatch.index).trim().replace(/\.$/, '');
+        const commaIdx = beforeActivity.lastIndexOf(',');
+        if (commaIdx !== -1) {
+          const candidateCity = beforeActivity.slice(commaIdx + 1).trim();
+          if (candidateCity.length >= 2 && candidateCity.length <= 40) {
+            derivedCityState = candidateCity;
+          }
         }
       }
+    }
+  }
+
+  const detectedHoursSignals: string[] = [];
+  const hoursRegex = /\b(?:open now|closed now|hours\s*:|mon(?:day)?\s*[-–to]+\s*fri(?:day)?|\d{1,2}(?::\d{2})?\s*(?:am|pm)\s*[-–to]+\s*\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/gi;
+  let hoursMatch: RegExpExecArray | null;
+  while ((hoursMatch = hoursRegex.exec(phoneSourceText)) !== null) {
+    const val = hoursMatch[0].trim();
+    if (!detectedHoursSignals.includes(val) && detectedHoursSignals.length < 3) {
+      detectedHoursSignals.push(val);
+    }
+  }
+
+  const detectedRatingSignals: string[] = [];
+  const ratingRegex = /\b(?:\d\.\d\s*(?:out of 5|stars?|\(\d+\s*reviews?\))|\d+\s+reviews?|recommended by \d+%)/gi;
+  let ratingMatch: RegExpExecArray | null;
+  while ((ratingMatch = ratingRegex.exec(phoneSourceText)) !== null) {
+    const val = ratingMatch[0].trim();
+    if (!detectedRatingSignals.includes(val) && detectedRatingSignals.length < 3) {
+      detectedRatingSignals.push(val);
     }
   }
 
@@ -446,6 +594,7 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     telLinks,
     mailtoLinks,
     socialLinks,
+    externalWebsiteLinks,
     hasForms,
     hasLeadCaptureForm,
     hasEmailNewsletterForm,
@@ -462,6 +611,10 @@ export function parseHtmlForBusinessSignals(html: string, targetCityState?: stri
     detectedPricingSignals,
     detectedBookingSignals,
     detectedLeadMagnetSignals,
+    detectedProfileCategory,
+    detectedProfileActivity,
+    detectedHoursSignals,
+    detectedRatingSignals,
     isClientRenderedSpa,
     spaReason: isClientRenderedSpa 
       ? 'Page appears to be a client-rendered SPA shell with minimal static text content; in-page DOM features cannot be reliably evaluated without a headless browser.' 

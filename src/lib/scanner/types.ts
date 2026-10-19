@@ -2,6 +2,26 @@ export type FindingState = 'PASS' | 'FAIL' | 'UNKNOWN';
 export type EvidenceLabel = 'AUTO_DETECTED' | 'OWNER_PROVIDED' | 'BARATRUST_REVIEW' | 'OPPORTUNITY_FOUND';
 export type ScanStatus = 'pending' | 'completed' | 'failed' | 'blocked' | 'timeout';
 
+export type SourceType = 'standalone_website' | 'hosted_profile';
+export type HostedPlatformKey =
+  | 'facebook'
+  | 'google_business'
+  | 'instagram'
+  | 'yelp'
+  | 'linkedin'
+  | 'tiktok'
+  | 'nextdoor'
+  | 'thumbtack'
+  | 'angi'
+  | 'bbb';
+
+export interface PlatformClassification {
+  sourceType: SourceType;
+  isHostedProfile: boolean;
+  platformKey: HostedPlatformKey | null;
+  platformLabel: string | null;
+}
+
 export type CategoryKey = 
   | 'digital_presence'
   | 'customer_journey'
@@ -55,6 +75,9 @@ export interface ScoreBreakdown {
   trustReputation: number | null;
   localDiscovery: number | null;
   opportunityCapture: number | null;
+  sourceType?: SourceType;
+  platformKey?: HostedPlatformKey | null;
+  platformLabel?: string | null;
   coverage?: {
     overall: number;
     confidence: ConfidenceLevel;
@@ -69,6 +92,9 @@ export interface ScoreBreakdown {
 export interface ScanResult {
   scanStatus: ScanStatus;
   scanFailureReason?: string;
+  sourceType?: SourceType;
+  platformKey?: HostedPlatformKey | null;
+  platformLabel?: string | null;
   overallScore: number | null;
   overallCoverage: number;
   confidence: ConfidenceLevel;

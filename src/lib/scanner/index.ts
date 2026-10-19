@@ -4,6 +4,7 @@ import { runDeterministicChecks, buildUnknownFindings } from './checks';
 import { calculateScores } from './scoring';
 import { ScanResult, ScanStatus } from './types';
 import { normalizeSubmittedUrl } from './ssrf';
+import { classifySubmittedUrl } from './platform';
 
 export * from './types';
 export * from './ssrf';
@@ -11,6 +12,7 @@ export * from './fetcher';
 export * from './parser';
 export * from './checks';
 export * from './scoring';
+export * from './platform';
 
 export interface ExecuteScanOptions {
   websiteUrl: string;
@@ -29,6 +31,7 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
   const { websiteUrl, businessName, cityState } = options;
   const normalizedUrl = normalizeSubmittedUrl(websiteUrl);
   const scannedAt = new Date().toISOString();
+  const initialPlatform = classifySubmittedUrl(normalizedUrl);
 
   // 1. Fetch website safely
   const fetchResult = await safeFetchWebsite(normalizedUrl);
@@ -39,12 +42,16 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     if (fetchResult.errorType === 'TIMEOUT') scanStatus = 'timeout';
     else if (fetchResult.errorType === 'BLOCKED') scanStatus = 'blocked';
 
-    const fallbackFindings = buildUnknownFindings(fetchResult.message);
-    const { overallScore, overallCoverage, confidence, scoreBreakdown, categoryScores } = calculateScores(fallbackFindings);
+    const fallbackFindings = buildUnknownFindings(fetchResult.message, initialPlatform);
+    const { overallScore, overallCoverage, confidence, scoreBreakdown, categoryScores } =
+      calculateScores(fallbackFindings, initialPlatform);
 
     return {
       scanStatus,
       scanFailureReason: `[${fetchResult.errorType}] ${fetchResult.message}`,
+      sourceType: initialPlatform.sourceType,
+      platformKey: initialPlatform.platformKey,
+      platformLabel: initialPlatform.platformLabel,
       overallScore,
       overallCoverage,
       confidence,
@@ -59,9 +66,14 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     };
   }
 
-  // 3. Parse HTML
+  // 3. Parse HTML (re-classify against finalUrl in case of shortlink redirects like g.page / fb.me)
   const rawData = fetchResult.data;
-  const parsed = parseHtmlForBusinessSignals(rawData.html, cityState || undefined);
+  const platform = classifySubmittedUrl(normalizedUrl, rawData.finalUrl);
+  const parsed = parseHtmlForBusinessSignals(
+    rawData.html,
+    cityState || undefined,
+    platform.platformKey
+  );
 
   // 4. Run deterministic checks
   const findings = runDeterministicChecks({
@@ -69,13 +81,18 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     parsed,
     businessName: businessName || parsed.derivedBusinessName || null,
     cityState: cityState || parsed.derivedCityState || null,
+    platform,
   });
 
   // 5. Calculate scores
-  const { overallScore, overallCoverage, confidence, scoreBreakdown, categoryScores } = calculateScores(findings);
+  const { overallScore, overallCoverage, confidence, scoreBreakdown, categoryScores } =
+    calculateScores(findings, platform);
 
   return {
     scanStatus: 'completed',
+    sourceType: platform.sourceType,
+    platformKey: platform.platformKey,
+    platformLabel: platform.platformLabel,
     overallScore,
     overallCoverage,
     confidence,

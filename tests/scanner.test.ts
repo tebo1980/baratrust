@@ -10,9 +10,10 @@ import {
   createSsrfSafeAgent,
 } from '../src/lib/scanner/ssrf';
 
-import { parseHtmlForBusinessSignals } from '../src/lib/scanner/parser';
+import { parseHtmlForBusinessSignals, decodeHtmlEntities } from '../src/lib/scanner/parser';
 import { runDeterministicChecks, buildUnknownFindings } from '../src/lib/scanner/checks';
 import { calculateScores } from '../src/lib/scanner/scoring';
+import { classifySubmittedUrl, isExternalBusinessWebsiteLink } from '../src/lib/scanner/platform';
 import { RawPageData, EvaluatedFinding } from '../src/lib/scanner/types';
 
 // ==========================================
@@ -444,4 +445,279 @@ test('Weighted Total Calculation — verifies exact mathematical weights (20%, 2
   assert.equal(confidence, 'HIGH');
   assert.equal(overallScore, 63);
 });
+
+// ==========================================
+// 7. Hosted Third-Party Profile vs. Standalone Website Tests
+// ==========================================
+const TAQUERIA_FB_HTML = `
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <title>Taqueria el Cerrito | New Albany IN</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=2,shrink-to-fit=no" />
+      <meta name="description" content="Taqueria el Cerrito , New Albany. 214 followers &#xb7; 1 talking about this &#xb7; 7 were here. Mexican Food" />
+      <meta property="og:title" content="Taqueria el Cerrito | New Albany IN" />
+      <meta property="og:description" content="Taqueria el Cerrito , New Albany. 214 followers &#xb7; 1 talking about this &#xb7; 7 were here. Mexican Food" />
+      <meta property="og:image:alt" content="Taqueria el Cerrito | New Albany IN" />
+      <meta property="og:image" content="https://scontent.xx.fbcdn.net/v/t39.30808-6/photo.jpg" />
+      <link rel="shortcut icon" href="https://static.xx.fbcdn.net/rsrc.php/yT/r/aGT3gskzWBf.ico" />
+      <script src="https://static.xx.fbcdn.net/bundle.js"></script>
+    </head>
+    <body>
+      <div id="root"></div>
+    </body>
+  </html>
+`;
+
+test('Hosted Profile 1 — Facebook URL is recognized as a hosted profile', () => {
+  const fb1 = classifySubmittedUrl('https://www.facebook.com/people/Taqueria-el-Cerrito/61552632675200/');
+  assert.equal(fb1.isHostedProfile, true);
+  assert.equal(fb1.sourceType, 'hosted_profile');
+  assert.equal(fb1.platformKey, 'facebook');
+  assert.equal(fb1.platformLabel, 'Facebook business page');
+
+  const fb2 = classifySubmittedUrl('fb.com/taqueriaelcerrito');
+  assert.equal(fb2.isHostedProfile, true);
+  assert.equal(fb2.platformKey, 'facebook');
+
+  const fb3 = classifySubmittedUrl('https://m.facebook.com/profile.php?id=61552632675200');
+  assert.equal(fb3.isHostedProfile, true);
+  assert.equal(fb3.platformKey, 'facebook');
+});
+
+test('Hosted Profile 2 — Google Business / Maps URLs are recognized as hosted profiles', () => {
+  const g1 = classifySubmittedUrl('https://maps.google.com/?cid=123456789');
+  assert.equal(g1.isHostedProfile, true);
+  assert.equal(g1.platformKey, 'google_business');
+  assert.equal(g1.platformLabel, 'Google Business Profile');
+
+  const g2 = classifySubmittedUrl('https://www.google.com/maps/place/Taqueria+El+Cerrito');
+  assert.equal(g2.isHostedProfile, true);
+  assert.equal(g2.platformKey, 'google_business');
+
+  const g3 = classifySubmittedUrl('https://g.page/r/Cf123456789');
+  assert.equal(g3.isHostedProfile, true);
+  assert.equal(g3.platformKey, 'google_business');
+
+  const g4 = classifySubmittedUrl('https://maps.app.goo.gl/abc123xyz');
+  assert.equal(g4.isHostedProfile, true);
+  assert.equal(g4.platformKey, 'google_business');
+});
+
+test('Hosted Profile 3 — Instagram, Yelp, LinkedIn, TikTok, Nextdoor, Thumbtack, Angi, and BBB URLs are recognized as hosted profiles', () => {
+  assert.equal(classifySubmittedUrl('https://www.instagram.com/taqueriaelcerrito/').platformKey, 'instagram');
+  assert.equal(classifySubmittedUrl('https://www.yelp.com/biz/taqueria-el-cerrito-new-albany').platformKey, 'yelp');
+  assert.equal(classifySubmittedUrl('https://www.linkedin.com/company/baratrust').platformKey, 'linkedin');
+  assert.equal(classifySubmittedUrl('https://www.tiktok.com/@taqueriaelcerrito').platformKey, 'tiktok');
+  assert.equal(classifySubmittedUrl('https://nextdoor.com/pages/taqueria-el-cerrito/').platformKey, 'nextdoor');
+  assert.equal(classifySubmittedUrl('https://www.thumbtack.com/ky/louisville/plumbers/').platformKey, 'thumbtack');
+  assert.equal(classifySubmittedUrl('https://www.angi.com/companylist/us/in/new-albany/').platformKey, 'angi');
+  assert.equal(classifySubmittedUrl('https://www.bbb.org/us/in/new-albany/profile/restaurants').platformKey, 'bbb');
+});
+
+test('Hosted Profile 4 — Standalone business website URL is recognized as standalone_website', () => {
+  const site = classifySubmittedUrl('https://rivercityplumbing.com');
+  assert.equal(site.isHostedProfile, false);
+  assert.equal(site.sourceType, 'standalone_website');
+  assert.equal(site.platformKey, null);
+  assert.equal(site.platformLabel, null);
+
+  // Regular Google non-maps URL or unknown domain stays standalone_website
+  const customDomain = classifySubmittedUrl('https://taqueriaelcerrito.com/menu');
+  assert.equal(customDomain.isHostedProfile, false);
+  assert.equal(customDomain.sourceType, 'standalone_website');
+});
+
+test('Hosted Profile 5 — Facebook page does NOT receive PASS findings for HTTPS, server response, viewport, favicon, or OpenGraph', () => {
+  const url = 'https://www.facebook.com/people/Taqueria-el-Cerrito/61552632675200/';
+  const platform = classifySubmittedUrl(url);
+  const parsed = parseHtmlForBusinessSignals(TAQUERIA_FB_HTML, undefined, platform.platformKey);
+  const rawData: RawPageData = {
+    requestedUrl: url,
+    finalUrl: url,
+    normalizedUrl: url,
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 420,
+    headers: {},
+    html: TAQUERIA_FB_HTML,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed, platform });
+  const checkKeys = new Set(findings.map((f) => f.checkKey));
+
+  assert.equal(checkKeys.has('https_enabled'), false, 'Must not credit Facebook HTTPS');
+  assert.equal(checkKeys.has('page_responds'), false, 'Must not credit Facebook server response');
+  assert.equal(checkKeys.has('mobile_viewport'), false, 'Must not credit Facebook viewport meta');
+  assert.equal(checkKeys.has('has_favicon'), false, 'Must not credit Facebook favicon');
+  assert.equal(checkKeys.has('opengraph_presence'), false, 'Must not credit Facebook OpenGraph');
+  assert.equal(checkKeys.has('terms_privacy'), false, 'Must not credit Facebook terms/privacy');
+});
+
+test('Hosted Profile 6 — Facebook page does NOT receive FAIL finding for missing LocalBusiness schema', () => {
+  const url = 'https://www.facebook.com/people/Taqueria-el-Cerrito/61552632675200/';
+  const platform = classifySubmittedUrl(url);
+  const parsed = parseHtmlForBusinessSignals(TAQUERIA_FB_HTML, undefined, platform.platformKey);
+  const rawData: RawPageData = {
+    requestedUrl: url,
+    finalUrl: url,
+    normalizedUrl: url,
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 420,
+    headers: {},
+    html: TAQUERIA_FB_HTML,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed, platform });
+  assert.equal(
+    findings.some((f) => f.checkKey === 'local_business_schema'),
+    false,
+    'Must not evaluate LocalBusiness schema on Facebook'
+  );
+  assert.equal(
+    findings.some((f) => f.state === 'FAIL'),
+    false,
+    'Hosted profile with unobservable static fields must defer to UNKNOWN rather than FAIL'
+  );
+});
+
+test('Hosted Profile 7 — Facebook page score is withheld (overallScore is null, never a misleading 50/100)', () => {
+  const url = 'https://www.facebook.com/people/Taqueria-el-Cerrito/61552632675200/';
+  const platform = classifySubmittedUrl(url);
+  const parsed = parseHtmlForBusinessSignals(TAQUERIA_FB_HTML, undefined, platform.platformKey);
+  const rawData: RawPageData = {
+    requestedUrl: url,
+    finalUrl: url,
+    normalizedUrl: url,
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 420,
+    headers: {},
+    html: TAQUERIA_FB_HTML,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed, platform });
+  const scores = calculateScores(findings, platform);
+
+  assert.equal(scores.overallScore, null, 'Numeric website score must be withheld for Facebook business page');
+  assert.equal(scores.scoreBreakdown?.sourceType, 'hosted_profile');
+  assert.equal(scores.scoreBreakdown?.platformKey, 'facebook');
+  assert.equal(scores.scoreBreakdown?.platformLabel, 'Facebook business page');
+  assert.ok(scores.overallCoverage > 0, 'Observable profile signal coverage should still be reported');
+});
+
+test('Hosted Profile 8 — Facebook page extracts business name, city/state, category, and activity signals and marks unobservable signals UNKNOWN', () => {
+  const url = 'https://www.facebook.com/people/Taqueria-el-Cerrito/61552632675200/';
+  const platform = classifySubmittedUrl(url);
+  const parsed = parseHtmlForBusinessSignals(TAQUERIA_FB_HTML, undefined, platform.platformKey);
+
+  assert.equal(parsed.derivedBusinessName, 'Taqueria el Cerrito');
+  assert.equal(parsed.derivedCityState, 'New Albany, IN');
+  assert.equal(parsed.detectedProfileCategory, 'Mexican Food');
+  assert.equal(parsed.detectedProfileActivity, '214 followers · 1 talking about this · 7 were here');
+
+  const rawData: RawPageData = {
+    requestedUrl: url,
+    finalUrl: url,
+    normalizedUrl: url,
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 420,
+    headers: {},
+    html: TAQUERIA_FB_HTML,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed, platform });
+  const byKey = new Map(findings.map((f) => [f.checkKey, f]));
+
+  assert.equal(byKey.get('profile_business_name')?.state, 'PASS');
+  assert.equal(byKey.get('profile_location_signals')?.state, 'PASS');
+  assert.equal(byKey.get('profile_category_or_services')?.state, 'PASS');
+  assert.equal(byKey.get('profile_activity_signals')?.state, 'PASS');
+  assert.equal(byKey.get('profile_phone_or_contact')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('profile_external_website')?.state, 'UNKNOWN');
+});
+
+test('Hosted Profile 9 — HTML entities (&#x48;TTPS, &#x57;hether, &#xb7;, double-encoded) do not leak into decoded text or findings, and og:image is not overwritten by og:image:alt', () => {
+  assert.equal(decodeHtmlEntities('&#x48;TTPS security'), 'HTTPS security');
+  assert.equal(decodeHtmlEntities('&#x57;hether local buyers'), 'Whether local buyers');
+  assert.equal(
+    decodeHtmlEntities('214 followers &#xb7; 1 talking about this &amp;#xb7; 7 were here'),
+    '214 followers · 1 talking about this · 7 were here'
+  );
+  assert.equal(decodeHtmlEntities('Joe&#39;s &amp; Sons &mdash; HVAC'), "Joe's & Sons — HVAC");
+
+  const parsed = parseHtmlForBusinessSignals(TAQUERIA_FB_HTML, undefined, 'facebook');
+  assert.equal(
+    parsed.metaDescription?.includes('&#xb7;'),
+    false,
+    'metaDescription must have hex HTML entities decoded'
+  );
+  assert.equal(
+    parsed.ogTags.image,
+    'https://scontent.xx.fbcdn.net/v/t39.30808-6/photo.jpg',
+    'og:image must not match og:image:alt'
+  );
+
+  // Verify external link extraction unwraps l.facebook.com shim and ignores facebook internal links
+  assert.equal(
+    isExternalBusinessWebsiteLink('https://www.facebook.com/policies', 'facebook'),
+    null
+  );
+  assert.equal(
+    isExternalBusinessWebsiteLink(
+      'https://l.facebook.com/l.php?u=https%3A%2F%2Fwww.taqueriaelcerrito.com%2Fmenu',
+      'facebook'
+    ),
+    'https://www.taqueriaelcerrito.com/menu'
+  );
+});
+
+test('Hosted Profile 10 — Normal standalone website scanning still works as expected with numeric score and all 28 checks', () => {
+  const standaloneUrl = 'https://rivercityplumbing.com';
+  const platform = classifySubmittedUrl(standaloneUrl);
+  assert.equal(platform.isHostedProfile, false);
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>River City Plumbing | Louisville KY</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="24/7 emergency plumbing repair and water heater installation in Louisville, KY." />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+      <body>
+        <h1>River City Plumbing</h1>
+        <p>Serving Louisville, KY and Southern Indiana for over 20 years. Locally owned and operated.</p>
+        <p>Our services include drain cleaning, water heaters, and sewer line repair.</p>
+        <a href="tel:5025550199">Call Now (502) 555-0199</a>
+        <p>123 Main Street, Louisville, KY 40202</p>
+        <form><input type="email" name="email" /><textarea name="message"></textarea><button>Request a Quote</button></form>
+        <a href="/privacy-policy">Privacy Policy</a>
+      </body>
+    </html>
+  `;
+  const parsed = parseHtmlForBusinessSignals(html, undefined, platform.platformKey);
+  const rawData: RawPageData = {
+    requestedUrl: standaloneUrl,
+    finalUrl: standaloneUrl,
+    normalizedUrl: standaloneUrl,
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 180,
+    headers: {},
+    html,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed, platform });
+  const scores = calculateScores(findings, platform);
+
+  assert.equal(findings.length, 28);
+  assert.ok(typeof scores.overallScore === 'number' && scores.overallScore > 60);
+  assert.equal(scores.scoreBreakdown?.sourceType, 'standalone_website');
+  assert.equal(parsed.derivedCityState, 'Louisville, KY');
+});
+
 

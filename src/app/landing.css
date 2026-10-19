@@ -63,3 +63,4 @@
 .landing-wrapper .section.dark p { color: #d7e1dc !important; }
 
 .landing-wrapper .reality-card { margin-top: 10px; }
+.landing-wrapper .starter-note p strong, .landing-wrapper .starter-note span strong { display: inline; }

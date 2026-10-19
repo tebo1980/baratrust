@@ -39,6 +39,7 @@ export interface ParsedHtmlData {
   detectedBookingSignals: boolean;
   detectedLeadMagnetSignals: boolean;
   detectedProfileCategory: string | null;
+  detectedProfileDescription: string | null;
   detectedProfileActivity: string | null;
   detectedHoursSignals: string[];
   detectedRatingSignals: string[];
@@ -101,6 +102,93 @@ export function decodeHtmlEntities(str: string): string {
   // Run two passes to safely handle double-encoded entities such as &amp;#x48; or &amp;#xb7;
   const decoded = decodeSinglePass(decodeSinglePass(str));
   return decoded.replace(/\u00a0/g, ' ').trim();
+}
+
+/**
+ * Formats a clean, word-boundary-safe excerpt that:
+ * - decodes HTML entities first so it never cuts inside an entity
+ * - normalizes upstream double/triple periods ("..", "...") into a single proper ellipsis ("…")
+ * - stops at a sensible word boundary when exceeding maxLength
+ */
+export function formatCleanExcerpt(raw: string, maxLength = 120): string {
+  if (!raw) return '';
+  // Decode entities first and strip any trailing incomplete entity fragment if cut upstream
+  let text = decodeHtmlEntities(raw.replace(/&[#a-z0-9]{0,10}$/i, ''))
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return '';
+
+  const hadUpstreamEllipsis = /(?:\.{2,}|\.\s+\.(?:\s+\.)?|…)\s*$/.test(text);
+  if (hadUpstreamEllipsis) {
+    text = text
+      .replace(/(?:\.{2,}|\.\s+\.(?:\s+\.)?|…)\s*$/, '')
+      .replace(/[,;:.!?\-–—]+$/, '')
+      .trim();
+  }
+
+  if (text.length > maxLength) {
+    const slice = text.slice(0, maxLength + 1);
+    const lastSpace = slice.lastIndexOf(' ');
+    const boundary = lastSpace >= Math.floor(maxLength * 0.55) ? lastSpace : maxLength;
+    text = slice
+      .slice(0, boundary)
+      .replace(/[,;:.!?\-–—]+$/, '')
+      .trim();
+    return text ? `${text}…` : '';
+  }
+
+  if (hadUpstreamEllipsis) {
+    return text ? `${text}…` : '';
+  }
+
+  return text;
+}
+
+/**
+ * Deterministically distinguishes a concise explicit business category
+ * (e.g. "Mexican Food", "Plumbing Service") from a free-form business
+ * description or bio snippet (e.g. "Located in historic downtown...").
+ */
+export function classifyProfileSummaryText(
+  raw: string
+): { kind: 'category' | 'description'; text: string } | null {
+  if (!raw) return null;
+  const decoded = decodeHtmlEntities(raw)
+    .replace(/^[.\s·•|-]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!decoded || decoded.length < 2) return null;
+
+  const hadUpstreamEllipsis = /(?:\.{2,}|\.\s+\.(?:\s+\.)?|…)\s*$/.test(decoded);
+  const candidate = decoded.replace(/\.$/, '').trim();
+  const words = candidate.split(/\s+/).filter(Boolean);
+  const hasInternalSentence = /[.!?]\s+[A-Za-z]/.test(candidate);
+  const hasNarrativeLanguage =
+    /\b(we|our|you|your|located|welcome|serving|call|visit|open|hours|street|downtown|alleyway|across|from|since|voted|follow|dm|message|email|http|www|proudly|specializing|offer|offers|offering)\b/i.test(
+      candidate
+    );
+
+  if (
+    !hadUpstreamEllipsis &&
+    !hasInternalSentence &&
+    !hasNarrativeLanguage &&
+    candidate.length >= 2 &&
+    candidate.length <= 45 &&
+    words.length >= 1 &&
+    words.length <= 6
+  ) {
+    return {
+      kind: 'category',
+      text: candidate,
+    };
+  }
+
+  const excerpt = formatCleanExcerpt(decoded, 120);
+  if (!excerpt || excerpt.length < 3) return null;
+  return {
+    kind: 'description',
+    text: excerpt,
+  };
 }
 
 /**
@@ -526,8 +614,9 @@ export function parseHtmlForBusinessSignals(
     derivedCityState = extractCityStateFromTitleParts(titleParts);
   }
 
-  // 23. Hosted-profile specific signals (category, audience/activity, hours, ratings)
+  // 23. Hosted-profile specific signals (category, description, audience/activity, hours, ratings)
   let detectedProfileCategory: string | null = null;
+  let detectedProfileDescription: string | null = null;
   let detectedProfileActivity: string | null = null;
   const summarySource = ogTags.description || metaDescription || '';
 
@@ -542,8 +631,13 @@ export function parseHtmlForBusinessSignals(
         .slice((activityMatch.index ?? 0) + activityMatch[0].length)
         .replace(/^[.\s·•|-]+/, '')
         .trim();
-      if (afterActivity && afterActivity.length >= 3 && afterActivity.length <= 160) {
-        detectedProfileCategory = afterActivity.replace(/\.$/, '').trim();
+      if (afterActivity && afterActivity.length >= 2) {
+        const classified = classifyProfileSummaryText(afterActivity);
+        if (classified?.kind === 'category') {
+          detectedProfileCategory = classified.text;
+        } else if (classified?.kind === 'description') {
+          detectedProfileDescription = classified.text;
+        }
       }
 
       // If city/state wasn't in the title, check "Business Name , City." before the activity segment
@@ -612,6 +706,7 @@ export function parseHtmlForBusinessSignals(
     detectedBookingSignals,
     detectedLeadMagnetSignals,
     detectedProfileCategory,
+    detectedProfileDescription,
     detectedProfileActivity,
     detectedHoursSignals,
     detectedRatingSignals,

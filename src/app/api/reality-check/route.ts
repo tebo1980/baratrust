@@ -3,7 +3,11 @@ import crypto from 'crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
-import { executeDeterministicScan, classifySubmittedUrl } from '@/lib/scanner';
+import {
+  executeDeterministicScan,
+  classifySubmittedUrl,
+  classifyProfileSummaryText,
+} from '@/lib/scanner';
 import {
   RealityCheckSubmissionSchema,
   RequestHumanReviewSchema,
@@ -24,23 +28,54 @@ const PLATFORM_INFRASTRUCTURE_CHECK_KEYS = new Set([
   'terms_privacy',
 ]);
 
-function formatPublicFinding(f: {
-  category: string;
-  checkKey: string;
-  title: string;
-  state: string;
-  scoreContribution: number;
-  maxPoints: number;
-  supportingDetail: string | null;
-}) {
+function formatPublicFinding(
+  f: {
+    category: string;
+    checkKey: string;
+    title: string;
+    state: string;
+    scoreContribution: number;
+    maxPoints: number;
+    supportingDetail: string | null;
+    observedValue?: any;
+  },
+  platformLabel = 'Facebook business page'
+) {
+  let title = f.title;
+  let supportingDetail = f.supportingDetail || '';
+
+  if (f.checkKey === 'profile_category_or_services') {
+    if (f.state === 'PASS') {
+      const rawSnippet =
+        f.observedValue?.detectedProfileCategory ||
+        f.observedValue?.detectedProfileDescription ||
+        supportingDetail.match(/:\s*"([\s\S]+)"\.?$/)?.[1] ||
+        null;
+      const classified = rawSnippet ? classifyProfileSummaryText(rawSnippet) : null;
+      if (classified?.kind === 'category') {
+        title = 'Business Category';
+        supportingDetail = `Business category detected on ${platformLabel}: "${classified.text}".`;
+      } else if (classified?.kind === 'description') {
+        title = 'Business Description / Offerings Signal';
+        supportingDetail = `Public description or offerings signal detected on ${platformLabel}: "${classified.text}"${
+          classified.text.endsWith('…') ? '' : '.'
+        }`;
+      } else if (title === 'Business Category & Offerings Summary') {
+        title = 'Business Description / Offerings Signal';
+      }
+    } else if (title === 'Business Category & Offerings Summary') {
+      title = 'Business Category / Offerings Signal';
+    }
+  }
+
   return {
     category: f.category,
     checkKey: f.checkKey,
-    title: f.title,
+    title,
     state: f.state as 'PASS' | 'FAIL' | 'UNKNOWN',
     scoreContribution: f.scoreContribution,
     maxPoints: f.maxPoints,
-    supportingDetail: f.supportingDetail || '',
+    supportingDetail,
   };
 }
 
@@ -149,7 +184,9 @@ export async function GET(req: Request) {
           confidence: refreshed.confidence,
           scoreBreakdown: refreshed.scoreBreakdown,
           findingsCount: refreshed.findings.length,
-          findings: refreshed.findings.map(formatPublicFinding),
+          findings: refreshed.findings.map((f) =>
+            formatPublicFinding(f, refreshed.platformLabel ?? platform.platformLabel ?? 'hosted business profile')
+          ),
           humanReviewRequested: false,
           questionnaireCompleted: false,
         });
@@ -187,7 +224,9 @@ export async function GET(req: Request) {
       confidence: coverage?.confidence ?? 'INSUFFICIENT',
       scoreBreakdown: check.scoreBreakdown || null,
       findingsCount: filteredFindings.length,
-      findings: filteredFindings.map(formatPublicFinding),
+      findings: filteredFindings.map((f) =>
+        formatPublicFinding(f, platformLabel ?? 'hosted business profile')
+      ),
       humanReviewRequested: Boolean(check.email),
       questionnaireCompleted: Boolean(ownerResp),
     });
@@ -358,7 +397,12 @@ export async function POST(req: Request) {
       scoreBreakdown: scanResult.scoreBreakdown,
       categoryScores: scanResult.categoryScores || [],
       findingsCount: scanResult.findings.length,
-      findings: scanResult.findings.map(formatPublicFinding),
+      findings: scanResult.findings.map((f) =>
+        formatPublicFinding(
+          f,
+          scanResult.platformLabel ?? fallbackPlatform.platformLabel ?? 'hosted business profile'
+        )
+      ),
       humanReviewRequested: Boolean(cleanEmail),
       message: 'Business Reality Check scan completed.',
     });

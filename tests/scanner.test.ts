@@ -10,7 +10,12 @@ import {
   createSsrfSafeAgent,
 } from '../src/lib/scanner/ssrf';
 
-import { parseHtmlForBusinessSignals, decodeHtmlEntities } from '../src/lib/scanner/parser';
+import {
+  parseHtmlForBusinessSignals,
+  decodeHtmlEntities,
+  formatCleanExcerpt,
+  classifyProfileSummaryText,
+} from '../src/lib/scanner/parser';
 import { runDeterministicChecks, buildUnknownFindings } from '../src/lib/scanner/checks';
 import { calculateScores } from '../src/lib/scanner/scoring';
 import { classifySubmittedUrl, isExternalBusinessWebsiteLink } from '../src/lib/scanner/platform';
@@ -634,6 +639,11 @@ test('Hosted Profile 8 — Facebook page extracts business name, city/state, cat
   assert.equal(byKey.get('profile_business_name')?.state, 'PASS');
   assert.equal(byKey.get('profile_location_signals')?.state, 'PASS');
   assert.equal(byKey.get('profile_category_or_services')?.state, 'PASS');
+  assert.equal(byKey.get('profile_category_or_services')?.title, 'Business Category');
+  assert.equal(
+    byKey.get('profile_category_or_services')?.supportingDetail,
+    'Business category detected on Facebook business page: "Mexican Food".'
+  );
   assert.equal(byKey.get('profile_activity_signals')?.state, 'PASS');
   assert.equal(byKey.get('profile_phone_or_contact')?.state, 'UNKNOWN');
   assert.equal(byKey.get('profile_external_website')?.state, 'UNKNOWN');
@@ -719,5 +729,67 @@ test('Hosted Profile 10 — Normal standalone website scanning still works as ex
   assert.equal(scores.scoreBreakdown?.sourceType, 'standalone_website');
   assert.equal(parsed.derivedCityState, 'Louisville, KY');
 });
+
+test('Hosted Profile 11 — Distinguishes Business Category from Business Description / Offerings Signal and formats clean excerpts without double periods (..)', () => {
+  const sweetBsHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Sweet B&#039;s | New Albany IN | Facebook</title>
+        <meta name="description" content="Sweet B&#039;s, New Albany, Indiana. 1,422 likes &#xb7; 48 talking about this &#xb7; 85 were here. Located in historic downtown of New Albany Indiana IN the alleyway across the street from The Grand. We are a whimsical..." />
+      </head>
+      <body></body>
+    </html>
+  `;
+  const url = 'https://www.facebook.com/p/Sweet-Bs-100092657172102/';
+  const platform = classifySubmittedUrl(url);
+  const parsed = parseHtmlForBusinessSignals(sweetBsHtml, undefined, platform.platformKey);
+
+  assert.equal(parsed.derivedBusinessName, "Sweet B's");
+  assert.equal(parsed.derivedCityState, 'New Albany, IN');
+  assert.equal(parsed.detectedProfileCategory, null, 'Free-form bio must not be classified as an explicit category');
+  assert.ok(parsed.detectedProfileDescription, 'Free-form bio must be stored in detectedProfileDescription');
+  assert.equal(
+    parsed.detectedProfileDescription?.endsWith('..'),
+    false,
+    'Excerpt must never end with double periods (..)'
+  );
+  assert.equal(
+    parsed.detectedProfileDescription?.endsWith('…'),
+    true,
+    'Truncated excerpt must end with a single unicode ellipsis (…)'
+  );
+
+  const rawData: RawPageData = {
+    requestedUrl: url,
+    finalUrl: url,
+    normalizedUrl: url,
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 320,
+    headers: {},
+    html: sweetBsHtml,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed, platform });
+  const summaryFinding = findings.find((f) => f.checkKey === 'profile_category_or_services')!;
+  assert.equal(summaryFinding.state, 'PASS');
+  assert.equal(summaryFinding.title, 'Business Description / Offerings Signal');
+  assert.match(summaryFinding.supportingDetail, /We are a whimsical…"/);
+  assert.equal(summaryFinding.supportingDetail.includes('..'), false);
+
+  // Direct unit checks on formatCleanExcerpt & classifyProfileSummaryText
+  assert.equal(
+    formatCleanExcerpt(
+      'Located in historic downtown of New Albany Indiana IN the alleyway across the street from The Grand. We are a whimsical..'
+    ),
+    'Located in historic downtown of New Albany Indiana IN the alleyway across the street from The Grand. We are a whimsical…'
+  );
+  assert.deepEqual(classifyProfileSummaryText('Mexican Food'), {
+    kind: 'category',
+    text: 'Mexican Food',
+  });
+});
+
 
 

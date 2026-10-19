@@ -158,22 +158,36 @@ export function runHostedProfileChecks(input: EvaluateInput): EvaluatedFinding[]
   );
 
   const hasCategoryOrServices = Boolean(
-    parsed.detectedProfileCategory || parsed.detectedMenuOrServices
+    parsed.detectedProfileCategory ||
+      parsed.detectedProfileDescription ||
+      parsed.detectedMenuOrServices
   );
+  const categoryOrDescTitle = parsed.detectedProfileCategory
+    ? 'Business Category'
+    : hasCategoryOrServices
+    ? 'Business Description / Offerings Signal'
+    : 'Business Category / Offerings Signal';
+  const categoryOrDescDetail = parsed.detectedProfileCategory
+    ? `Business category detected on ${platformLabel}: "${parsed.detectedProfileCategory}".`
+    : parsed.detectedProfileDescription
+    ? `Public description or offerings signal detected on ${platformLabel}: "${parsed.detectedProfileDescription}"${
+        parsed.detectedProfileDescription.endsWith('…') ? '' : '.'
+      }`
+    : `Service or menu language detected on ${platformLabel}.`;
+
   findings.push(
     evaluateHostedProfileCheck({
       found: hasCategoryOrServices,
       passPoints: 35,
       category: 'digital_presence',
       checkKey: 'profile_category_or_services',
-      title: 'Business Category & Offerings Summary',
+      title: categoryOrDescTitle,
       observedValue: {
         detectedProfileCategory: parsed.detectedProfileCategory,
+        detectedProfileDescription: parsed.detectedProfileDescription,
         detectedMenuOrServices: parsed.detectedMenuOrServices,
       },
-      passDetail: parsed.detectedProfileCategory
-        ? `Business category or offerings summary detected on ${platformLabel}: "${parsed.detectedProfileCategory}".`
-        : `Service or menu language detected on ${platformLabel}.`,
+      passDetail: categoryOrDescDetail,
       unknownDetail: `Business category and service details were not visible in static HTML on this ${platformLabel}. Deferred to Todd & Noelah for human review.`,
     })
   );

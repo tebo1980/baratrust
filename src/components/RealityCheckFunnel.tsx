@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { decodeHtmlEntities } from "@/lib/scanner/parser";
+import { decodeHtmlEntities, classifyProfileSummaryText } from "@/lib/scanner/parser";
 
 export interface PublicFinding {
   category: string;
@@ -427,6 +427,14 @@ export default function RealityCheckFunnel({
     snapshot.normalizedUrl.replace(/^https?:\/\/(www\.)?/i, "").split("/")[0] ||
     snapshot.website;
 
+  const cleanDomainLabel =
+    snapshot.normalizedUrl
+      .replace(/^https?:\/\/(www\.)?/i, "")
+      .replace(/\/.*$/, "")
+      .trim() || snapshot.website;
+
+  const scannedLinkLabel = isHostedProfile ? platformLabel : cleanDomainLabel;
+
   return (
     <div id="reality-check-form" className="lead-form" aria-live="polite">
       {/* STEP 2: IMMEDIATE AUTOMATED VALUE BEFORE EMAIL */}
@@ -464,8 +472,18 @@ export default function RealityCheckFunnel({
       <h3 id="intake-title" style={{ marginBottom: "6px" }}>
         {decodeHtmlEntities(displayTarget)}
       </h3>
-      <p className="form-note" style={{ marginTop: 0, marginBottom: "16px", wordBreak: "break-all" }}>
-        Scanned link: {snapshot.normalizedUrl}
+      <p className="scanned-link-row">
+        Scanned:{" "}
+        <a
+          href={snapshot.normalizedUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="scanned-link-anchor"
+          title={snapshot.normalizedUrl}
+        >
+          <span>{scannedLinkLabel}</span>
+          <span aria-hidden="true">↗</span>
+        </a>
       </p>
 
       {/* Score & Coverage Box */}
@@ -496,10 +514,7 @@ export default function RealityCheckFunnel({
             </span>
           </div>
           <p style={{ margin: "8px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
-            We could only evaluate a limited portion of the standard website checks because this is a {platformLabel} rather than a standalone website.
-          </p>
-          <p style={{ margin: "6px 0 0", fontSize: "0.88rem", lineHeight: 1.5, color: "var(--muted)" }}>
-            This is a {platformLabel}, so some website-specific checks don’t apply. We were able to verify a few public signals, but the most useful part of this Reality Check will come from human review.
+            This is a {platformLabel}, not a standalone website, so we’ve withheld the website score. We verified the public signals this page exposes and deferred the rest for human review.
           </p>
         </div>
       ) : snapshot.overallScore !== null ? (
@@ -553,65 +568,51 @@ export default function RealityCheckFunnel({
       {/* Key Observable Findings */}
       {highlightedFindings.length > 0 && (
         <div style={{ marginTop: "16px", marginBottom: "18px" }}>
-          <strong style={{ display: "block", fontSize: "0.92rem", marginBottom: "10px" }}>
-            {isHostedProfile
-              ? "Public Business Signals & Human-Review Checks:"
-              : "Key Findings From Your First Scan:"}
+          <strong style={{ display: "block", fontSize: "0.95rem", marginBottom: "10px" }}>
+            What We Found
           </strong>
-          <ul
-            style={{
-              listStyle: "none",
-              padding: 0,
-              margin: 0,
-              display: "grid",
-              gap: "8px",
-            }}
-          >
+          <ul className="findings-list">
             {highlightedFindings.map((f) => {
               const badgeText =
                 f.state === "PASS" ? "PASS" : f.state === "FAIL" ? "ATTENTION" : "HUMAN CHECK";
-              const badgeColor =
+              const badgeModifier =
                 f.state === "PASS"
-                  ? "#1f7f60"
+                  ? "finding-badge--pass"
                   : f.state === "FAIL"
-                  ? "#b45309"
-                  : "#5d6a64";
+                  ? "finding-badge--attention"
+                  : "finding-badge--human";
+
+              let resolvedTitle = decodeHtmlEntities(f.title);
+              let resolvedDetail = decodeHtmlEntities(f.supportingDetail);
+
+              if (f.checkKey === "profile_category_or_services") {
+                const quotedMatch = resolvedDetail.match(/:\s*"([\s\S]+)"\.?$/);
+                if (f.state === "PASS" && quotedMatch?.[1]) {
+                  const classified = classifyProfileSummaryText(quotedMatch[1]);
+                  if (classified?.kind === "category") {
+                    resolvedTitle = "Business Category";
+                    resolvedDetail = `Business category detected on ${platformLabel}: "${classified.text}".`;
+                  } else if (classified?.kind === "description") {
+                    resolvedTitle = "Business Description / Offerings Signal";
+                    resolvedDetail = `Public description or offerings signal detected on ${platformLabel}: "${classified.text}"${
+                      classified.text.endsWith("…") ? "" : "."
+                    }`;
+                  }
+                } else if (resolvedTitle === "Business Category & Offerings Summary") {
+                  resolvedTitle =
+                    f.state === "PASS"
+                      ? "Business Description / Offerings Signal"
+                      : "Business Category / Offerings Signal";
+                }
+              }
 
               return (
-                <li
-                  key={f.checkKey}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: "12px",
-                    border: "1px solid var(--line)",
-                    background: "rgba(255,255,255,0.45)",
-                    fontSize: "0.88rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    <strong>{decodeHtmlEntities(f.title)}</strong>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 800,
-                        color: badgeColor,
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      [{badgeText}]
-                    </span>
+                <li key={f.checkKey} className="finding-card">
+                  <div className="finding-card-header">
+                    <span className="finding-card-title">{resolvedTitle}</span>
+                    <span className={`finding-badge ${badgeModifier}`}>{badgeText}</span>
                   </div>
-                  <span style={{ display: "block", fontSize: "0.82rem", opacity: 0.9 }}>
-                    {decodeHtmlEntities(f.supportingDetail)}
-                  </span>
+                  <span className="finding-card-detail">{resolvedDetail}</span>
                 </li>
               );
             })}

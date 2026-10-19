@@ -64,3 +64,114 @@
 
 .landing-wrapper .reality-card { margin-top: 10px; }
 .landing-wrapper .starter-note p strong, .landing-wrapper .starter-note span strong { display: inline; }
+
+/* Reality Check Results Screen Polish */
+.landing-wrapper .scanned-link-row {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.landing-wrapper .scanned-link-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-word;
+}
+.landing-wrapper .scanned-link-anchor:hover {
+  color: var(--mint-dark);
+}
+.landing-wrapper .findings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.landing-wrapper .finding-card {
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #cddbd3;
+  background: #f4f8f5;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+.landing-wrapper .finding-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.landing-wrapper .finding-card-title {
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+}
+.landing-wrapper .finding-card-detail {
+  display: block;
+  font-size: 0.83rem;
+  line-height: 1.48;
+  color: var(--muted);
+}
+.landing-wrapper .finding-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.landing-wrapper .finding-badge--pass {
+  color: #145e45;
+  background: rgba(31, 127, 96, 0.12);
+  border: 1px solid rgba(31, 127, 96, 0.28);
+}
+.landing-wrapper .finding-badge--attention {
+  color: #9a4406;
+  background: rgba(180, 83, 9, 0.11);
+  border: 1px solid rgba(180, 83, 9, 0.28);
+}
+.landing-wrapper .finding-badge--human {
+  color: #3f4f47;
+  background: rgba(93, 106, 100, 0.12);
+  border: 1px solid rgba(93, 106, 100, 0.26);
+}
+
+/* Dark-green palette overrides for finding cards & badges */
+.landing-wrapper[data-theme="dark"] .finding-card {
+  background: #131f19;
+  border-color: #2c3e33;
+  color: var(--ink);
+}
+.landing-wrapper[data-theme="dark"] .finding-card-title {
+  color: #eef4ef;
+}
+.landing-wrapper[data-theme="dark"] .finding-card-detail {
+  color: #bac9bf;
+}
+.landing-wrapper[data-theme="dark"] .finding-badge--pass {
+  color: #7be0b8;
+  background: rgba(123, 224, 184, 0.11);
+  border-color: rgba(123, 224, 184, 0.28);
+}
+.landing-wrapper[data-theme="dark"] .finding-badge--attention {
+  color: #f6b971;
+  background: rgba(246, 185, 113, 0.11);
+  border-color: rgba(246, 185, 113, 0.3);
+}
+.landing-wrapper[data-theme="dark"] .finding-badge--human {
+  color: #c2d1c7;
+  background: rgba(186, 201, 191, 0.09);
+  border-color: rgba(186, 201, 191, 0.24);
+}
+

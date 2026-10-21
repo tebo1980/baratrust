@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { realityChecks, humanReviews } from '@/db/schema';
 import { getOperatorUser } from '@/lib/auth/operator';
 import { sendRealityCheckDeliveryEmail } from '@/lib/email/delivery';
+import { buildClientSafeFrozenSnapshot } from '@/lib/gemini/synthesizer';
 
 export const dynamic = 'force-dynamic';
 
@@ -107,11 +108,20 @@ export async function POST(
 
     const now = new Date();
 
-    // 5. Freeze published report snapshot including topFixes and opportunities to guarantee immutability
+    // 5. Freeze published report snapshot including topFixes, opportunities, and humanIntelligence to guarantee immutability
+    // Only citations explicitly marked clientVisible=true are included in the public frozen snapshot.
+    const { frozenTopFixes, frozenOpportunities, frozenHumanIntelligence } =
+      buildClientSafeFrozenSnapshot({
+        topFixes,
+        opportunitiesFound: review.opportunitiesFound || [],
+        humanIntelligence: review.humanIntelligence || null,
+      });
+
     const publishedContent = {
       ...draft,
-      frozenTopFixes: JSON.parse(JSON.stringify(topFixes)),
-      frozenOpportunities: JSON.parse(JSON.stringify(review.opportunitiesFound || [])),
+      frozenTopFixes,
+      frozenOpportunities,
+      frozenHumanIntelligence,
     };
 
     // 5b. ATOMIC STATE TRANSITION & CONCURRENCY GUARD:

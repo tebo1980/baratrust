@@ -5,6 +5,10 @@ import {
   DEFAULT_GEMINI_REPORT_MODEL,
   synthesizeReportWithGemini,
   generateDeterministicFallbackReport,
+  buildEvidencePrompt,
+  buildHumanIntelligenceFallbackSummaries,
+  normalizeAdPresenceState,
+  buildClientSafeFrozenSnapshot,
   SynthesisEvidencePackage
 } from '../src/lib/gemini/synthesizer';
 import { 
@@ -825,5 +829,486 @@ test('Email Claim Concurrency — atomic conditional claim prevents race overwri
   assert.equal(notifications, 1, 'Exactly one operator notification may be sent');
   assert.equal(dbRecord.email, winner.email);
 });
+
+test('Review Studio Save -> Publish Sequence — pre-publish save never prematurely marks status published or skips frozen snapshot + email delivery', () => {
+  // Simulates DB rows for reality_checks and human_reviews
+  const dbCheck = {
+    id: 'rc-publish-flow-1',
+    status: 'IN_REVIEW',
+  };
+  const dbReview: {
+    id: string;
+    status: string;
+    publishedAt: Date | null;
+    publishedReport: Record<string, any> | null;
+    reportDraft: Record<string, any>;
+    topFixes: any[];
+    opportunitiesFound: any[];
+  } = {
+    id: 'hr-publish-flow-1',
+    status: 'in_review',
+    publishedAt: null,
+    publishedReport: null,
+    reportDraft: {
+      executiveSummary: 'Complete executive summary for the owner.',
+      topFixesSummary: 'Top 3 fixes.',
+      notWorthSpendingOnSummary: 'Skip expensive agency retainers.',
+    },
+    topFixes: [
+      { priority: 1, title: 'Fix 1', whyItMatters: 'Why 1', suggestedAction: 'Act 1', evidenceLabel: 'BARATRUST_REVIEW' },
+      { priority: 2, title: 'Fix 2', whyItMatters: 'Why 2', suggestedAction: 'Act 2', evidenceLabel: 'BARATRUST_REVIEW' },
+      { priority: 3, title: 'Fix 3', whyItMatters: 'Why 3', suggestedAction: 'Act 3', evidenceLabel: 'BARATRUST_REVIEW' },
+    ],
+    opportunitiesFound: [
+      { id: 'opp-1', title: 'Opp 1', type: 'Local', description: 'Desc', evidenceLabel: 'OPPORTUNITY_FOUND' },
+    ],
+  };
+
+  let emailsDispatched = 0;
+
+  // Mirrors POST /api/internal/reviews/[realityCheckId] save endpoint status resolution
+  function saveReviewDraft(requestedReviewStatus: string, requestedRealityCheckStatus: string) {
+    const isAlreadyPublished =
+      dbReview.status === 'published' ||
+      Boolean(dbReview.publishedReport) ||
+      dbCheck.status === 'PUBLISHED';
+
+    const resolvedReviewStatus = isAlreadyPublished
+      ? 'published'
+      : requestedReviewStatus === 'published'
+      ? 'ready_to_publish'
+      : requestedReviewStatus;
+
+    const resolvedPublishedAt = isAlreadyPublished
+      ? dbReview.publishedAt || new Date()
+      : null;
+
+    dbReview.status = resolvedReviewStatus;
+    dbReview.publishedAt = resolvedPublishedAt;
+
+    if (!isAlreadyPublished) {
+      dbCheck.status =
+        requestedRealityCheckStatus === 'PUBLISHED'
+          ? 'READY_TO_PUBLISH'
+          : requestedRealityCheckStatus;
+    }
+  }
+
+  // Mirrors POST /api/internal/reviews/[realityCheckId]/publish endpoint
+  function publishReview() {
+    if (dbReview.status === 'published' || dbReview.publishedReport || dbCheck.status === 'PUBLISHED') {
+      return { alreadyPublished: true };
+    }
+    dbReview.status = 'published';
+    dbReview.publishedAt = new Date();
+    dbReview.publishedReport = {
+      ...dbReview.reportDraft,
+      frozenTopFixes: JSON.parse(JSON.stringify(dbReview.topFixes)),
+      frozenOpportunities: JSON.parse(JSON.stringify(dbReview.opportunitiesFound)),
+    };
+    dbCheck.status = 'PUBLISHED';
+    emailsDispatched++;
+    return { alreadyPublished: false };
+  }
+
+  // Step 1: Pre-publish save (even if caller passed 'published'/'PUBLISHED' or 'ready_to_publish'/'READY_TO_PUBLISH')
+  saveReviewDraft('published', 'PUBLISHED');
+  assert.equal(dbReview.status, 'ready_to_publish', 'Draft save must never set status=published without freezing report');
+  assert.equal(dbCheck.status, 'READY_TO_PUBLISH', 'Draft save must never set check.status=PUBLISHED prematurely');
+  assert.equal(dbReview.publishedReport, null);
+
+  // Step 2: Dedicated /publish endpoint runs and freezes snapshot + dispatches email
+  const pubRes = publishReview();
+  const frozenReport = dbReview.publishedReport as Record<string, any> | null;
+  assert.equal(pubRes.alreadyPublished, false, 'Publish endpoint must execute full publish flow');
+  assert.equal(dbReview.status, 'published');
+  assert.equal(dbCheck.status, 'PUBLISHED');
+  assert.ok(frozenReport, 'publishedReport snapshot must be frozen');
+  assert.equal(frozenReport.frozenTopFixes.length, 3);
+  assert.equal(emailsDispatched, 1, 'Owner delivery email must be dispatched');
+
+  // Step 3: Subsequent scratchpad save after publication must not downgrade status or wipe publishedAt
+  const originalPublishedAt = dbReview.publishedAt;
+  saveReviewDraft('in_review', 'IN_REVIEW');
+  assert.equal(dbReview.status, 'published', 'Post-publish scratchpad save must preserve published status');
+  assert.equal(dbReview.status === 'published', true);
+  assert.equal(dbCheck.status, 'PUBLISHED', 'Post-publish scratchpad save must preserve PUBLISHED check status');
+  assert.equal(dbReview.publishedAt, originalPublishedAt, 'Post-publish scratchpad save must not clear publishedAt');
+});
+
+// ==========================================
+// BaraTrust Review Studio — Human Intelligence Layer
+// ==========================================
+
+test('Human Intelligence Layer — returns empty strings for optional report summaries when no human intelligence evidence is recorded', () => {
+  const pkgEmpty: SynthesisEvidencePackage = {
+    business: {
+      name: 'Plain Hardware Co.',
+      website: 'https://plainhardware.com',
+      cityState: 'Jeffersonville, IN',
+      ownerName: 'Sam Plain',
+    },
+    scanner: {
+      overallScore: 72,
+      findings: [],
+    },
+    humanReview: {
+      opportunitiesFound: [],
+      topFixes: [
+        { priority: 1, title: 'Fix 1', whyItMatters: 'Why 1', suggestedAction: 'Act 1', evidenceLabel: 'BARATRUST_REVIEW' },
+        { priority: 2, title: 'Fix 2', whyItMatters: 'Why 2', suggestedAction: 'Act 2', evidenceLabel: 'BARATRUST_REVIEW' },
+        { priority: 3, title: 'Fix 3', whyItMatters: 'Why 3', suggestedAction: 'Act 3', evidenceLabel: 'BARATRUST_REVIEW' },
+      ],
+      humanIntelligence: {
+        brandReality: { messageClarity: 'UNKNOWN' },
+        customerVoice: { topLoves: [], topComplaints: [] },
+        advertisingFunnel: { adPresence: 'UNKNOWN', recommendation: 'UNKNOWN' },
+        ghostFootprint: [],
+      },
+    },
+  };
+
+  const fallback = generateDeterministicFallbackReport(pkgEmpty);
+  assert.equal(fallback.brandRealitySummary, '');
+  assert.equal(fallback.customerVoiceSummary, '');
+  assert.equal(fallback.advertisingFunnelSummary, '');
+  assert.equal(fallback.ghostFootprintSummary, '');
+});
+
+test('Human Intelligence Layer — synthesizes Brand Reality, Customer Voice, Advertising Funnel, Ghost Footprint, and Hidden Opportunities with evidence citations', () => {
+  const pkgPopulated: SynthesisEvidencePackage = {
+    business: {
+      name: 'Sweet B Bakery & Cafe',
+      website: 'https://sweetbbakery.example.com',
+      cityState: 'New Albany, IN',
+      ownerName: 'Brenda',
+    },
+    scanner: {
+      overallScore: 64,
+      coverage: 80,
+      confidence: 'HIGH',
+      findings: [],
+    },
+    humanReview: {
+      opportunitiesFound: [
+        {
+          id: 'opp-hidden-1',
+          title: 'Promote Custom Birthday & Wedding Cakes on Homepage',
+          type: 'Unpromoted Customer Favorite',
+          description: 'Customers rave about custom cakes in Google reviews, but the website only mentions daily muffins.',
+          suggestedAction: 'Add a 3-photo Custom Cake inquiry section above the fold.',
+          potentialImpact: 'High ($800-$2,000/mo high-margin orders)',
+          evidenceLabel: 'OPPORTUNITY_FOUND',
+          evidence: {
+            source: 'Google Reviews',
+            sourceUrl: 'https://maps.google.com/?cid=123',
+            note: 'Mentioned in multiple recent 5-star reviews',
+            observedAt: '2026-10-20',
+          },
+        },
+      ],
+      topFixes: [
+        {
+          priority: 1,
+          title: 'Merge duplicate 2019 Facebook page showing old phone number',
+          whyItMatters: 'Callers dialing the old page get a disconnected tone.',
+          suggestedAction: 'Claim and merge or unpublish the legacy 2019 page.',
+          evidenceLabel: 'BARATRUST_REVIEW',
+          evidence: {
+            source: 'Google Search & Facebook',
+            sourceUrl: 'https://facebook.com/sweetb-old-2019',
+            note: 'Ranks #2 for brand name search',
+            observedAt: '2026-10-20',
+          },
+        },
+        {
+          priority: 2,
+          title: 'Highlight custom cake ordering on homepage',
+          whyItMatters: 'Unmarketed customer favorite.',
+          suggestedAction: 'Add cake gallery and order form.',
+          evidenceLabel: 'BARATRUST_REVIEW',
+        },
+        {
+          priority: 3,
+          title: 'Pause boosted posts pointing to broken menu PDF',
+          whyItMatters: 'Wasted ad spend.',
+          suggestedAction: 'Point ads to mobile-friendly HTML menu.',
+          evidenceLabel: 'BARATRUST_REVIEW',
+        },
+      ],
+      notSpendMoneyOn: 'Do not increase Meta ad budget until the menu link and duplicate Facebook page are fixed.',
+      humanIntelligence: {
+        brandReality: {
+          apparentBrandMessage: 'Generic corporate catering template',
+          messageClarity: 'SOMEWHAT_CLEAR',
+          mysteryShopImpression: 'Warm photos on Instagram, but website feels sterile and ordering flow is buried.',
+          brandCustomerMismatch: 'Customers describe the business as quirky and family-friendly, but its website feels generic and corporate.',
+          consistencyNotes: 'Instagram has daily fresh pastry reels; website copyright says 2021.',
+          strongestBrandOpportunity: 'Bring the warm family bakery personality and custom cake photos onto the homepage.',
+        },
+        customerVoice: {
+          topLoves: ['Cinnamon rolls served warm', 'Custom birthday cake designs', 'Friendly counter staff'],
+          topComplaints: ['Phone goes to full voicemail box during morning rush', 'Hard to find current menu prices online'],
+          recurringThemes: 'Locals love the food and family vibe once inside, but struggle to order ahead.',
+          unmarketedStrengths: 'Custom celebration cakes and gluten-free शनिवार boxes.',
+          evidence: {
+            source: 'Google & Facebook Reviews',
+            note: 'Consistent praise for custom cakes despite zero homepage presence',
+            observedAt: '2026-10-20',
+          },
+        },
+        advertisingFunnel: {
+          adPresence: 'OBSERVED',
+          platformsObserved: 'Meta Ad Library (Facebook & Instagram)',
+          offerSummary: 'Boosted post for holiday pie pre-orders',
+          landingPageQuality: 'Links to a 2022 PDF menu that 404s on mobile.',
+          adToFunnelMismatch: 'Paying for clicks that land on a dead link with no pre-order form.',
+          recommendation: 'IMPROVE_FUNNEL_FIRST',
+          recommendationNote: 'Pause boosted posts until the holiday pre-order form is live on the website.',
+        },
+        ghostFootprint: [
+          {
+            id: 'ghost-1',
+            assetType: 'Abandoned Social Account',
+            summary: 'Unclaimed 2019 Facebook page still ranks #2 on Google with a disconnected phone number.',
+            source: 'Google Search',
+            sourceUrl: 'https://facebook.com/sweetb-old-2019',
+            evidenceNote: 'Last post Nov 2019; lists old 502-555-0100 number',
+            observedAt: '2026-10-20',
+            customerImpact: 'First-time customers call the disconnected number and assume the bakery closed.',
+            recommendedFix: 'Request page merge or removal via Meta Business Support.',
+            evidenceLabel: 'BARATRUST_REVIEW',
+          },
+        ],
+      },
+    },
+  };
+
+  const prompt = buildEvidencePrompt(pkgPopulated);
+  assert.ok(prompt.includes('quirky and family-friendly'));
+  assert.ok(prompt.includes('Cinnamon rolls served warm'));
+  assert.ok(prompt.includes('IMPROVE_FUNNEL_FIRST'));
+  assert.ok(prompt.includes('Abandoned Social Account'));
+  assert.ok(prompt.includes('Unpromoted Customer Favorite'));
+  assert.ok(prompt.includes('https://facebook.com/sweetb-old-2019'));
+
+  const summaries = buildHumanIntelligenceFallbackSummaries(pkgPopulated.humanReview.humanIntelligence);
+  assert.ok(summaries.brandRealitySummary.includes('quirky and family-friendly'));
+  assert.ok(summaries.customerVoiceSummary.includes('Cinnamon rolls served warm'));
+  assert.ok(summaries.advertisingFunnelSummary.includes('Meta Ad Library'));
+  assert.ok(summaries.ghostFootprintSummary.includes('Abandoned Social Account'));
+
+  const fallback = generateDeterministicFallbackReport(pkgPopulated);
+  assert.ok(fallback.brandRealitySummary && fallback.brandRealitySummary.length > 20);
+  assert.ok(fallback.customerVoiceSummary && fallback.customerVoiceSummary.length > 20);
+  assert.ok(fallback.advertisingFunnelSummary && fallback.advertisingFunnelSummary.length > 20);
+  assert.ok(fallback.ghostFootprintSummary && fallback.ghostFootprintSummary.length > 20);
+});
+
+test('Human Intelligence Layer — Advertising evidence semantics use OBSERVED / NOT_OBSERVED / UNKNOWN and never equate NOT_OBSERVED with definitely not advertising', () => {
+  assert.equal(normalizeAdPresenceState('OBSERVED'), 'OBSERVED');
+  assert.equal(normalizeAdPresenceState('NOT_OBSERVED'), 'NOT_OBSERVED');
+  assert.equal(normalizeAdPresenceState('UNKNOWN'), 'UNKNOWN');
+  // Legacy backward compatibility
+  assert.equal(normalizeAdPresenceState('YES'), 'OBSERVED');
+  assert.equal(normalizeAdPresenceState('NO'), 'NOT_OBSERVED');
+  assert.equal(normalizeAdPresenceState(undefined), 'UNKNOWN');
+
+  const pkgNotObserved: SynthesisEvidencePackage = {
+    business: {
+      name: 'Kentuckiana Electric',
+      website: 'https://kentuckianaelectric.example.com',
+      cityState: 'New Albany, IN',
+      ownerName: 'Dave',
+    },
+    scanner: {
+      overallScore: 78,
+      findings: [],
+    },
+    humanReview: {
+      opportunitiesFound: [],
+      topFixes: [
+        { priority: 1, title: 'Fix 1', whyItMatters: 'W1', suggestedAction: 'A1', evidenceLabel: 'BARATRUST_REVIEW' },
+        { priority: 2, title: 'Fix 2', whyItMatters: 'W2', suggestedAction: 'A2', evidenceLabel: 'BARATRUST_REVIEW' },
+        { priority: 3, title: 'Fix 3', whyItMatters: 'W3', suggestedAction: 'A3', evidenceLabel: 'BARATRUST_REVIEW' },
+      ],
+      humanIntelligence: {
+        advertisingFunnel: {
+          adPresence: 'NOT_OBSERVED',
+          platformsObserved: 'Meta Ad Library, Google Search',
+          recommendation: 'IMPROVE_FUNNEL_FIRST',
+        },
+      },
+    },
+  };
+
+  const prompt = buildEvidencePrompt(pkgNotObserved);
+  assert.ok(prompt.includes('Public Ad Evidence State: NOT_OBSERVED'));
+  assert.ok(prompt.includes('do NOT claim the business never advertises anywhere'));
+
+  const summaries = buildHumanIntelligenceFallbackSummaries(pkgNotObserved.humanReview.humanIntelligence);
+  assert.ok(
+    summaries.advertisingFunnelSummary.includes(
+      'We did not observe active paid ads in the public channels (Meta Ad Library, Google Search) checked during our review.'
+    )
+  );
+  assert.equal(summaries.advertisingFunnelSummary.toLowerCase().includes('runs no ads'), false);
+  assert.equal(summaries.advertisingFunnelSummary.toLowerCase().includes('does not advertise'), false);
+});
+
+test('Human Intelligence Layer — frozenHumanIntelligence & Evidence Visibility: internal operator research URLs/notes are stripped from public snapshot unless clientVisible=true, while preserving published immutability', () => {
+  const internalTopFixes = [
+    {
+      priority: 1,
+      title: 'Fix 1 with Internal-Only Operator Note',
+      whyItMatters: 'W1',
+      suggestedAction: 'A1',
+      evidenceLabel: 'BARATRUST_REVIEW' as const,
+      evidence: {
+        source: 'Internal Operator Scratchpad',
+        sourceUrl: 'https://internal.research.example.com/secret-query',
+        note: 'Internal note not meant for client eyes',
+        observedAt: '2026-10-20',
+        clientVisible: false,
+      },
+    },
+    {
+      priority: 2,
+      title: 'Fix 2 with Client-Visible Citation',
+      whyItMatters: 'W2',
+      suggestedAction: 'A2',
+      evidenceLabel: 'BARATRUST_REVIEW' as const,
+      evidence: {
+        source: 'Google Maps Public Listing',
+        sourceUrl: 'https://maps.google.com/?cid=999',
+        note: 'Hours listed as closed on Saturdays',
+        observedAt: '2026-10-20',
+        clientVisible: true,
+      },
+    },
+    {
+      priority: 3,
+      title: 'Fix 3 with Default (Omitted) clientVisible',
+      whyItMatters: 'W3',
+      suggestedAction: 'A3',
+      evidenceLabel: 'BARATRUST_REVIEW' as const,
+      evidence: {
+        source: 'Operator Ad Library Lookup',
+        sourceUrl: 'https://facebook.com/ads/library/?id=123',
+        note: 'Unchecked default visibility must stay internal',
+        observedAt: '2026-10-20',
+      },
+    },
+  ];
+
+  const internalOpportunities = [
+    {
+      id: 'opp-1',
+      title: 'Promote Catering Menu',
+      type: 'Unpromoted Customer Favorite',
+      description: 'Praised in reviews',
+      evidenceLabel: 'OPPORTUNITY_FOUND' as const,
+      evidence: {
+        source: 'Internal Yelp Research Link',
+        sourceUrl: 'https://yelp.com/biz/internal-check',
+        note: 'Operator research note',
+        clientVisible: false,
+      },
+    },
+  ];
+
+  const liveHumanIntelligence = {
+    brandReality: {
+      apparentBrandMessage: 'Original Brand Message',
+      messageClarity: 'OBVIOUS' as const,
+      brandCustomerMismatch: 'Original Mismatch Note',
+      evidence: {
+        source: 'Internal Mystery Shop Notes',
+        note: 'Private operator note',
+        clientVisible: false,
+      },
+    },
+    customerVoice: {
+      topLoves: ['Original Love 1', 'Original Love 2'],
+      topComplaints: ['Original Complaint 1'],
+      evidence: {
+        source: 'Google Reviews',
+        note: 'Public customer praise summary',
+        observedAt: '2026-10-20',
+        clientVisible: true,
+      },
+    },
+    advertisingFunnel: {
+      adPresence: 'NOT_OBSERVED' as const,
+      recommendation: 'DEPRIORITIZE_ADS' as const,
+    },
+    ghostFootprint: [
+      {
+        id: 'ghost-internal',
+        assetType: 'Duplicate Listing',
+        summary: 'Duplicate directory listing at old address',
+        source: 'Operator OSINT Tool',
+        sourceUrl: 'https://internal-osint.example.com/lookup',
+        evidenceNote: 'Internal lookup note',
+        observedAt: '2026-10-20',
+        clientVisible: false,
+        evidenceLabel: 'BARATRUST_REVIEW' as const,
+      },
+      {
+        id: 'ghost-public',
+        assetType: 'Abandoned Social Account',
+        summary: '2019 Facebook page with disconnected phone',
+        source: 'Facebook Public Page',
+        sourceUrl: 'https://facebook.com/old-page-2019',
+        evidenceNote: 'Publicly visible on Google page 1',
+        observedAt: '2026-10-20',
+        clientVisible: true,
+        evidenceLabel: 'BARATRUST_REVIEW' as const,
+      },
+    ],
+  };
+
+  // Freeze at publish time using buildClientSafeFrozenSnapshot (matching src/app/api/internal/reviews/[realityCheckId]/publish/route.ts)
+  const frozen = buildClientSafeFrozenSnapshot({
+    topFixes: internalTopFixes,
+    opportunitiesFound: internalOpportunities,
+    humanIntelligence: liveHumanIntelligence,
+  });
+
+  // 1. Internal evidence (clientVisible: false or omitted) is stripped from public frozen snapshot
+  assert.equal(frozen.frozenTopFixes[0].evidence, null, 'clientVisible=false evidence on Top Fix must not leak into public snapshot');
+  assert.equal(frozen.frozenTopFixes[2].evidence, null, 'Omitted clientVisible evidence must default to internal-only (null in public snapshot)');
+  assert.equal(frozen.frozenOpportunities[0].evidence, null, 'clientVisible=false evidence on Opportunity must not leak into public snapshot');
+  assert.equal(frozen.frozenHumanIntelligence?.brandReality?.evidence, null, 'clientVisible=false evidence on Brand Reality must not leak');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[0].sourceUrl, undefined, 'clientVisible=false Ghost Footprint sourceUrl must not leak');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[0].evidenceNote, undefined, 'clientVisible=false Ghost Footprint evidenceNote must not leak');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[0].summary, 'Duplicate directory listing at old address', 'Ghost Footprint summary itself remains on report');
+
+  // 2. Internal evidence remains completely intact on the internal human_reviews structures for operator reference
+  assert.equal(internalTopFixes[0].evidence.sourceUrl, 'https://internal.research.example.com/secret-query');
+  assert.equal(liveHumanIntelligence.ghostFootprint[0].sourceUrl, 'https://internal-osint.example.com/lookup');
+
+  // 3. Explicitly client-visible evidence (clientVisible: true) IS preserved in the frozen snapshot
+  assert.equal(frozen.frozenTopFixes[1].evidence?.source, 'Google Maps Public Listing');
+  assert.equal(frozen.frozenTopFixes[1].evidence?.clientVisible, true);
+  assert.equal(frozen.frozenHumanIntelligence?.customerVoice?.evidence?.source, 'Google Reviews');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[1].sourceUrl, 'https://facebook.com/old-page-2019');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[1].clientVisible, true);
+
+  // 4. Simulate post-publish operator scratchpad edits — frozen snapshot remains strictly immutable
+  internalTopFixes[1].evidence.note = 'MUTATED Note After Publish';
+  liveHumanIntelligence.brandReality.apparentBrandMessage = 'MUTATED Brand Message';
+  liveHumanIntelligence.customerVoice.topLoves[0] = 'MUTATED Love 1';
+  liveHumanIntelligence.ghostFootprint[1].summary = 'MUTATED Ghost Summary';
+  liveHumanIntelligence.ghostFootprint[1].sourceUrl = 'https://mutated.example.com';
+
+  assert.equal(frozen.frozenTopFixes[1].evidence?.note, 'Hours listed as closed on Saturdays');
+  assert.equal(frozen.frozenHumanIntelligence?.brandReality?.apparentBrandMessage, 'Original Brand Message');
+  assert.equal(frozen.frozenHumanIntelligence?.customerVoice?.topLoves?.[0], 'Original Love 1');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[1].summary, '2019 Facebook page with disconnected phone');
+  assert.equal(frozen.frozenHumanIntelligence?.ghostFootprint?.[1].sourceUrl, 'https://facebook.com/old-page-2019');
+});
+
+
 
 

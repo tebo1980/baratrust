@@ -287,9 +287,22 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                             </span>
                           </div>
                         </div>
+                      ) : item.scoreBreakdown?.sourceType === 'hosted_profile' ? (
+                        <div className="space-y-1">
+                          <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded font-mono text-[10px] font-semibold inline-block">
+                            Score Withheld
+                          </span>
+                          <div className="font-mono text-[10px] text-slate-400">
+                            {item.scoreBreakdown?.platformLabel || 'Hosted Profile'}
+                          </div>
+                        </div>
                       ) : (
                         <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded font-mono text-[11px]">
-                          {item.scanStatus === 'failed' ? 'Scan Deferred' : 'Pending'}
+                          {item.scanStatus === 'failed' || item.scanStatus === 'blocked' || item.scanStatus === 'timeout'
+                            ? 'Scan Deferred'
+                            : item.scanStatus === 'completed'
+                            ? 'Score Withheld'
+                            : 'Pending'}
                         </span>
                       )}
                     </td>

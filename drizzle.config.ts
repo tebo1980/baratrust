@@ -1,10 +1,14 @@
 import type { Config } from "drizzle-kit";
 
 export default {
-  schema: "./src/db/schema.ts", // Make sure this path matches your setup!
+  schema: "./src/db/schema.ts",
   out: "./drizzle",
-  driver: "pg", // <-- This is the exact string Drizzle is demanding
+  driver: "pg",
   dbCredentials: {
-    connectionString: process.env.DATABASE_URL!, // Or whatever your env variable is named
-  }
+    connectionString:
+      process.env.DATABASE_URL ||
+      process.env.POSTGRES_DATABASE_URL_UNPOOLED ||
+      process.env.POSTGRES_DATABASE_URL ||
+      "",
+  },
 } satisfies Config;

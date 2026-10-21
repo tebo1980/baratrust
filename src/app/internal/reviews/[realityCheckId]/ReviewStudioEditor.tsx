@@ -36,7 +36,16 @@ import {
   FindingState,
   RealityCheckStatus,
   RealityCheckReportContent,
-  ReportAuditMetadata
+  ReportAuditMetadata,
+  HumanIntelligenceLayer,
+  BrandRealityInsights,
+  CustomerVoiceInsights,
+  AdvertisingFunnelInsights,
+  GhostFootprintItem,
+  HumanEvidenceCitation,
+  BrandMessageClarity,
+  AdPresenceState,
+  AdFunnelRecommendation
 } from "@/db/schema";
 
 interface Props {
@@ -146,6 +155,61 @@ export default function ReviewStudioEditor({
     existingReview?.toddNotes || ""
   );
 
+  // Human Intelligence Layer (Brand Reality, Customer Voice, Advertising Funnel, Ghost Footprint)
+  const initialLoves: string[] = existingReview?.humanIntelligence?.customerVoice?.topLoves || [];
+  const initialComplaints: string[] = existingReview?.humanIntelligence?.customerVoice?.topComplaints || [];
+
+  const [brandReality, setBrandReality] = useState<BrandRealityInsights>({
+    apparentBrandMessage: existingReview?.humanIntelligence?.brandReality?.apparentBrandMessage || "",
+    messageClarity: existingReview?.humanIntelligence?.brandReality?.messageClarity || "UNKNOWN",
+    consistencyNotes: existingReview?.humanIntelligence?.brandReality?.consistencyNotes || "",
+    brandCustomerMismatch: existingReview?.humanIntelligence?.brandReality?.brandCustomerMismatch || "",
+    strongestBrandOpportunity: existingReview?.humanIntelligence?.brandReality?.strongestBrandOpportunity || "",
+    mysteryShopImpression: existingReview?.humanIntelligence?.brandReality?.mysteryShopImpression || "",
+    evidence: existingReview?.humanIntelligence?.brandReality?.evidence || null,
+  });
+
+  const [customerVoice, setCustomerVoice] = useState<CustomerVoiceInsights>({
+    topLoves: [
+      initialLoves[0] || "",
+      initialLoves[1] || "",
+      initialLoves[2] || "",
+    ],
+    topComplaints: [
+      initialComplaints[0] || "",
+      initialComplaints[1] || "",
+      initialComplaints[2] || "",
+    ],
+    recurringThemes: existingReview?.humanIntelligence?.customerVoice?.recurringThemes || "",
+    unmarketedStrengths: existingReview?.humanIntelligence?.customerVoice?.unmarketedStrengths || "",
+    evidence: existingReview?.humanIntelligence?.customerVoice?.evidence || null,
+  });
+
+  const rawAdPresence = existingReview?.humanIntelligence?.advertisingFunnel?.adPresence;
+  const initialAdPresence: AdPresenceState =
+    rawAdPresence === "YES" || rawAdPresence === "OBSERVED"
+      ? "OBSERVED"
+      : rawAdPresence === "NO" || rawAdPresence === "NOT_OBSERVED"
+      ? "NOT_OBSERVED"
+      : "UNKNOWN";
+
+  const [advertisingFunnel, setAdvertisingFunnel] = useState<AdvertisingFunnelInsights>({
+    adPresence: initialAdPresence,
+    platformsObserved: existingReview?.humanIntelligence?.advertisingFunnel?.platformsObserved || "",
+    offerSummary: existingReview?.humanIntelligence?.advertisingFunnel?.offerSummary || "",
+    landingPageQuality: existingReview?.humanIntelligence?.advertisingFunnel?.landingPageQuality || "",
+    adToFunnelMismatch: existingReview?.humanIntelligence?.advertisingFunnel?.adToFunnelMismatch || "",
+    recommendation: existingReview?.humanIntelligence?.advertisingFunnel?.recommendation || "UNKNOWN",
+    recommendationNote: existingReview?.humanIntelligence?.advertisingFunnel?.recommendationNote || "",
+    evidence: existingReview?.humanIntelligence?.advertisingFunnel?.evidence || null,
+  });
+
+  const [ghostFootprint, setGhostFootprint] = useState<GhostFootprintItem[]>(
+    existingReview?.humanIntelligence?.ghostFootprint && existingReview.humanIntelligence.ghostFootprint.length > 0
+      ? existingReview.humanIntelligence.ghostFootprint
+      : []
+  );
+
   // Report Draft & Audit state
   const [reportDraft, setReportDraft] = useState<RealityCheckReportContent | null>(
     existingReview?.reportDraft || null
@@ -200,11 +264,83 @@ export default function ReviewStudioEditor({
     });
   };
 
+  const updateOpportunityEvidence = (
+    index: number,
+    field: keyof HumanEvidenceCitation,
+    value: string | boolean
+  ) => {
+    setOpportunities((prev) => {
+      const updated = [...prev];
+      const currentEv = updated[index].evidence || {};
+      updated[index] = {
+        ...updated[index],
+        evidence: { ...currentEv, [field]: value },
+      };
+      return updated;
+    });
+  };
+
   const updateTopFix = (index: number, field: keyof HumanReviewTopFix, value: any) => {
     setTopFixes((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       return updated;
+    });
+  };
+
+  const updateTopFixEvidence = (
+    index: number,
+    field: keyof HumanEvidenceCitation,
+    value: string | boolean
+  ) => {
+    setTopFixes((prev) => {
+      const updated = [...prev];
+      const currentEv = updated[index].evidence || {};
+      updated[index] = {
+        ...updated[index],
+        evidence: { ...currentEv, [field]: value },
+      };
+      return updated;
+    });
+  };
+
+  // Ghost Footprint / Legacy Asset handlers
+  const addGhostFootprintItem = () => {
+    setGhostFootprint((prev) => [
+      ...prev,
+      {
+        id: `ghost-${Date.now()}`,
+        assetType: "Abandoned Social Account",
+        summary: "",
+        source: "",
+        sourceUrl: "",
+        evidenceNote: "",
+        observedAt: new Date().toISOString().split("T")[0],
+        clientVisible: false,
+        customerImpact: "",
+        recommendedFix: "",
+        evidenceLabel: "BARATRUST_REVIEW",
+      },
+    ]);
+  };
+
+  const removeGhostFootprintItem = (index: number) => {
+    setGhostFootprint((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateGhostFootprintItem = (index: number, field: keyof GhostFootprintItem, value: any) => {
+    setGhostFootprint((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const updateCustomerVoiceList = (field: 'topLoves' | 'topComplaints', idx: number, value: string) => {
+    setCustomerVoice((prev) => {
+      const list = [...(prev[field] || ["", "", ""])];
+      list[idx] = value;
+      return { ...prev, [field]: list };
     });
   };
 
@@ -245,6 +381,17 @@ export default function ReviewStudioEditor({
     const targetStatus = overrideStatus || reviewStatus;
     const targetCheckStatus = overrideCheckStatus || realityCheckStatus;
 
+    const payloadHumanIntelligence: HumanIntelligenceLayer = {
+      brandReality,
+      customerVoice: {
+        ...customerVoice,
+        topLoves: (customerVoice.topLoves || []).map((s) => s.trim()).filter(Boolean),
+        topComplaints: (customerVoice.topComplaints || []).map((s) => s.trim()).filter(Boolean),
+      },
+      advertisingFunnel,
+      ghostFootprint: ghostFootprint.filter((g) => g.summary.trim().length > 0),
+    };
+
     try {
       const res = await fetch(`/api/internal/reviews/${check.id}`, {
         method: "POST",
@@ -263,6 +410,7 @@ export default function ReviewStudioEditor({
           topFixes,
           notSpendMoneyOn,
           toddNotes,
+          humanIntelligence: payloadHumanIntelligence,
           reportDraft,
         }),
       });
@@ -326,10 +474,7 @@ export default function ReviewStudioEditor({
 
   // Publish Reality Check
   const handlePublish = async () => {
-    // First save the current draft state
-    await handleSave("published", "PUBLISHED");
-
-    // Pre-flight validation checks
+    // Pre-flight validation checks before persisting or marking published
     const validFixes = topFixes.filter((f) => f.title && f.title.trim().length > 0);
     if (validFixes.length < 3) {
       setPublishErrorMsg("Publish Blocked: All Top 3 Things We Would Fix First are required.");
@@ -341,10 +486,18 @@ export default function ReviewStudioEditor({
       return;
     }
 
+    const displayName = check.businessName || check.website;
+    const recipientDesc = check.email
+      ? `send the delivery notification email to ${check.ownerName ? `${check.ownerName} (${check.email})` : check.email}`
+      : "generate the shareable public report link (no owner email is on file)";
+
     const confirmed = window.confirm(
-      `Are you sure you want to PUBLISH this Reality Check for ${check.businessName}?\n\nThis will freeze the report and send the delivery notification email to ${check.ownerName} (${check.email}).`
+      `Are you sure you want to PUBLISH this Reality Check for ${displayName}?\n\nThis will freeze the report and ${recipientDesc}.`
     );
     if (!confirmed) return;
+
+    // Save the current draft state as ready_to_publish so the atomic /publish route can claim and freeze the snapshot
+    await handleSave("ready_to_publish", "READY_TO_PUBLISH");
 
     setPublishing(true);
     setPublishErrorMsg("");
@@ -668,7 +821,7 @@ export default function ReviewStudioEditor({
                   type="text"
                   value={findingsSearch}
                   onChange={(e) => setFindingsSearch(e.target.value)}
-                  placeholder="Filter 28 automated checks..."
+                  placeholder={`Filter ${findings.length} automated checks...`}
                   className="w-full px-3 py-1.5 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
                 />
 
@@ -931,15 +1084,515 @@ Client Edge: Higher authentic review rating and direct owner trust."
                 />
               </div>
 
+              {/* HUMAN INTELLIGENCE LAYER (DEEP-DIVE MODULES) */}
+              <div className="space-y-6 pt-4 border-t border-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="px-2.5 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[10px] font-bold rounded">
+                      [BARATRUST_REVIEW] HUMAN INTELLIGENCE LAYER
+                    </span>
+                    <h3 className="text-lg font-bold font-serif text-white mt-1">
+                      Brand Reality, Customer Voice, Ad Funnel & Legacy Footprint
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Capture hands-on customer/business judgment. Leave any section blank if not applicable—empty modules are automatically omitted from the final report.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mystery-Shop Prompt Guide */}
+                <div className="p-4 bg-[#080D18] border border-amber-500/25 rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center gap-2 font-mono text-[11px] text-amber-400 font-bold uppercase tracking-wider">
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    <span>Customer & Business Mystery-Shop Prompts</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-slate-300">
+                    <span>• Is the website/social presence pleasant & attractive?</span>
+                    <span>• Does it flow naturally for a real customer?</span>
+                    <span>• Is anything confusing, awkward, or broken?</span>
+                    <span>• Is it easy to buy, book, order, call, or visit?</span>
+                    <span>• Does the business look trustworthy and current?</span>
+                    <span>• Does the online story match what customers actually say?</span>
+                  </div>
+                </div>
+
+                {/* 5A. Brand Reality */}
+                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span className="text-amber-400 font-mono">5A.</span> Brand Reality & Mystery-Shop Judgment
+                    </h4>
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                      [BARATRUST_REVIEW]
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Apparent Brand / Message</label>
+                      <input
+                        type="text"
+                        value={brandReality.apparentBrandMessage || ""}
+                        onChange={(e) => setBrandReality({ ...brandReality, apparentBrandMessage: e.target.value })}
+                        placeholder="What does this business appear to stand for at first glance?"
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Is Message Obvious?</label>
+                      <select
+                        value={brandReality.messageClarity || "UNKNOWN"}
+                        onChange={(e) => setBrandReality({ ...brandReality, messageClarity: e.target.value as BrandMessageClarity })}
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="UNKNOWN">Not Evaluated / Unknown</option>
+                        <option value="OBVIOUS">OBVIOUS — Clear immediately</option>
+                        <option value="SOMEWHAT_CLEAR">SOMEWHAT_CLEAR — Mixed or diluted</option>
+                        <option value="UNCLEAR">UNCLEAR — Confusing or generic</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                        Customer Experience & Flow (Mystery-Shop Impression)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={brandReality.mysteryShopImpression || ""}
+                        onChange={(e) => setBrandReality({ ...brandReality, mysteryShopImpression: e.target.value })}
+                        placeholder="Is it pleasant, trustworthy, current, and easy to buy/book/order/call?"
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                        Brand / Customer Mismatch
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={brandReality.brandCustomerMismatch || ""}
+                        onChange={(e) => setBrandReality({ ...brandReality, brandCustomerMismatch: e.target.value })}
+                        placeholder="e.g. Customers describe the business as quirky and family-friendly, but its website feels generic and corporate."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                        Cross-Channel Consistency (Website / Social / Search)
+                      </label>
+                      <input
+                        type="text"
+                        value={brandReality.consistencyNotes || ""}
+                        onChange={(e) => setBrandReality({ ...brandReality, consistencyNotes: e.target.value })}
+                        placeholder="e.g. Instagram is warm and visual, but Google listing has outdated photos."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                        Strongest Brand Opportunity
+                      </label>
+                      <input
+                        type="text"
+                        value={brandReality.strongestBrandOpportunity || ""}
+                        onChange={(e) => setBrandReality({ ...brandReality, strongestBrandOpportunity: e.target.value })}
+                        placeholder="e.g. Bring their warm in-store family personality onto the homepage."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5B. Customer Voice / Review Intelligence */}
+                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <span className="text-amber-400 font-mono">5B.</span> Customer Voice / Review Intelligence
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        What real customers repeatedly praise or complain about (no exact review counts required unless verified).
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                      [BARATRUST_REVIEW]
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-mono text-emerald-400">
+                        Top 3 Things Customers Love
+                      </label>
+                      {[0, 1, 2].map((i) => (
+                        <input
+                          key={`love-${i}`}
+                          type="text"
+                          value={customerVoice.topLoves?.[i] || ""}
+                          onChange={(e) => updateCustomerVoiceList("topLoves", i, e.target.value)}
+                          placeholder={`Customer praise #${i + 1} (e.g. Homemade salsa bar)`}
+                          className="w-full px-3 py-1.5 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      ))}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-mono text-amber-400">
+                        Top 3 Recurring Complaints / Friction Points
+                      </label>
+                      {[0, 1, 2].map((i) => (
+                        <input
+                          key={`complaint-${i}`}
+                          type="text"
+                          value={customerVoice.topComplaints?.[i] || ""}
+                          onChange={(e) => updateCustomerVoiceList("topComplaints", i, e.target.value)}
+                          placeholder={`Friction point #${i + 1} (e.g. Hard to reach by phone at lunch)`}
+                          className="w-full px-3 py-1.5 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                        Recurring Customer Themes
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={customerVoice.recurringThemes || ""}
+                        onChange={(e) => setCustomerVoice({ ...customerVoice, recurringThemes: e.target.value })}
+                        placeholder="Patterns in how customers describe their experience..."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-emerald-400 mb-1">
+                        Hidden / Unmarketed Strengths Customers Praise
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={customerVoice.unmarketedStrengths || ""}
+                        onChange={(e) => setCustomerVoice({ ...customerVoice, unmarketedStrengths: e.target.value })}
+                        placeholder="Services or strengths customers rave about that the business barely promotes..."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        value={customerVoice.evidence?.source || ""}
+                        onChange={(e) =>
+                          setCustomerVoice({
+                            ...customerVoice,
+                            evidence: { ...(customerVoice.evidence || {}), source: e.target.value },
+                          })
+                        }
+                        placeholder="Evidence source (e.g. Google Reviews, Facebook)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        value={customerVoice.evidence?.sourceUrl || ""}
+                        onChange={(e) =>
+                          setCustomerVoice({
+                            ...customerVoice,
+                            evidence: { ...(customerVoice.evidence || {}), sourceUrl: e.target.value },
+                          })
+                        }
+                        placeholder="Source URL (optional)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        value={customerVoice.evidence?.note || ""}
+                        onChange={(e) =>
+                          setCustomerVoice({
+                            ...customerVoice,
+                            evidence: { ...(customerVoice.evidence || {}), note: e.target.value },
+                          })
+                        }
+                        placeholder="Short quote or evidence note (optional)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(customerVoice.evidence?.clientVisible)}
+                        onChange={(e) =>
+                          setCustomerVoice({
+                            ...customerVoice,
+                            evidence: { ...(customerVoice.evidence || {}), clientVisible: e.target.checked },
+                          })
+                        }
+                        className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                      />
+                      <span>Show citation on client report (otherwise kept internal)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 5C. Advertising Presence & Funnel */}
+                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span className="text-amber-400 font-mono">5C.</span> Advertising Presence & Funnel
+                    </h4>
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                      [BARATRUST_REVIEW]
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Public Ad Evidence</label>
+                      <select
+                        value={advertisingFunnel.adPresence || "UNKNOWN"}
+                        onChange={(e) =>
+                          setAdvertisingFunnel({ ...advertisingFunnel, adPresence: e.target.value as AdPresenceState })
+                        }
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="UNKNOWN">UNKNOWN — Not checked / unclear</option>
+                        <option value="OBSERVED">OBSERVED — Active ads observed in public channels</option>
+                        <option value="NOT_OBSERVED">NOT_OBSERVED — None observed in checked channels</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Platforms Observed</label>
+                      <input
+                        type="text"
+                        value={advertisingFunnel.platformsObserved || ""}
+                        onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, platformsObserved: e.target.value })}
+                        placeholder="e.g. Meta Ad Library, Google Local Ads"
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Ad Spend Recommendation</label>
+                      <select
+                        value={advertisingFunnel.recommendation || "UNKNOWN"}
+                        onChange={(e) =>
+                          setAdvertisingFunnel({
+                            ...advertisingFunnel,
+                            recommendation: e.target.value as AdFunnelRecommendation,
+                          })
+                        }
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="UNKNOWN">No specific ad recommendation</option>
+                        <option value="IMPROVE_FUNNEL_FIRST">IMPROVE_FUNNEL_FIRST — Fix landing/follow-up first</option>
+                        <option value="DEPRIORITIZE_ADS">DEPRIORITIZE_ADS — Pause/avoid paid ads for now</option>
+                        <option value="CONTINUE">CONTINUE — Funnel supports current ads</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">What They Are Promoting (Offer)</label>
+                      <input
+                        type="text"
+                        value={advertisingFunnel.offerSummary || ""}
+                        onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, offerSummary: e.target.value })}
+                        placeholder="e.g. $49 seasonal tune-up special"
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Landing Page / Destination Quality</label>
+                      <input
+                        type="text"
+                        value={advertisingFunnel.landingPageQuality || ""}
+                        onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, landingPageQuality: e.target.value })}
+                        placeholder="e.g. Drops traffic on generic homepage with no mention of the offer"
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Ad-to-Funnel Mismatch / Leakage</label>
+                      <input
+                        type="text"
+                        value={advertisingFunnel.adToFunnelMismatch || ""}
+                        onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, adToFunnelMismatch: e.target.value })}
+                        placeholder="Where paid clicks are likely leaking..."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Recommendation Note</label>
+                      <input
+                        type="text"
+                        value={advertisingFunnel.recommendationNote || ""}
+                        onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, recommendationNote: e.target.value })}
+                        placeholder="Practical guidance on their ad spend..."
+                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5D. Ghost Footprint / Legacy Assets */}
+                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                        <span className="text-amber-400 font-mono">5D.</span> Ghost Footprint / Legacy Assets
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Abandoned social accounts, duplicate listings, old domains, outdated menus/PDFs, or dead links that confuse customers.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addGhostFootprintItem}
+                      className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-mono font-semibold flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Legacy Asset</span>
+                    </button>
+                  </div>
+
+                  {ghostFootprint.length === 0 ? (
+                    <p className="text-[11px] text-slate-500 italic">
+                      No ghost footprint or legacy asset issues recorded. Click &quot;Add Legacy Asset&quot; if you found abandoned pages, old addresses/numbers, or duplicate listings.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {ghostFootprint.map((item, idx) => (
+                        <div
+                          key={item.id || idx}
+                          className="p-4 bg-[#0E1524] border border-amber-500/30 rounded-xl space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono text-[10px] font-bold">
+                              [BARATRUST_REVIEW] LEGACY ASSET #{idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeGhostFootprintItem(idx)}
+                              className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                              title="Remove legacy asset"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-mono text-slate-400 mb-1">Asset Type</label>
+                              <select
+                                value={item.assetType}
+                                onChange={(e) => updateGhostFootprintItem(idx, "assetType", e.target.value)}
+                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                              >
+                                <option value="Abandoned Social Account">Abandoned Social Account</option>
+                                <option value="Duplicate Listing">Duplicate Listing</option>
+                                <option value="Old Website / Domain">Old Website / Domain</option>
+                                <option value="Outdated Menu / Pricing PDF">Outdated Menu / Pricing PDF</option>
+                                <option value="Old Address / Phone / Branding">Old Address / Phone / Branding</option>
+                                <option value="Dead Link / Event Page">Dead Link / Event Page</option>
+                                <option value="Unclaimed Directory Profile">Unclaimed Directory Profile</option>
+                                <option value="Other Legacy Asset">Other Legacy Asset</option>
+                              </select>
+                            </div>
+                            <div className="sm:col-span-2">
+                              <label className="block text-[11px] font-mono text-slate-400 mb-1">What Was Found *</label>
+                              <input
+                                type="text"
+                                value={item.summary}
+                                onChange={(e) => updateGhostFootprintItem(idx, "summary", e.target.value)}
+                                placeholder="e.g. Old 2019 Facebook page still ranks #2 on Google with disconnected phone number"
+                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-mono text-slate-400 mb-1">Customer Impact</label>
+                              <input
+                                type="text"
+                                value={item.customerImpact || ""}
+                                onChange={(e) => updateGhostFootprintItem(idx, "customerImpact", e.target.value)}
+                                placeholder="How this confuses or misleads customers..."
+                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-mono text-slate-400 mb-1">Recommended Cleanup Action</label>
+                              <input
+                                type="text"
+                                value={item.recommendedFix || ""}
+                                onChange={(e) => updateGhostFootprintItem(idx, "recommendedFix", e.target.value)}
+                                placeholder="e.g. Merge or unpublish duplicate page and update phone number"
+                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                              <input
+                                type="text"
+                                value={item.source || ""}
+                                onChange={(e) => updateGhostFootprintItem(idx, "source", e.target.value)}
+                                placeholder="Source (e.g. Google Search, Yelp, Facebook)"
+                                className="px-2.5 py-1.5 bg-[#080D18] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                              />
+                              <input
+                                type="text"
+                                value={item.sourceUrl || ""}
+                                onChange={(e) => updateGhostFootprintItem(idx, "sourceUrl", e.target.value)}
+                                placeholder="Source URL (optional)"
+                                className="px-2.5 py-1.5 bg-[#080D18] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                              />
+                              <input
+                                type="text"
+                                value={item.evidenceNote || ""}
+                                onChange={(e) => updateGhostFootprintItem(idx, "evidenceNote", e.target.value)}
+                                placeholder="Evidence note / quote (optional)"
+                                className="px-2.5 py-1.5 bg-[#080D18] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                              />
+                            </div>
+                            <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(item.clientVisible)}
+                                onChange={(e) => updateGhostFootprintItem(idx, "clientVisible", e.target.checked)}
+                                className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                              />
+                              <span>Show citation on client report (otherwise kept internal)</span>
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* 6. Opportunities Found (Dynamic List) */}
               <div className="space-y-3 pt-2 border-t border-slate-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-bold text-white flex items-center gap-2">
-                      <span className="text-emerald-400 font-mono">6.</span> Opportunities Found
+                      <span className="text-emerald-400 font-mono">6.</span> Opportunities Found (Including Hidden Opportunities)
                     </label>
                     <p className="text-xs text-slate-400">
-                      Concrete revenue or operational opportunities Todd & Noelah discovered during review.
+                      Concrete revenue, hidden strengths, or operational opportunities Todd & Noelah discovered during review.
                     </p>
                   </div>
                   <button
@@ -981,7 +1634,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             type="text"
                             value={opp.title}
                             onChange={(e) => updateOpportunity(idx, "title", e.target.value)}
-                            placeholder="e.g. Commercial Office Maintenance Contracts"
+                            placeholder="e.g. Promote Customer-Favorite Catering Trays on Homepage"
                             className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
                           />
                         </div>
@@ -992,6 +1645,11 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             onChange={(e) => updateOpportunity(idx, "type", e.target.value)}
                             className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
                           >
+                            <option value="Unpromoted Customer Favorite">Unpromoted Customer Favorite</option>
+                            <option value="Underserved Offer">Underserved Offer</option>
+                            <option value="Buried Differentiator">Buried Differentiator</option>
+                            <option value="Customer Language / Messaging Upgrade">Customer Language / Messaging Upgrade</option>
+                            <option value="Search / Discovery Opportunity">Search / Discovery Opportunity</option>
                             <option value="Commercial Account">Commercial Account</option>
                             <option value="Catering / Bulk Order">Catering / Bulk Order</option>
                             <option value="Local Partnership">Local Partnership</option>
@@ -1005,7 +1663,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">Description & Evidence</label>
+                        <label className="block text-[11px] font-mono text-slate-400 mb-1">Description & Why It Matters</label>
                         <textarea
                           rows={2}
                           value={opp.description}
@@ -1036,6 +1694,42 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
                           />
                         </div>
+                      </div>
+
+                      {/* Lightweight Evidence Citation */}
+                      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={opp.evidence?.source || ""}
+                            onChange={(e) => updateOpportunityEvidence(idx, "source", e.target.value)}
+                            placeholder="Evidence source (e.g. Google Reviews)"
+                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"
+                          />
+                          <input
+                            type="text"
+                            value={opp.evidence?.sourceUrl || ""}
+                            onChange={(e) => updateOpportunityEvidence(idx, "sourceUrl", e.target.value)}
+                            placeholder="Source URL (optional)"
+                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"
+                          />
+                          <input
+                            type="text"
+                            value={opp.evidence?.note || ""}
+                            onChange={(e) => updateOpportunityEvidence(idx, "note", e.target.value)}
+                            placeholder="Evidence quote or note (optional)"
+                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(opp.evidence?.clientVisible)}
+                            onChange={(e) => updateOpportunityEvidence(idx, "clientVisible", e.target.checked)}
+                            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500/30"
+                          />
+                          <span>Show citation on client report (otherwise kept internal)</span>
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -1097,6 +1791,42 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
                           />
                         </div>
+                      </div>
+
+                      {/* Lightweight Evidence Citation */}
+                      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={fix.evidence?.source || ""}
+                            onChange={(e) => updateTopFixEvidence(idx, "source", e.target.value)}
+                            placeholder="Evidence source (e.g. Mobile Mystery Shop)"
+                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                          />
+                          <input
+                            type="text"
+                            value={fix.evidence?.sourceUrl || ""}
+                            onChange={(e) => updateTopFixEvidence(idx, "sourceUrl", e.target.value)}
+                            placeholder="Source URL (optional)"
+                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                          />
+                          <input
+                            type="text"
+                            value={fix.evidence?.note || ""}
+                            onChange={(e) => updateTopFixEvidence(idx, "note", e.target.value)}
+                            placeholder="Evidence quote or note (optional)"
+                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(fix.evidence?.clientVisible)}
+                            onChange={(e) => updateTopFixEvidence(idx, "clientVisible", e.target.checked)}
+                            className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                          />
+                          <span>Show citation on client report (otherwise kept internal)</span>
+                        </label>
                       </div>
                     </div>
                   ))}
@@ -1409,6 +2139,57 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       onChange={(e) => updateDraftField('opportunitiesSummary', e.target.value)}
                       className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
                     />
+                  </div>
+
+                  {/* 6B. Optional Human Intelligence Layer Synthesis Fields */}
+                  <div className="pt-3 border-t border-slate-800 space-y-3">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-bold">
+                        Optional Human Intelligence Synthesis (Omitted on Report When Blank)
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="block font-semibold text-slate-200">Brand Reality & Customer Impression</label>
+                        <textarea
+                          rows={2}
+                          value={reportDraft.brandRealitySummary || ""}
+                          onChange={(e) => updateDraftField('brandRealitySummary', e.target.value)}
+                          placeholder="Leave blank if not applicable..."
+                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block font-semibold text-slate-200">Customer Voice & Review Intelligence</label>
+                        <textarea
+                          rows={2}
+                          value={reportDraft.customerVoiceSummary || ""}
+                          onChange={(e) => updateDraftField('customerVoiceSummary', e.target.value)}
+                          placeholder="Leave blank if not applicable..."
+                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block font-semibold text-slate-200">Advertising Presence & Funnel</label>
+                        <textarea
+                          rows={2}
+                          value={reportDraft.advertisingFunnelSummary || ""}
+                          onChange={(e) => updateDraftField('advertisingFunnelSummary', e.target.value)}
+                          placeholder="Leave blank if not applicable..."
+                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block font-semibold text-slate-200">Legacy Digital Footprint / Cleanup</label>
+                        <textarea
+                          rows={2}
+                          value={reportDraft.ghostFootprintSummary || ""}
+                          onChange={(e) => updateDraftField('ghostFootprintSummary', e.target.value)}
+                          placeholder="Leave blank if not applicable..."
+                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* 7. Closing Sign-off */}

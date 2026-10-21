@@ -9,9 +9,13 @@ import {
   ownerResponses, 
   humanReviews,
   HumanReviewTopFix,
-  HumanReviewOpportunity 
+  HumanReviewOpportunity,
+  HumanIntelligenceLayer,
+  HumanEvidenceCitation
 } from "@/db/schema";
 import { getOperatorUser } from "@/lib/auth/operator";
+import { decodeHtmlEntities, classifyProfileSummaryText } from "@/lib/scanner/parser";
+import { normalizeAdPresenceState } from "@/lib/gemini/synthesizer";
 import { 
   ShieldCheck, 
   CheckCircle2, 
@@ -138,7 +142,54 @@ export default async function PublishedRealityCheckReportPage({
   const reportContent = review?.publishedReport || review?.reportDraft;
   const topFixes: HumanReviewTopFix[] = (review?.publishedReport as any)?.frozenTopFixes || review?.topFixes || [];
   const opportunities: HumanReviewOpportunity[] = (review?.publishedReport as any)?.frozenOpportunities || review?.opportunitiesFound || [];
+  const humanIntelligence: HumanIntelligenceLayer | null =
+    (review?.publishedReport as any)?.frozenHumanIntelligence ??
+    review?.humanIntelligence ??
+    null;
   const publishedDate = review?.publishedAt ? new Date(review.publishedAt) : new Date();
+
+  const brandReality = humanIntelligence?.brandReality;
+  const hasBrandReality = Boolean(
+    (reportContent?.brandRealitySummary && reportContent.brandRealitySummary.trim()) ||
+      (brandReality &&
+        ((brandReality.apparentBrandMessage && brandReality.apparentBrandMessage.trim()) ||
+          (brandReality.consistencyNotes && brandReality.consistencyNotes.trim()) ||
+          (brandReality.brandCustomerMismatch && brandReality.brandCustomerMismatch.trim()) ||
+          (brandReality.strongestBrandOpportunity && brandReality.strongestBrandOpportunity.trim()) ||
+          (brandReality.mysteryShopImpression && brandReality.mysteryShopImpression.trim())))
+  );
+
+  const customerVoice = humanIntelligence?.customerVoice;
+  const activeLoves = (customerVoice?.topLoves || []).filter((s) => s && s.trim().length > 0);
+  const activeComplaints = (customerVoice?.topComplaints || []).filter((s) => s && s.trim().length > 0);
+  const hasCustomerVoice = Boolean(
+    (reportContent?.customerVoiceSummary && reportContent.customerVoiceSummary.trim()) ||
+      activeLoves.length > 0 ||
+      activeComplaints.length > 0 ||
+      (customerVoice?.recurringThemes && customerVoice.recurringThemes.trim()) ||
+      (customerVoice?.unmarketedStrengths && customerVoice.unmarketedStrengths.trim())
+  );
+
+  const advertisingFunnel = humanIntelligence?.advertisingFunnel;
+  const normalizedAdPresence = normalizeAdPresenceState(advertisingFunnel?.adPresence);
+  const hasAdvertisingFunnel = Boolean(
+    (reportContent?.advertisingFunnelSummary && reportContent.advertisingFunnelSummary.trim()) ||
+      (advertisingFunnel &&
+        (normalizedAdPresence !== "UNKNOWN" ||
+          (advertisingFunnel.platformsObserved && advertisingFunnel.platformsObserved.trim()) ||
+          (advertisingFunnel.offerSummary && advertisingFunnel.offerSummary.trim()) ||
+          (advertisingFunnel.landingPageQuality && advertisingFunnel.landingPageQuality.trim()) ||
+          (advertisingFunnel.adToFunnelMismatch && advertisingFunnel.adToFunnelMismatch.trim()) ||
+          (advertisingFunnel.recommendationNote && advertisingFunnel.recommendationNote.trim())))
+  );
+
+  const ghostFootprint = (humanIntelligence?.ghostFootprint || []).filter(
+    (g) => g && g.summary && g.summary.trim().length > 0
+  );
+  const hasGhostFootprint = Boolean(
+    (reportContent?.ghostFootprintSummary && reportContent.ghostFootprintSummary.trim()) ||
+      ghostFootprint.length > 0
+  );
 
   return (
     <div className="min-h-screen bg-[#050810] text-slate-100 font-sans selection:bg-amber-500/30 print:bg-white print:text-black">
@@ -194,12 +245,14 @@ export default async function PublishedRealityCheckReportPage({
             <span className="text-amber-400 font-semibold print:text-black">{check.businessType || "Small Business"}</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold text-white font-serif tracking-tight print:text-black">
-            {check.businessName || check.website}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white font-serif tracking-tight break-words print:text-black">
+            {check.businessName
+              ? decodeHtmlEntities(check.businessName)
+              : check.website.replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "")}
           </h1>
 
           <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-400 pt-1 print:text-slate-700">
-            <span>Website: <strong className="text-slate-200 print:text-black">{check.website}</strong></span>
+            <span className="break-all">Website: <strong className="text-slate-200 print:text-black">{check.website}</strong></span>
             <span>•</span>
             <span>Conducted by: <strong className="text-amber-400 print:text-black">Todd & Noelah</strong></span>
           </div>
@@ -363,11 +416,14 @@ export default async function PublishedRealityCheckReportPage({
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800 text-xs text-amber-300 print:text-black print:border-slate-300">
-                  <strong className="block text-[10px] uppercase tracking-wider font-mono text-slate-500 print:text-slate-700 mb-1">
-                    Recommended Action:
-                  </strong>
-                  <span>{fix.suggestedAction}</span>
+                <div className="pt-3 border-t border-slate-800 space-y-2 text-xs text-amber-300 print:text-black print:border-slate-300">
+                  <div>
+                    <strong className="block text-[10px] uppercase tracking-wider font-mono text-slate-500 print:text-slate-700 mb-1">
+                      Recommended Action:
+                    </strong>
+                    <span>{fix.suggestedAction}</span>
+                  </div>
+                  <EvidenceCitationRow evidence={fix.evidence} />
                 </div>
               </div>
             ))}
@@ -398,7 +454,7 @@ export default async function PublishedRealityCheckReportPage({
           </div>
         </section>
 
-        {/* 5. BaraTrust Human Review (The 5 Investigation Areas) */}
+        {/* 5. BaraTrust Human Review (Core & Human Intelligence Observations) */}
         <section className="bg-[#0E1524] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-xl print:bg-white print:border print:border-black">
           <div className="border-b border-slate-800 pb-4 print:border-black">
             <span className="px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold rounded">
@@ -467,6 +523,215 @@ export default async function PublishedRealityCheckReportPage({
                 {reportContent?.lostOpportunitySummary || review?.lostOpportunityHunt || "No inquiry friction notes recorded."}
               </p>
             </div>
+
+            {/* CONDITIONAL: Brand Reality & Customer Impression */}
+            {hasBrandReality && (
+              <div className="pt-4 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="font-bold text-white text-sm flex items-center gap-2 print:text-black">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    Brand Reality & First-Impression Alignment
+                  </h4>
+                  {brandReality?.messageClarity && brandReality.messageClarity !== "UNKNOWN" && (
+                    <span className="px-2 py-0.5 rounded bg-[#080D18] border border-slate-700 font-mono text-[10px] text-amber-300 print:border-slate-400 print:text-black">
+                      Message Clarity: {brandReality.messageClarity}
+                    </span>
+                  )}
+                </div>
+                {reportContent?.brandRealitySummary && (
+                  <p className="text-slate-300 leading-relaxed font-normal print:text-black">
+                    {reportContent.brandRealitySummary}
+                  </p>
+                )}
+                {!reportContent?.brandRealitySummary && brandReality && (
+                  <div className="space-y-1.5 text-slate-300 leading-relaxed print:text-black">
+                    {brandReality.apparentBrandMessage && (
+                      <p><strong>Apparent Message:</strong> {brandReality.apparentBrandMessage}</p>
+                    )}
+                    {brandReality.mysteryShopImpression && (
+                      <p><strong>Customer Experience & Flow:</strong> {brandReality.mysteryShopImpression}</p>
+                    )}
+                    {brandReality.brandCustomerMismatch && (
+                      <p><strong>Brand vs. Customer Reality:</strong> {brandReality.brandCustomerMismatch}</p>
+                    )}
+                    {brandReality.consistencyNotes && (
+                      <p><strong>Cross-Channel Consistency:</strong> {brandReality.consistencyNotes}</p>
+                    )}
+                    {brandReality.strongestBrandOpportunity && (
+                      <p><strong>Strongest Brand Opportunity:</strong> {brandReality.strongestBrandOpportunity}</p>
+                    )}
+                  </div>
+                )}
+                <EvidenceCitationRow evidence={brandReality?.evidence} />
+              </div>
+            )}
+
+            {/* CONDITIONAL: Customer Voice & Review Intelligence */}
+            {hasCustomerVoice && (
+              <div className="pt-4 space-y-3">
+                <h4 className="font-bold text-white text-sm flex items-center gap-2 print:text-black">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  Customer Voice & Review Intelligence
+                </h4>
+                {reportContent?.customerVoiceSummary && (
+                  <p className="text-slate-300 leading-relaxed font-normal print:text-black">
+                    {reportContent.customerVoiceSummary}
+                  </p>
+                )}
+                {(activeLoves.length > 0 || activeComplaints.length > 0) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    {activeLoves.length > 0 && (
+                      <div className="p-3.5 bg-[#080D18] border border-emerald-500/20 rounded-xl space-y-1.5 print:bg-white print:border print:border-black">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold block print:text-black">
+                          What Customers Repeatedly Love
+                        </span>
+                        <ul className="space-y-1 text-slate-200 print:text-black">
+                          {activeLoves.map((love, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span>{love}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {activeComplaints.length > 0 && (
+                      <div className="p-3.5 bg-[#080D18] border border-amber-500/20 rounded-xl space-y-1.5 print:bg-white print:border print:border-black">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block print:text-black">
+                          Recurring Customer Friction Points
+                        </span>
+                        <ul className="space-y-1 text-slate-200 print:text-black">
+                          {activeComplaints.map((comp, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-amber-400 font-bold">!</span>
+                              <span>{comp}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {customerVoice?.unmarketedStrengths && (
+                  <p className="text-slate-300 leading-relaxed print:text-black">
+                    <strong className="text-emerald-400 print:text-black">Hidden Strength to Highlight:</strong>{" "}
+                    {customerVoice.unmarketedStrengths}
+                  </p>
+                )}
+                <EvidenceCitationRow evidence={customerVoice?.evidence} />
+              </div>
+            )}
+
+            {/* CONDITIONAL: Advertising Presence & Funnel */}
+            {hasAdvertisingFunnel && (
+              <div className="pt-4 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="font-bold text-white text-sm flex items-center gap-2 print:text-black">
+                    <DollarSign className="w-4 h-4 text-amber-400" />
+                    Advertising Presence & Funnel Assessment
+                  </h4>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {normalizedAdPresence !== "UNKNOWN" && (
+                      <span className="px-2 py-0.5 rounded bg-[#080D18] border border-slate-700 font-mono text-[10px] text-slate-300 print:border-slate-400 print:text-black">
+                        {normalizedAdPresence === "OBSERVED"
+                          ? "Public Ads: Observed"
+                          : "Public Ads: None Observed in Checked Channels"}
+                      </span>
+                    )}
+                    {advertisingFunnel?.recommendation && advertisingFunnel.recommendation !== "UNKNOWN" && (
+                      <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 font-mono text-[10px] text-amber-300 print:border-slate-400 print:text-black">
+                        {advertisingFunnel.recommendation.replace(/_/g, " ")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {reportContent?.advertisingFunnelSummary ? (
+                  <p className="text-slate-300 leading-relaxed font-normal print:text-black">
+                    {reportContent.advertisingFunnelSummary}
+                  </p>
+                ) : (
+                  <div className="space-y-1 text-slate-300 leading-relaxed print:text-black">
+                    {normalizedAdPresence === "NOT_OBSERVED" && (
+                      <p>
+                        <strong>Public Ad Check:</strong> We did not observe active paid ads in the public channels checked during our review.
+                      </p>
+                    )}
+                    {advertisingFunnel?.platformsObserved && (
+                      <p><strong>Channels Checked / Observed:</strong> {advertisingFunnel.platformsObserved}</p>
+                    )}
+                    {advertisingFunnel?.offerSummary && (
+                      <p><strong>Promoted Offer:</strong> {advertisingFunnel.offerSummary}</p>
+                    )}
+                    {advertisingFunnel?.landingPageQuality && (
+                      <p><strong>Landing Page Quality:</strong> {advertisingFunnel.landingPageQuality}</p>
+                    )}
+                    {advertisingFunnel?.adToFunnelMismatch && (
+                      <p><strong>Funnel Friction:</strong> {advertisingFunnel.adToFunnelMismatch}</p>
+                    )}
+                    {advertisingFunnel?.recommendationNote && (
+                      <p><strong>Our Guidance:</strong> {advertisingFunnel.recommendationNote}</p>
+                    )}
+                  </div>
+                )}
+                <EvidenceCitationRow evidence={advertisingFunnel?.evidence} />
+              </div>
+            )}
+
+            {/* CONDITIONAL: Ghost Footprint / Legacy Assets */}
+            {hasGhostFootprint && (
+              <div className="pt-4 space-y-3">
+                <h4 className="font-bold text-white text-sm flex items-center gap-2 print:text-black">
+                  <AlertCircle className="w-4 h-4 text-amber-400" />
+                  Legacy Digital Footprint & Cleanup Items
+                </h4>
+                {reportContent?.ghostFootprintSummary && (
+                  <p className="text-slate-300 leading-relaxed font-normal print:text-black">
+                    {reportContent.ghostFootprintSummary}
+                  </p>
+                )}
+                {ghostFootprint.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    {ghostFootprint.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        className="p-4 bg-[#080D18] border border-amber-500/25 rounded-xl space-y-2 print:bg-white print:border print:border-black"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-mono text-[10px] font-bold">
+                            {item.assetType}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            [BARATRUST_REVIEW]
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-white print:text-black">
+                          {item.summary}
+                        </p>
+                        {item.customerImpact && (
+                          <p className="text-[11px] text-slate-400 print:text-slate-700">
+                            <strong className="text-slate-300 print:text-black">Impact:</strong> {item.customerImpact}
+                          </p>
+                        )}
+                        {item.recommendedFix && (
+                          <p className="text-[11px] text-amber-300 font-mono print:text-black">
+                            <strong>Cleanup action:</strong> {item.recommendedFix}
+                          </p>
+                        )}
+                        <EvidenceCitationRow
+                          evidence={{
+                            source: item.source,
+                            sourceUrl: item.sourceUrl,
+                            note: item.evidenceNote,
+                            observedAt: item.observedAt,
+                            clientVisible: item.clientVisible,
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -484,6 +749,12 @@ export default async function PublishedRealityCheckReportPage({
                 Specific opportunities Todd & Noelah discovered that could add revenue or reduce waste.
               </p>
             </div>
+
+            {reportContent?.opportunitiesSummary && (
+              <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-normal print:text-black">
+                {reportContent.opportunitiesSummary}
+              </p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {opportunities.map((opp, idx) => (
@@ -515,6 +786,8 @@ export default async function PublishedRealityCheckReportPage({
                       <strong>Next step:</strong> {opp.suggestedAction}
                     </div>
                   )}
+
+                  <EvidenceCitationRow evidence={opp.evidence} />
                 </div>
               ))}
             </div>
@@ -529,7 +802,9 @@ export default async function PublishedRealityCheckReportPage({
                 [AUTO_DETECTED] SUPPORTING EVIDENCE
               </span>
               <h4 className="text-lg font-bold text-white font-serif">
-                Automated Technical Audit (28 Checks)
+                {check.scoreBreakdown?.sourceType === "hosted_profile"
+                  ? `Automated Public Profile Audit (${findings.length} Checks)`
+                  : `Automated Technical Audit (${findings.length} Checks)`}
               </h4>
             </div>
             <span className="text-xs font-mono text-slate-400">
@@ -541,28 +816,56 @@ export default async function PublishedRealityCheckReportPage({
           </p>
 
           <div className="space-y-2 pt-2 max-h-[400px] overflow-y-auto pr-1 text-xs">
-            {findings.map((f) => (
+            {findings.map((rawFinding) => {
+              let resolvedTitle = decodeHtmlEntities(rawFinding.title);
+              let resolvedDetail = decodeHtmlEntities(rawFinding.supportingDetail || "");
+              const platformLabel =
+                check.scoreBreakdown?.platformLabel || "hosted business profile";
+
+              if (rawFinding.checkKey === "profile_category_or_services") {
+                const quotedMatch = resolvedDetail.match(/:\s*"([\s\S]+)"\.?$/);
+                if (rawFinding.state === "PASS" && quotedMatch?.[1]) {
+                  const classified = classifyProfileSummaryText(quotedMatch[1]);
+                  if (classified?.kind === "category") {
+                    resolvedTitle = "Business Category";
+                    resolvedDetail = `Business category detected on ${platformLabel}: "${classified.text}".`;
+                  } else if (classified?.kind === "description") {
+                    resolvedTitle = "Business Description / Offerings Signal";
+                    resolvedDetail = `Public description or offerings signal detected on ${platformLabel}: "${classified.text}"${
+                      classified.text.endsWith("…") ? "" : "."
+                    }`;
+                  }
+                } else if (resolvedTitle === "Business Category & Offerings Summary") {
+                  resolvedTitle =
+                    rawFinding.state === "PASS"
+                      ? "Business Description / Offerings Signal"
+                      : "Business Category / Offerings Signal";
+                }
+              }
+
+              return (
               <div
-                key={f.id || f.checkKey}
+                key={rawFinding.id || rawFinding.checkKey}
                 className="p-3 bg-[#080D18] border border-slate-800/80 rounded-lg flex items-start justify-between gap-4"
               >
                 <div>
-                  <span className="font-semibold text-slate-200">{f.title}</span>
-                  <p className="text-[11px] text-slate-400 mt-0.5">{f.supportingDetail}</p>
+                  <span className="font-semibold text-slate-200">{resolvedTitle}</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{resolvedDetail}</p>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold flex-shrink-0 ${
-                    f.state === "PASS"
+                    rawFinding.state === "PASS"
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                      : f.state === "FAIL"
+                      : rawFinding.state === "FAIL"
                       ? "bg-red-500/10 text-red-400 border border-red-500/30"
                       : "bg-slate-800 text-slate-400 border border-slate-700"
                   }`}
                 >
-                  {f.state}
+                  {rawFinding.state}
                 </span>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -582,7 +885,9 @@ export default async function PublishedRealityCheckReportPage({
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4 print:hidden">
               <a
-                href="mailto:todd@baratrust.com?subject=Reality%20Check%20Follow-up%20for%20"
+                href={`mailto:todd@baratrust.com?subject=${encodeURIComponent(
+                  `Reality Check Follow-up for ${check.businessName || check.website || "My Business"}`
+                )}`}
                 className="w-full sm:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-sm transition-colors shadow-lg flex items-center justify-center gap-2"
               >
                 <Mail className="w-4 h-4" />
@@ -612,6 +917,49 @@ export default async function PublishedRealityCheckReportPage({
         </div>
       </footer>
 
+    </div>
+  );
+}
+
+function EvidenceCitationRow({ evidence }: { evidence?: HumanEvidenceCitation | null }) {
+  if (!evidence || evidence.clientVisible !== true) return null;
+  const source = evidence.source?.trim() || "";
+  const sourceUrl = evidence.sourceUrl?.trim() || "";
+  const note = evidence.note?.trim() || "";
+  const observedAt = evidence.observedAt?.trim() || "";
+  if (!source && !sourceUrl && !note) return null;
+
+  return (
+    <div className="pt-1.5 text-[11px] font-mono text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1 print:text-slate-700">
+      <span className="text-slate-500 print:text-black">Evidence:</span>
+      {source && (
+        sourceUrl ? (
+          <a
+            href={sourceUrl.startsWith("http") ? sourceUrl : `https://${sourceUrl}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-amber-400 hover:underline inline-flex items-center gap-1 print:text-black"
+          >
+            <span>{source}</span>
+            <ExternalLink className="w-2.5 h-2.5" />
+          </a>
+        ) : (
+          <span className="text-slate-300 print:text-black">{source}</span>
+        )
+      )}
+      {!source && sourceUrl && (
+        <a
+          href={sourceUrl.startsWith("http") ? sourceUrl : `https://${sourceUrl}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-amber-400 hover:underline inline-flex items-center gap-1 print:text-black"
+        >
+          <span>Source Link</span>
+          <ExternalLink className="w-2.5 h-2.5" />
+        </a>
+      )}
+      {note && <span className="text-slate-300 italic print:text-black">— &quot;{note}&quot;</span>}
+      {observedAt && <span className="text-slate-500 text-[10px]">({observedAt})</span>}
     </div>
   );
 }

@@ -55,6 +55,14 @@ export interface OwnerQuestionnaireAnswers {
   submittedAt?: string;
 }
 
+export interface HumanEvidenceCitation {
+  source?: string;
+  sourceUrl?: string;
+  note?: string;
+  observedAt?: string;
+  clientVisible?: boolean;
+}
+
 export interface HumanReviewOpportunity {
   id: string;
   title: string;
@@ -62,6 +70,7 @@ export interface HumanReviewOpportunity {
   description: string;
   suggestedAction?: string;
   potentialImpact?: string;
+  evidence?: HumanEvidenceCitation | null;
   evidenceLabel: 'OPPORTUNITY_FOUND';
 }
 
@@ -70,7 +79,67 @@ export interface HumanReviewTopFix {
   title: string;
   whyItMatters: string;
   suggestedAction: string;
+  evidence?: HumanEvidenceCitation | null;
   evidenceLabel: 'BARATRUST_REVIEW';
+}
+
+export type BrandMessageClarity = 'OBVIOUS' | 'SOMEWHAT_CLEAR' | 'UNCLEAR' | 'UNKNOWN';
+
+export interface BrandRealityInsights {
+  apparentBrandMessage?: string;
+  messageClarity?: BrandMessageClarity;
+  consistencyNotes?: string;
+  brandCustomerMismatch?: string;
+  strongestBrandOpportunity?: string;
+  mysteryShopImpression?: string;
+  evidence?: HumanEvidenceCitation | null;
+}
+
+export interface CustomerVoiceInsights {
+  topLoves?: string[];
+  topComplaints?: string[];
+  recurringThemes?: string;
+  unmarketedStrengths?: string;
+  evidence?: HumanEvidenceCitation | null;
+}
+
+export type AdPresenceState = 'OBSERVED' | 'NOT_OBSERVED' | 'UNKNOWN';
+export type AdFunnelRecommendation =
+  | 'CONTINUE'
+  | 'IMPROVE_FUNNEL_FIRST'
+  | 'DEPRIORITIZE_ADS'
+  | 'UNKNOWN';
+
+export interface AdvertisingFunnelInsights {
+  adPresence?: AdPresenceState;
+  platformsObserved?: string;
+  offerSummary?: string;
+  landingPageQuality?: string;
+  adToFunnelMismatch?: string;
+  recommendation?: AdFunnelRecommendation;
+  recommendationNote?: string;
+  evidence?: HumanEvidenceCitation | null;
+}
+
+export interface GhostFootprintItem {
+  id: string;
+  assetType: string;
+  summary: string;
+  source?: string;
+  sourceUrl?: string;
+  evidenceNote?: string;
+  observedAt?: string;
+  clientVisible?: boolean;
+  customerImpact?: string;
+  recommendedFix?: string;
+  evidenceLabel?: 'BARATRUST_REVIEW';
+}
+
+export interface HumanIntelligenceLayer {
+  brandReality?: BrandRealityInsights | null;
+  customerVoice?: CustomerVoiceInsights | null;
+  advertisingFunnel?: AdvertisingFunnelInsights | null;
+  ghostFootprint?: GhostFootprintItem[];
 }
 
 export interface CompetitorEntry {
@@ -148,7 +217,14 @@ export interface RealityCheckReportContent {
   competitorSummary: string;
   lostOpportunitySummary: string;
   opportunitiesSummary: string;
+  brandRealitySummary?: string;
+  customerVoiceSummary?: string;
+  advertisingFunnelSummary?: string;
+  ghostFootprintSummary?: string;
   closingNote: string;
+  frozenTopFixes?: HumanReviewTopFix[];
+  frozenOpportunities?: HumanReviewOpportunity[];
+  frozenHumanIntelligence?: HumanIntelligenceLayer | null;
 }
 
 export interface ReportAuditMetadata {
@@ -179,6 +255,7 @@ export const humanReviews = pgTable('human_reviews', {
   topFixes: jsonb('top_fixes').$type<HumanReviewTopFix[]>(),
   notSpendMoneyOn: text('not_spend_money_on'),
   toddNotes: text('todd_notes'),
+  humanIntelligence: jsonb('human_intelligence').$type<HumanIntelligenceLayer>(),
   reportDraft: jsonb('report_draft').$type<RealityCheckReportContent>(),
   reportAudit: jsonb('report_audit').$type<ReportAuditMetadata>(),
   publishedReport: jsonb('published_report').$type<RealityCheckReportContent>(),

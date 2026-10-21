@@ -64,12 +64,17 @@ export async function POST(
       .where(eq(humanReviews.realityCheckId, realityCheckId))
       .limit(1);
 
-    const cleanDomain = check.website.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0] || check.website;
+    const isHostedProfile = check.scoreBreakdown?.sourceType === 'hosted_profile';
+    const cleanTargetLabel = isHostedProfile
+      ? check.scoreBreakdown?.platformLabel
+        ? `your ${check.scoreBreakdown.platformLabel}`
+        : check.website.replace(/^https?:\/\/(www\.)?/i, '').replace(/\/$/, '')
+      : check.website.replace(/^https?:\/\/(www\.)?/i, '').split('/')[0] || check.website;
 
     // Build complete, source-labeled evidence package
     const evidencePkg: SynthesisEvidencePackage = {
       business: {
-        name: check.businessName || cleanDomain,
+        name: check.businessName || cleanTargetLabel,
         website: check.website,
         cityState: check.cityState || 'Local Area',
         ownerName: check.ownerName || 'Business Owner',
@@ -101,6 +106,7 @@ export async function POST(
         topFixes: existingReview?.topFixes || [],
         notSpendMoneyOn: existingReview?.notSpendMoneyOn || null,
         toddNotes: existingReview?.toddNotes || null,
+        humanIntelligence: existingReview?.humanIntelligence || null,
       },
     };
 

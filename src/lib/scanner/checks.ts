@@ -875,7 +875,7 @@ export function buildUnknownFindings(
         category: 'digital_presence',
         checks: [
           { key: 'profile_business_name', title: 'Public Business Name Identified', maxPoints: 35 },
-          { key: 'profile_category_or_services', title: 'Business Category & Offerings Summary', maxPoints: 35 },
+          { key: 'profile_category_or_services', title: 'Business Category / Offerings Signal', maxPoints: 35 },
           { key: 'profile_external_website', title: 'Standalone Website Link', maxPoints: 30 },
         ],
       },

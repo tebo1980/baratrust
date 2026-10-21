@@ -5,3 +5,4 @@ import './scanner.test';
 import './milestone3.test';
 import './milestone4.test';
 import './milestone4_5.test';
+import './publication-lifecycle.test';

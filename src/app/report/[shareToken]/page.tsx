@@ -142,10 +142,11 @@ export default async function PublishedRealityCheckReportPage({
   const reportContent = review?.publishedReport || review?.reportDraft;
   const topFixes: HumanReviewTopFix[] = (review?.publishedReport as any)?.frozenTopFixes || review?.topFixes || [];
   const opportunities: HumanReviewOpportunity[] = (review?.publishedReport as any)?.frozenOpportunities || review?.opportunitiesFound || [];
+  // Explicit null is a frozen absence; only older snapshots without this field may fall back.
   const humanIntelligence: HumanIntelligenceLayer | null =
-    (review?.publishedReport as any)?.frozenHumanIntelligence ??
-    review?.humanIntelligence ??
-    null;
+    review?.publishedReport?.frozenHumanIntelligence !== undefined
+      ? review.publishedReport.frozenHumanIntelligence
+      : review?.humanIntelligence ?? null;
   const publishedDate = review?.publishedAt ? new Date(review.publishedAt) : new Date();
 
   const brandReality = humanIntelligence?.brandReality;
@@ -288,6 +289,9 @@ export default async function PublishedRealityCheckReportPage({
                       {check.overallScore}
                     </span>
                     <span className="text-base text-slate-500 font-mono font-normal">/ 100</span>
+                    <span className="text-xs text-slate-400 font-mono ml-1 print:text-black">
+                      on evaluated signals
+                    </span>
                   </>
                 ) : (
                   <span className="text-2xl font-bold text-amber-400 font-serif print:text-black">
@@ -295,6 +299,11 @@ export default async function PublishedRealityCheckReportPage({
                   </span>
                 )}
               </div>
+              {check.overallScore !== null && (check.scoreBreakdown?.coverage?.overall ?? 100) < 100 && (
+                <p className="text-xs text-slate-400 mt-1.5 print:text-black">
+                  Calculated on the {check.scoreBreakdown?.coverage?.overall}% of scored checks observable via static scan; remaining checks were evaluated in our human review.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 font-mono text-xs">
@@ -843,6 +852,26 @@ export default async function PublishedRealityCheckReportPage({
                 }
               }
 
+              const isInformationalFinding = check.scoreBreakdown?.sourceType !== "hosted_profile" && (rawFinding.maxPoints ?? 1) === 0;
+              const isInfoObserved =
+                isInformationalFinding &&
+                rawFinding.state === "PASS" &&
+                !/^no\s/i.test(resolvedDetail.trim());
+              const findingBadgeLabel = isInformationalFinding
+                ? isInfoObserved
+                  ? "INFO · OBSERVED"
+                  : "INFO · NOT OBSERVED"
+                : rawFinding.state;
+              const findingBadgeClass = isInformationalFinding
+                ? isInfoObserved
+                  ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
+                  : "bg-slate-800 text-slate-400 border border-slate-700"
+                : rawFinding.state === "PASS"
+                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                : rawFinding.state === "FAIL"
+                ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                : "bg-slate-800 text-slate-400 border border-slate-700";
+
               return (
               <div
                 key={rawFinding.id || rawFinding.checkKey}
@@ -853,15 +882,9 @@ export default async function PublishedRealityCheckReportPage({
                   <p className="text-[11px] text-slate-400 mt-0.5">{resolvedDetail}</p>
                 </div>
                 <span
-                  className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold flex-shrink-0 ${
-                    rawFinding.state === "PASS"
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                      : rawFinding.state === "FAIL"
-                      ? "bg-red-500/10 text-red-400 border border-red-500/30"
-                      : "bg-slate-800 text-slate-400 border border-slate-700"
-                  }`}
+                  className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold flex-shrink-0 ${findingBadgeClass}`}
                 >
-                  {rawFinding.state}
+                  {findingBadgeLabel}
                 </span>
               </div>
               );
@@ -921,21 +944,39 @@ export default async function PublishedRealityCheckReportPage({
   );
 }
 
+function toSafeExternalHref(raw?: string | null): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const withScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withScheme);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.toString();
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function EvidenceCitationRow({ evidence }: { evidence?: HumanEvidenceCitation | null }) {
   if (!evidence || evidence.clientVisible !== true) return null;
   const source = evidence.source?.trim() || "";
-  const sourceUrl = evidence.sourceUrl?.trim() || "";
+  const safeHref = toSafeExternalHref(evidence.sourceUrl);
   const note = evidence.note?.trim() || "";
   const observedAt = evidence.observedAt?.trim() || "";
-  if (!source && !sourceUrl && !note) return null;
+  if (!source && !safeHref && !note) return null;
 
   return (
     <div className="pt-1.5 text-[11px] font-mono text-slate-400 flex flex-wrap items-center gap-x-2 gap-y-1 print:text-slate-700">
       <span className="text-slate-500 print:text-black">Evidence:</span>
       {source && (
-        sourceUrl ? (
+        safeHref ? (
           <a
-            href={sourceUrl.startsWith("http") ? sourceUrl : `https://${sourceUrl}`}
+            href={safeHref}
             target="_blank"
             rel="noopener noreferrer"
             className="text-amber-400 hover:underline inline-flex items-center gap-1 print:text-black"
@@ -947,9 +988,9 @@ function EvidenceCitationRow({ evidence }: { evidence?: HumanEvidenceCitation | 
           <span className="text-slate-300 print:text-black">{source}</span>
         )
       )}
-      {!source && sourceUrl && (
+      {!source && safeHref && (
         <a
-          href={sourceUrl.startsWith("http") ? sourceUrl : `https://${sourceUrl}`}
+          href={safeHref}
           target="_blank"
           rel="noopener noreferrer"
           className="text-amber-400 hover:underline inline-flex items-center gap-1 print:text-black"

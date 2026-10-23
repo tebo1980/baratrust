@@ -366,6 +366,23 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   const isSpa = parsed.isClientRenderedSpa;
   const findings: EvaluatedFinding[] = [];
 
+  const effectiveCityState = (cityState || parsed.derivedCityState || '').trim();
+  const hasLocalOrStorefrontContext = Boolean(
+    effectiveCityState ||
+      parsed.visibleAddressSignals.length > 0 ||
+      parsed.hasLocalBusinessSchema ||
+      parsed.hasMapEmbed ||
+      parsed.detectedServiceAreaSignals
+  );
+  const hasInquiryPath =
+    parsed.hasLeadCaptureForm || parsed.hasForms || parsed.mailtoLinks.length > 0;
+  const hasCtas = parsed.detectedCtaKeywords.length > 0;
+  const isLikelyLocalOrStorefrontBusiness = Boolean(
+    hasLocalOrStorefrontContext || parsed.detectedLocalBusinessCues
+  );
+  const isDigitalFirstWithoutStorefront =
+    !isSpa && !isLikelyLocalOrStorefrontBusiness;
+
   // ==========================================
   // 1. DIGITAL PRESENCE (20% Weight) - 100 Scored Points
   // ==========================================
@@ -421,15 +438,15 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       : 'Missing mobile viewport meta tag; page may not scale naturally on mobile devices.',
   });
 
-  // Check 4: Page Title (10 pts)
+  // Check 4: Page Title (15 pts)
   const hasTitle = Boolean(parsed.title && parsed.title.trim().length > 3);
   findings.push({
     category: 'digital_presence',
     checkKey: 'has_title',
     title: 'Search Title Tag',
     state: hasTitle ? 'PASS' : 'FAIL',
-    scoreContribution: hasTitle ? 10 : 0,
-    maxPoints: 10,
+    scoreContribution: hasTitle ? 15 : 0,
+    maxPoints: 15,
     observedValue: { title: parsed.title },
     evidenceSource: 'HTML_PARSER',
     evidenceLabel: 'AUTO_DETECTED',
@@ -439,7 +456,8 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   });
 
   // Check 5: Meta Description (10 pts)
-  const hasDesc = Boolean(parsed.metaDescription && parsed.metaDescription.trim().length > 10);
+  const trimmedDesc = parsed.metaDescription ? parsed.metaDescription.trim() : '';
+  const hasDesc = trimmedDesc.length >= 10;
   findings.push({
     category: 'digital_presence',
     checkKey: 'meta_description',
@@ -451,25 +469,27 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     evidenceSource: 'HTML_PARSER',
     evidenceLabel: 'AUTO_DETECTED',
     supportingDetail: hasDesc
-      ? `Meta description detected (${parsed.metaDescription?.length} characters).`
+      ? `Meta description detected (${trimmedDesc.length} characters).`
+      : trimmedDesc.length > 0
+      ? `Meta description is too short (${trimmedDesc.length} characters) to serve as an effective search snippet.`
       : 'Missing meta description for search engine result snippets.',
   });
 
-  // Check 6: Favicon (10 pts)
+  // Check 6: Favicon (5 pts — proportional polish signal; browsers also fall back to /favicon.ico)
   const hasFavicon = Boolean(parsed.faviconUrl);
   findings.push({
     category: 'digital_presence',
     checkKey: 'has_favicon',
     title: 'Browser Tab Icon (Favicon)',
     state: hasFavicon ? 'PASS' : 'FAIL',
-    scoreContribution: hasFavicon ? 10 : 0,
-    maxPoints: 10,
+    scoreContribution: hasFavicon ? 5 : 0,
+    maxPoints: 5,
     observedValue: { faviconUrl: parsed.faviconUrl },
     evidenceSource: 'HTML_PARSER',
     evidenceLabel: 'AUTO_DETECTED',
     supportingDetail: hasFavicon
       ? `Favicon link detected (${parsed.faviconUrl}).`
-      : 'No favicon tag detected in HTML header.',
+      : 'No explicit favicon <link> tag detected in HTML header (browsers may still fall back to /favicon.ico).',
   });
 
   // Check 7: OpenGraph Metadata (10 pts)
@@ -495,7 +515,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'digital_presence',
     checkKey: 'social_links',
     title: 'Active Social Profiles',
-    state: 'PASS',
+    state: hasSocial ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -513,20 +533,38 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
 
   // Check 1: Tap-to-Call Link (30 pts)
   const hasTel = parsed.telLinks.length > 0;
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasTel,
-    passPoints: 30,
-    category: 'customer_journey',
-    checkKey: 'has_tel_link',
-    title: 'Mobile Tap-to-Call Link',
-    observedValue: { telLinks: parsed.telLinks },
-    passDetail: `Click-to-call link active (${parsed.telLinks[0]}); mobile users can dial with a single tap.`,
-    failDetail: 'No click-to-call (tel:) links found; mobile users must copy-paste or manually dial.',
-  }));
+  if (!hasTel && parsed.visiblePhoneNumbers.length === 0 && isDigitalFirstWithoutStorefront) {
+    findings.push({
+      category: 'customer_journey',
+      checkKey: 'has_tel_link',
+      title: 'Mobile Tap-to-Call Link',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 30,
+      observedValue: { telLinks: [], reason: 'NO_PHONE_ON_DIGITAL_INQUIRY_PAGE' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'No phone number published on page (online inquiry path is active); deferred to Todd & Noelah review to confirm whether tap-to-call intake applies to this business model.',
+    });
+  } else {
+    findings.push(evaluateContentCheck({
+      isSpa,
+      found: hasTel,
+      passPoints: 30,
+      category: 'customer_journey',
+      checkKey: 'has_tel_link',
+      title: 'Mobile Tap-to-Call Link',
+      observedValue: { telLinks: parsed.telLinks },
+      passDetail: `Click-to-call link active (${parsed.telLinks[0]}); mobile users can dial with a single tap.`,
+      failDetail:
+        parsed.visiblePhoneNumbers.length > 0
+          ? `Phone number (${parsed.visiblePhoneNumbers[0]}) is visible in text but not wrapped in a tap-to-call (tel:) link.`
+          : 'No click-to-call (tel:) links found; mobile users must copy-paste or manually dial.',
+    }));
+  }
 
   // Check 2: Direct Inquiry or Contact Path (30 pts)
-  const hasInquiryPath = parsed.hasLeadCaptureForm || parsed.hasForms || parsed.mailtoLinks.length > 0;
   findings.push(evaluateContentCheck({
     isSpa,
     found: hasInquiryPath,
@@ -540,7 +578,6 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   }));
 
   // Check 3: Clear Action Callouts (CTAs) (20 pts)
-  const hasCtas = parsed.detectedCtaKeywords.length > 0;
   findings.push(evaluateContentCheck({
     isSpa,
     found: hasCtas,
@@ -549,7 +586,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     checkKey: 'cta_keywords_found',
     title: 'Clear Action Callouts (CTAs)',
     observedValue: { ctaKeywords: parsed.detectedCtaKeywords },
-    passDetail: `Action keywords detected: ${parsed.detectedCtaKeywords.slice(0, 4).join(', ')}.`,
+    passDetail: `Action callouts detected: ${parsed.detectedCtaKeywords.slice(0, 4).join(', ')}.`,
     failDetail: 'No obvious conversion call-to-actions ("Call Now", "Get a Quote", "Book", "Contact") detected.',
   }));
 
@@ -572,7 +609,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'customer_journey',
     checkKey: 'public_pricing_observed',
     title: 'Public Pricing Display',
-    state: 'PASS',
+    state: parsed.detectedPricingSignals ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -589,7 +626,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'customer_journey',
     checkKey: 'online_booking_observed',
     title: 'Direct Online Scheduling / Booking Tool',
-    state: 'PASS',
+    state: parsed.detectedBookingSignals ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -607,31 +644,63 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
 
   // Check 1: Visible Business Phone Number (35 pts)
   const hasPhoneText = parsed.visiblePhoneNumbers.length > 0;
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasPhoneText,
-    passPoints: 35,
-    category: 'trust_reputation',
-    checkKey: 'phone_number_visible',
-    title: 'Visible Business Phone Number',
-    observedValue: { visiblePhoneNumbers: parsed.visiblePhoneNumbers },
-    passDetail: `Readable phone number found in body text: ${parsed.visiblePhoneNumbers[0]}.`,
-    failDetail: 'No standard 10-digit phone number found in page text.',
-  }));
+  if (!hasPhoneText && isDigitalFirstWithoutStorefront) {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'phone_number_visible',
+      title: 'Visible Business Phone Number',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 35,
+      observedValue: { visiblePhoneNumbers: [], reason: 'NO_PHONE_ON_DIGITAL_INQUIRY_PAGE' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'No public phone number listed on page (online inquiry path is active); deferred to Todd & Noelah review to confirm whether phone intake applies to this business model.',
+    });
+  } else {
+    findings.push(evaluateContentCheck({
+      isSpa,
+      found: hasPhoneText,
+      passPoints: 35,
+      category: 'trust_reputation',
+      checkKey: 'phone_number_visible',
+      title: 'Visible Business Phone Number',
+      observedValue: { visiblePhoneNumbers: parsed.visiblePhoneNumbers },
+      passDetail: `Readable phone number found on page: ${parsed.visiblePhoneNumbers[0]}.`,
+      failDetail: 'No standard 10-digit phone number found in page text.',
+    }));
+  }
 
   // Check 2: Physical Address & Location Signals (35 pts)
   const hasAddress = parsed.visibleAddressSignals.length > 0;
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasAddress,
-    passPoints: 35,
-    category: 'trust_reputation',
-    checkKey: 'address_signals',
-    title: 'Physical Address & Location Signals',
-    observedValue: { visibleAddressSignals: parsed.visibleAddressSignals },
-    passDetail: `Physical location signals detected: "${parsed.visibleAddressSignals[0]}".`,
-    failDetail: 'No street address or postal location signals identified in text.',
-  }));
+  if (!hasAddress && isDigitalFirstWithoutStorefront) {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'address_signals',
+      title: 'Physical Address & Location Signals',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 35,
+      observedValue: { visibleAddressSignals: [], reason: 'NO_STOREFRONT_ON_DIGITAL_INQUIRY_PAGE' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'No physical street address listed on page; deferred to Todd & Noelah review to confirm whether a public storefront or office address applies.',
+    });
+  } else {
+    findings.push(evaluateContentCheck({
+      isSpa,
+      found: hasAddress,
+      passPoints: 35,
+      category: 'trust_reputation',
+      checkKey: 'address_signals',
+      title: 'Physical Address & Location Signals',
+      observedValue: { visibleAddressSignals: parsed.visibleAddressSignals },
+      passDetail: `Physical location signals detected: "${parsed.visibleAddressSignals[0]}".`,
+      failDetail: 'No street address or postal location signals identified in text.',
+    }));
+  }
 
   // Check 3: About Us & Ownership Background (15 pts)
   const hasAbout = parsed.detectedAboutOrTeamKeywords;
@@ -667,7 +736,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'trust_reputation',
     checkKey: 'reviews_testimonials',
     title: 'Customer Reviews & Testimonials',
-    state: 'PASS',
+    state: hasReviews ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -684,9 +753,8 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   // ==========================================
 
   // Check 1: Target City / Regional Mentions (40 pts)
-  const effectiveCityState = (cityState || parsed.derivedCityState || '').trim();
   const targetCity = effectiveCityState.split(',')[0].trim().toLowerCase();
-  const textLower = parsed.textSnippet.toLowerCase();
+  const fullSearchableLower = (parsed.searchableText || parsed.textSnippet || '').toLowerCase();
   const titleLower = (parsed.title || '').toLowerCase();
 
   if (targetCity.length <= 2) {
@@ -703,55 +771,115 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       supportingDetail: 'Target city not specified in URL-only scan; regional keyword check deferred to Todd & Noelah review.',
     });
   } else {
-    const hasCityMatch = textLower.includes(targetCity) || titleLower.includes(targetCity);
+    const hasCityMatch = fullSearchableLower.includes(targetCity) || titleLower.includes(targetCity);
+    if (!hasCityMatch && parsed.hasMultiLocationSignals) {
+      findings.push({
+        category: 'local_discovery',
+        checkKey: 'city_state_match',
+        title: 'Target City / Regional Mentions',
+        state: 'UNKNOWN',
+        scoreContribution: 0,
+        maxPoints: 40,
+        observedValue: { targetCity, matched: false, reason: 'MULTI_LOCATION_DIRECTORY' },
+        evidenceSource: 'HTML_PARSER',
+        evidenceLabel: 'AUTO_DETECTED',
+        supportingDetail: `Multi-location directory signals detected on page while "${effectiveCityState}" was not listed on the main landing page; deferred to Todd & Noelah review to verify branch locations.`,
+      });
+    } else {
+      findings.push(evaluateContentCheck({
+        isSpa,
+        found: hasCityMatch,
+        passPoints: 40,
+        category: 'local_discovery',
+        checkKey: 'city_state_match',
+        title: 'Target City / Regional Mentions',
+        observedValue: { targetCity, matched: hasCityMatch },
+        passDetail: `Target city "${effectiveCityState}" mentioned in page content, location signals, or search title.`,
+        failDetail: `Target city "${effectiveCityState}" not clearly identified in page text or title tag.`,
+      }));
+    }
+  }
+
+  // Check 2: Service Area / Location Coverage Signals (30 pts)
+  const hasServiceArea = Boolean(
+    parsed.detectedServiceAreaSignals ||
+      parsed.hasMultiLocationSignals ||
+      fullSearchableLower.includes('service area') ||
+      fullSearchableLower.includes('serving') ||
+      fullSearchableLower.includes('county') ||
+      fullSearchableLower.includes('counties') ||
+      fullSearchableLower.includes('surrounding areas') ||
+      parsed.visibleAddressSignals.length > 0 ||
+      parsed.hasMapEmbed
+  );
+
+  if (!hasServiceArea && isDigitalFirstWithoutStorefront) {
+    findings.push({
+      category: 'local_discovery',
+      checkKey: 'service_area_language',
+      title: 'Service Area Coverage Language',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 30,
+      observedValue: { detectedServiceArea: false, reason: 'NO_LOCAL_TERRITORY_CONTEXT' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'No local storefront or service-area territory language detected in URL-only scan; deferred to Todd & Noelah review to confirm whether local geographic targeting applies.',
+    });
+  } else {
     findings.push(evaluateContentCheck({
       isSpa,
-      found: hasCityMatch,
-      passPoints: 40,
+      found: hasServiceArea,
+      passPoints: 30,
       category: 'local_discovery',
-      checkKey: 'city_state_match',
-      title: 'Target City / Regional Mentions',
-      observedValue: { targetCity, matched: hasCityMatch },
-      passDetail: `Target city "${effectiveCityState}" mentioned prominently in page content or search title.`,
-      failDetail: `Target city "${effectiveCityState}" not clearly identified in headline text or title tag.`,
+      checkKey: 'service_area_language',
+      title: 'Service Area Coverage Language',
+      observedValue: { detectedServiceArea: hasServiceArea },
+      passDetail: 'Clear service area or physical storefront location coverage signals found.',
+      failDetail: 'No explicit service area or physical storefront location signals found.',
     }));
   }
 
-  // Check 2: Service Area Coverage Language (30 pts)
-  const hasServiceArea = 
-    textLower.includes('service area') ||
-    textLower.includes('serving') ||
-    textLower.includes('county') ||
-    textLower.includes('counties') ||
-    textLower.includes('surrounding areas');
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasServiceArea,
-    passPoints: 30,
-    category: 'local_discovery',
-    checkKey: 'service_area_language',
-    title: 'Service Area Coverage Language',
-    observedValue: { detectedServiceArea: hasServiceArea },
-    passDetail: 'Clear service area / geographic territory coverage language found.',
-    failDetail: 'No explicit service area coverage language found (e.g. "Serving [County/Area]").',
-  }));
-
-  // Check 3: Schema.org LocalBusiness Markup (30 pts)
+  // Check 3: Schema.org LocalBusiness / Entity Markup (30 pts)
   const hasLbSchema = parsed.hasLocalBusinessSchema;
-  findings.push({
-    category: 'local_discovery',
-    checkKey: 'local_business_schema',
-    title: 'Schema.org LocalBusiness Markup',
-    state: hasLbSchema ? 'PASS' : 'FAIL',
-    scoreContribution: hasLbSchema ? 30 : 0,
-    maxPoints: 30,
-    observedValue: { hasLocalBusinessSchema: hasLbSchema },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: 'AUTO_DETECTED',
-    supportingDetail: hasLbSchema
-      ? 'Schema.org LocalBusiness structured data present; search engines and AI can machine-read location.'
-      : 'Missing LocalBusiness structured data; AI search engines must guess business category and location.',
-  });
+
+  if (!hasLbSchema && isDigitalFirstWithoutStorefront) {
+    findings.push({
+      category: 'local_discovery',
+      checkKey: 'local_business_schema',
+      title: 'Schema.org LocalBusiness Markup',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 30,
+      observedValue: {
+        hasLocalBusinessSchema: parsed.hasLocalBusinessSchema,
+        hasOrganizationSchema: parsed.hasOrganizationSchema,
+        reason: 'NO_STOREFRONT_CONTEXT',
+      },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'No physical storefront signals or LocalBusiness schema detected; deferred to Todd & Noelah review to confirm whether brick-and-mortar LocalBusiness markup applies.',
+    });
+  } else {
+    findings.push(evaluateContentCheck({
+      isSpa,
+      found: hasLbSchema,
+      passPoints: 30,
+      category: 'local_discovery',
+      checkKey: 'local_business_schema',
+      title: 'Schema.org LocalBusiness Markup',
+      observedValue: {
+        hasLocalBusinessSchema: parsed.hasLocalBusinessSchema,
+        hasOrganizationSchema: parsed.hasOrganizationSchema,
+      },
+      passDetail:
+        'Schema.org LocalBusiness structured data present; search engines and AI can machine-read location.',
+      failDetail:
+        'Missing LocalBusiness structured data; AI search engines must guess business category and location.',
+    }));
+  }
 
   // Check 4: Map Embed / Direction Links (Informational - 0 pts)
   const hasMap = parsed.hasMapEmbed;
@@ -759,7 +887,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'local_discovery',
     checkKey: 'map_embed_present',
     title: 'Interactive Map / Directions Link',
-    state: 'PASS',
+    state: hasMap ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -808,7 +936,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'opportunity_capture',
     checkKey: 'email_list_capture',
     title: 'Customer List & Email Signup',
-    state: 'PASS',
+    state: parsed.hasEmailNewsletterForm ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -825,7 +953,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'opportunity_capture',
     checkKey: 'lead_magnet_observed',
     title: 'Lead Magnet / Downloadable Guide',
-    state: 'PASS',
+    state: parsed.detectedLeadMagnetSignals ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -843,7 +971,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'opportunity_capture',
     checkKey: 'after_hours_messaging',
     title: 'After-Hours Messaging / Text Safeguard',
-    state: 'PASS',
+    state: hasAfterHours ? 'PASS' : 'UNKNOWN',
     scoreContribution: 0,
     maxPoints: 0,
     isInformational: true,
@@ -941,9 +1069,9 @@ export function buildUnknownFindings(
         { key: 'https_enabled', title: 'HTTPS / SSL Encryption', maxPoints: 20 },
         { key: 'page_responds', title: 'Server Response & Accessibility', maxPoints: 20 },
         { key: 'mobile_viewport', title: 'Mobile Viewport Configuration', maxPoints: 20 },
-        { key: 'has_title', title: 'Search Title Tag', maxPoints: 10 },
+        { key: 'has_title', title: 'Search Title Tag', maxPoints: 15 },
         { key: 'meta_description', title: 'Meta Description', maxPoints: 10 },
-        { key: 'has_favicon', title: 'Browser Tab Icon (Favicon)', maxPoints: 10 },
+        { key: 'has_favicon', title: 'Browser Tab Icon (Favicon)', maxPoints: 5 },
         { key: 'opengraph_presence', title: 'Social Share Preview (OpenGraph)', maxPoints: 10 },
         { key: 'social_links', title: 'Active Social Profiles', maxPoints: 0, isInformational: true },
       ]

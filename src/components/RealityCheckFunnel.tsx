@@ -74,6 +74,7 @@ export default function RealityCheckFunnel({
   const [restoring, setRestoring] = useState(false);
   const [scanError, setScanError] = useState("");
   const [snapshot, setSnapshot] = useState<ScanSnapshot | null>(null);
+  const [showAllFindings, setShowAllFindings] = useState(false);
 
   // Step 3: Email capture state
   const [emailInput, setEmailInput] = useState("");
@@ -122,43 +123,43 @@ export default function RealityCheckFunnel({
         setCityStateInput(data.cityState ? decodeHtmlEntities(data.cityState) : "");
       }
     } catch {
-      // Ignore restore errors silently
+      // Ignore background restore errors and fall back to fresh URL entry
     } finally {
       setRestoring(false);
     }
   }, []);
 
-  // Restore scan state on mount or back/forward navigation without creating duplicate requests
+  // Restore scan state on initial mount or browser back/forward navigation
   useEffect(() => {
-    const readTokenFromLocation = () => {
+    if (typeof window === "undefined") return;
+
+    const getTokenFromLocation = () => {
       try {
         const params = new URLSearchParams(window.location.search);
-        const urlToken = params.get("scan");
-        if (urlToken && urlToken.length >= 16) {
-          return urlToken;
-        }
-      } catch {}
-      return null;
+        return params.get("scan") || sessionStorage.getItem("baratrust_last_scan_token") || "";
+      } catch {
+        return "";
+      }
     };
 
-    const initialToken = readTokenFromLocation();
+    const initialToken = getTokenFromLocation();
     if (initialToken) {
       loadSnapshotByToken(initialToken);
     }
 
-    const onPopState = () => {
-      const token = readTokenFromLocation();
-      if (token) {
-        loadSnapshotByToken(token);
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      const popToken = params.get("scan");
+      if (popToken) {
+        loadSnapshotByToken(popToken);
       } else {
         setSnapshot(null);
         setHumanReviewRequested(false);
-        setSkippedQuestionnaire(false);
       }
     };
 
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, [loadSnapshotByToken]);
 
   const handleScanSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -167,19 +168,20 @@ export default function RealityCheckFunnel({
 
     const trimmedUrl = urlInput.trim();
     if (!trimmedUrl) {
-      setScanError("Please paste your business website, Google Business link, or Facebook page URL.");
+      setScanError("Please enter your website or business page link.");
       return;
     }
 
     setScanning(true);
     setScanError("");
-    setEmailError("");
-    setSkippedQuestionnaire(false);
+    setShowAllFindings(false);
 
-    trackFunnelEvent("reality_check_started", { url_provided: true, surface: variant });
+    trackFunnelEvent("url_scan_started", {
+      surface: variant,
+    });
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 28000);
+    const timeout = setTimeout(() => controller.abort(), 18000);
 
     try {
       const res = await fetch("/api/reality-check", {
@@ -188,13 +190,16 @@ export default function RealityCheckFunnel({
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ website: trimmedUrl }),
+        body: JSON.stringify({
+          website: trimmedUrl,
+        }),
         signal: controller.signal,
       });
 
       const data = await res.json();
+
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Could not scan that link. Please check the address and try again.");
+        throw new Error(data.error || "Could not scan that link. Please check the URL and try again.");
       }
 
       const nextSnapshot: ScanSnapshot = {
@@ -311,6 +316,7 @@ export default function RealityCheckFunnel({
 
   const handleResetScan = () => {
     setSnapshot(null);
+    setShowAllFindings(false);
     setHumanReviewRequested(false);
     setSkippedQuestionnaire(false);
     setScanError("");
@@ -409,10 +415,19 @@ export default function RealityCheckFunnel({
     snapshot.scoreBreakdown?.platformLabel ||
     "hosted business page";
 
-  // Compute key findings for Step 2 Immediate Value display
-  const passingFindings = snapshot.findings.filter((f) => f.state === "PASS");
-  const failingFindings = snapshot.findings.filter((f) => f.state === "FAIL");
-  const unknownFindings = snapshot.findings.filter((f) => f.state === "UNKNOWN");
+  // Separate scored checks (maxPoints > 0) from informational checks (maxPoints === 0)
+  // so informational "not detected" observations never inflate the passing signal count.
+  const scoredPool = isHostedProfile
+    ? snapshot.findings
+    : snapshot.findings.filter((f) => (f.maxPoints ?? 0) > 0);
+
+  const passingFindings = scoredPool.filter((f) => f.state === "PASS");
+  // Sort failing findings by point impact (maxPoints descending) so the most consequential
+  // score deductions always appear in the top highlighted cards.
+  const failingFindings = [...scoredPool.filter((f) => f.state === "FAIL")].sort(
+    (a, b) => (b.maxPoints || 0) - (a.maxPoints || 0)
+  );
+  const unknownFindings = scoredPool.filter((f) => f.state === "UNKNOWN");
 
   const highlightedFindings: PublicFinding[] = isHostedProfile
     ? [...passingFindings.slice(0, 4), ...unknownFindings.slice(0, 3)].slice(0, 6)
@@ -421,6 +436,17 @@ export default function RealityCheckFunnel({
         ...passingFindings.slice(0, 3),
         ...unknownFindings.slice(0, 2),
       ].slice(0, 6);
+
+  const allScoredFindingsOrdered: PublicFinding[] = isHostedProfile
+    ? [...passingFindings, ...unknownFindings]
+    : [...failingFindings, ...unknownFindings, ...passingFindings];
+
+  const visibleFindings = showAllFindings ? allScoredFindingsOrdered : highlightedFindings;
+  const hiddenFailingCount = Math.max(
+    0,
+    failingFindings.length - highlightedFindings.filter((f) => f.state === "FAIL").length
+  );
+  const hasMoreFindings = allScoredFindingsOrdered.length > highlightedFindings.length;
 
   const displayTarget =
     snapshot.businessName ||
@@ -530,6 +556,7 @@ export default function RealityCheckFunnel({
           >
             <strong style={{ fontSize: "1.2rem" }}>
               Automated Score: {snapshot.overallScore} / 100
+              {snapshot.overallCoverage < 100 ? " on Evaluated Signals" : ""}
             </strong>
             <span
               style={{
@@ -544,9 +571,13 @@ export default function RealityCheckFunnel({
             </span>
           </div>
           <p style={{ margin: "6px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
-            {snapshot.confidence === "HIGH"
-              ? `Our scanner verified ${passingFindings.length} passing signals and flagged ${failingFindings.length} areas that may be costing you inquiries.`
-              : `Provisional score based on ${snapshot.overallCoverage}% observable static web signals (${unknownFindings.length} checks require human verification).`}
+            {snapshot.overallCoverage < 100
+              ? `Score reflects performance on the ${snapshot.overallCoverage}% of scored checks observable from static HTML (${passingFindings.length} passing, ${failingFindings.length} flagged). The remaining ${100 - snapshot.overallCoverage}% (${unknownFindings.length} ${
+                  unknownFindings.length === 1 ? "check" : "checks"
+                }) was not evaluated automatically and is deferred to human review.`
+              : `Our scanner verified 100% of scored checks (${passingFindings.length} passing, ${failingFindings.length} ${
+                  failingFindings.length === 1 ? "area" : "areas"
+                } flagged).`}
           </p>
         </div>
       ) : (
@@ -560,19 +591,19 @@ export default function RealityCheckFunnel({
               : "Insufficient Static HTML Coverage"}
           </strong>
           <p style={{ margin: "6px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
-            We never invent or penalize your score when a site blocks automated crawlers, uses a social platform login wall, or renders entirely in the browser ({snapshot.overallCoverage}% static coverage). Instead, we mark unobservable checks as <strong style={{ display: "inline" }}>UNKNOWN</strong> so a human can inspect them directly.
+            We never invent or penalize your score when a site blocks automated crawlers, uses a social platform login wall, or renders primarily in the browser ({snapshot.overallCoverage}% static coverage). Instead, we mark unobservable checks as <strong style={{ display: "inline" }}>UNKNOWN</strong> so a human can inspect them directly.
           </p>
         </div>
       )}
 
       {/* Key Observable Findings */}
-      {highlightedFindings.length > 0 && (
+      {visibleFindings.length > 0 && (
         <div style={{ marginTop: "16px", marginBottom: "18px" }}>
           <strong style={{ display: "block", fontSize: "0.95rem", marginBottom: "10px" }}>
             What We Found
           </strong>
           <ul className="findings-list">
-            {highlightedFindings.map((f) => {
+            {visibleFindings.map((f) => {
               const badgeText =
                 f.state === "PASS" ? "PASS" : f.state === "FAIL" ? "ATTENTION" : "HUMAN CHECK";
               const badgeModifier =
@@ -617,6 +648,31 @@ export default function RealityCheckFunnel({
               );
             })}
           </ul>
+          {hasMoreFindings && (
+            <button
+              type="button"
+              onClick={() => setShowAllFindings((prev) => !prev)}
+              style={{
+                marginTop: "10px",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                fontSize: "0.84rem",
+                fontWeight: 600,
+                textDecoration: "underline",
+                cursor: "pointer",
+                color: "inherit",
+              }}
+            >
+              {showAllFindings
+                ? "Show fewer checks"
+                : hiddenFailingCount > 0
+                ? `View all ${allScoredFindingsOrdered.length} scored checks (+${hiddenFailingCount} more flagged ${
+                    hiddenFailingCount === 1 ? "area" : "areas"
+                  })`
+                : `View all ${allScoredFindingsOrdered.length} scored checks`}
+            </button>
+          )}
         </div>
       )}
 

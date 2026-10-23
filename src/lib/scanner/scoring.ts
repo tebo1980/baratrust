@@ -27,7 +27,8 @@ function getConfidenceLevel(coveragePercent: number): ConfidenceLevel {
  * - category score = performance on evidence we can legitimately evaluate
  * - category coverage/confidence = percentage of expected evidence actually evaluated
  * - does not invent failing evidence when something is UNKNOWN
- * - withholds numeric overallScore for hosted third-party profiles/pages
+ * - withholds numeric overallScore for hosted third-party profiles/pages or when
+ *   static HTML coverage / category diversity is insufficient (e.g. client-rendered SPA shells)
  */
 export function calculateScores(
   findings: EvaluatedFinding[],
@@ -85,21 +86,44 @@ export function calculateScores(
 
   const overallConfidence = getConfidenceLevel(overallCoverage);
 
-  // If overall coverage is below 25%, or if the URL is a hosted third-party profile,
-  // withhold the numeric website score.
+  // Epistemic score-withholding rule:
+  // A numeric overall website score is only defensible when:
+  // 1. The target is a standalone website (!isHostedProfile)
+  // 2. Overall weighted coverage reaches at least MEDIUM confidence (overallCoverage >= 50)
+  // 3. At least 3 of the 5 categories have meaningful evaluable coverage (coveragePercent >= 50),
+  //    preventing HTTP/<head>-only Digital Presence + 1 stray check on a client-rendered SPA shell
+  //    from masquerading as a full website score
+  // 4. At least one core customer-facing body category (Customer Journey or Trust & Reputation)
+  //    has evaluable evidence (score !== null)
+  // 5. Evaluable category weights represent at least 60% of total weight (evaluableWeight >= 0.60)
+  const categoriesWithMeaningfulCoverage = categoryScores.filter(
+    (cs) => cs.score !== null && cs.coveragePercent >= 50
+  ).length;
+  const hasCoreBodyCategory = categoryScores.some(
+    (cs) =>
+      (cs.category === 'customer_journey' || cs.category === 'trust_reputation') &&
+      cs.score !== null &&
+      cs.coveragePercent > 0
+  );
+
+  let weightedSum = 0;
+  let evaluableWeight = 0;
+  for (const cs of categoryScores) {
+    if (cs.score !== null) {
+      weightedSum += cs.score * cs.weight;
+      evaluableWeight += cs.weight;
+    }
+  }
+
   let overallScore: number | null = null;
-  if (!isHostedProfile && overallCoverage >= 25) {
-    let weightedSum = 0;
-    let evaluableWeight = 0;
-    for (const cs of categoryScores) {
-      if (cs.score !== null) {
-        weightedSum += cs.score * cs.weight;
-        evaluableWeight += cs.weight;
-      }
-    }
-    if (evaluableWeight > 0) {
-      overallScore = Math.min(100, Math.max(0, Math.round(weightedSum / evaluableWeight)));
-    }
+  if (
+    !isHostedProfile &&
+    overallCoverage >= 50 &&
+    categoriesWithMeaningfulCoverage >= 3 &&
+    hasCoreBodyCategory &&
+    evaluableWeight >= 0.6
+  ) {
+    overallScore = Math.min(100, Math.max(0, Math.round(weightedSum / evaluableWeight)));
   }
 
   const dp = categoryScores.find(c => c.category === 'digital_presence');

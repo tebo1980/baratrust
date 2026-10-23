@@ -793,3 +793,578 @@ test('Hosted Profile 11 — Distinguishes Business Category from Business Descri
 
 
 
+
+// ==========================================
+// 8. Calibration & Correctness Audit Regression Suite (Phases 2–7)
+// ==========================================
+test('Calibration Audit Phase 2 — Client-rendered SPA shell with title keywords withholds numeric overallScore and does not leak <head> into visibleText', () => {
+  const spaWithTitleKeywordsHtml = `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <title>Fistful | Restaurant, Brewery, Food Trucks &amp; Catering</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Your place for Great Food. Your partner for Great Events. Scratch-made food, craft brewery, and full-service catering in Southern Indiana and Louisville." />
+        <meta property="og:title" content="Fistful | Restaurant, Brewery, Food Trucks &amp; Catering" />
+        <link rel="icon" type="image/png" href="/favicon.png" />
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="module" src="/assets/index.js"></script>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(spaWithTitleKeywordsHtml);
+  assert.equal(parsed.isClientRenderedSpa, true, 'Must detect client-rendered SPA shell');
+  assert.equal(parsed.textSnippet, '', '<head>/<title> text must not leak into visible body text');
+  assert.equal(
+    parsed.detectedQuoteOrCateringKeywords,
+    false,
+    'Title-only keyword on empty SPA shell must not count as an in-body quote/catering action path'
+  );
+
+  const rawData: RawPageData = {
+    requestedUrl: 'https://fistfulcraft.com',
+    finalUrl: 'https://fistfulcraft.com/',
+    normalizedUrl: 'https://fistfulcraft.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 95,
+    headers: { 'content-type': 'text/html' },
+    html: spaWithTitleKeywordsHtml,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed });
+  const schemaFinding = findings.find((f) => f.checkKey === 'local_business_schema')!;
+  assert.equal(
+    schemaFinding.state,
+    'UNKNOWN',
+    'Missing LocalBusiness schema on unrendered SPA shell must be UNKNOWN rather than FAIL'
+  );
+
+  const scores = calculateScores(findings);
+  assert.equal(
+    scores.overallScore,
+    null,
+    'Numeric overallScore must be withheld (null) when only Digital Presence (<head>) is evaluable on an SPA shell'
+  );
+  assert.equal(scores.confidence, 'LOW');
+  assert.equal(scores.overallCoverage, 20);
+});
+
+test('Calibration Audit Phase 4 — CTA detector recognizes interactive conversion controls and ignores generic navigation or prose verbs', () => {
+  const interactiveCtaHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head><title>Growth Partner</title></head>
+      <body>
+        <nav>
+          <a href="#services">What we help with</a>
+          <a href="#how">How it works</a>
+          <a class="nav-cta" href="#start">Get your free Reality Check</a>
+          <button type="button">Night mode</button>
+        </nav>
+        <main>
+          <p>We help small businesses get more customers and lose fewer opportunities.</p>
+          <div class="cta-row">
+            <a class="btn primary" href="#start">Run My Free Reality Check</a>
+            <a class="btn secondary" href="#services">See What We Can Help With</a>
+          </div>
+          <form>
+            <input type="text" name="website" />
+            <button type="submit">Run Instant Scan</button>
+          </form>
+        </main>
+      </body>
+    </html>
+  `;
+
+  const parsedBaraStyle = parseHtmlForBusinessSignals(interactiveCtaHtml);
+  assert.ok(
+    parsedBaraStyle.detectedCtaKeywords.includes('get your free reality check') ||
+      parsedBaraStyle.detectedCtaKeywords.includes('run my free reality check'),
+    'Must detect interactive Reality Check CTA links/buttons'
+  );
+  assert.equal(
+    parsedBaraStyle.detectedCtaKeywords.includes('night mode'),
+    false,
+    'Must never classify theme toggle button as a conversion CTA'
+  );
+
+  const demoCtaHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head><title>Restaurant Platform</title></head>
+      <body>
+        <a href="/demo" class="button">Get a Free Demo</a>
+        <a href="/blog">Learn more</a>
+        <a href="/about">Read more</a>
+      </body>
+    </html>
+  `;
+  const parsedDemo = parseHtmlForBusinessSignals(demoCtaHtml);
+  assert.ok(
+    parsedDemo.detectedCtaKeywords.includes('get a free demo'),
+    'Must detect "Get a Free Demo" conversion control'
+  );
+  assert.equal(
+    parsedDemo.detectedCtaKeywords.includes('learn more'),
+    false,
+    'Must not count generic "Learn more" link as a conversion CTA'
+  );
+  assert.equal(
+    parsedDemo.detectedCtaKeywords.includes('read more'),
+    false,
+    'Must not count generic "Read more" link as a conversion CTA'
+  );
+});
+
+test('Calibration Audit Phase 5 — Multi-location restaurants pass city_state_match and service_area_language beyond 500 chars without requiring contractor phrasing', () => {
+  const fillerIntro = 'Welcome to our family pizzeria where we hand-make dough fresh every morning using imported tomatoes and 100% whole milk mozzarella cheese. '.repeat(6);
+  const multiLocationRestaurantHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Mattenga's Pizzeria | Best Pizza in San Antonio | Pizza near me</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Mattenga's Pizzeria serves authentic scratch-made pizza, wings, and pasta across the San Antonio metro area." />
+        <link rel="icon" href="https://mattengas.com/favicon.png?w=32&amp;h=32" />
+      </head>
+      <body>
+        <h1>Mattenga's Pizzeria</h1>
+        <p>${fillerIntro}</p>
+        <a href="https://order.mattengas.com">Order Online</a>
+        <a href="tel:+12105921138">(210) 592-1138</a>
+        <section id="locations">
+          <h2>Our Locations</h2>
+          <p>6044 FM3009 Ste 110, Schertz, TX 78154</p>
+          <p>46 HW New Braunfels Military Dr, San Antonio, TX 78235</p>
+        </section>
+        <footer><a href="/privacy-policy">Privacy Policy</a></footer>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(multiLocationRestaurantHtml, 'Schertz, TX');
+  assert.ok(
+    parsed.textSnippet.length <= 500 && !parsed.textSnippet.toLowerCase().includes('schertz'),
+    'Fixture places Schertz address after the first 500 characters'
+  );
+
+  const rawData: RawPageData = {
+    requestedUrl: 'https://mattengas.com',
+    finalUrl: 'https://mattengas.com/',
+    normalizedUrl: 'https://mattengas.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 85,
+    headers: { 'content-type': 'text/html' },
+    html: multiLocationRestaurantHtml,
+  };
+
+  const findings = runDeterministicChecks({
+    rawData,
+    parsed,
+    cityState: 'Schertz, TX',
+  });
+
+  const cityFinding = findings.find((f) => f.checkKey === 'city_state_match')!;
+  assert.equal(
+    cityFinding.state,
+    'PASS',
+    'city_state_match must search full page content/locations beyond the 500-char snippet'
+  );
+
+  const serviceAreaFinding = findings.find((f) => f.checkKey === 'service_area_language')!;
+  assert.equal(
+    serviceAreaFinding.state,
+    'PASS',
+    'Multi-location restaurant with physical storefront addresses must pass service_area_language without contractor phrasing'
+  );
+
+  const metaDescFinding = findings.find((f) => f.checkKey === 'meta_description')!;
+  assert.equal(
+    metaDescFinding.state,
+    'PASS',
+    'Meta description containing apostrophe (Mattenga\'s) must not be truncated at single quote'
+  );
+});
+
+test('Calibration Audit Phase 5 — Address regex rejects prose false positives ("slip away", "recurring waste", "000 Savings in third") and digital-first sites defer inapplicable storefront checks to UNKNOWN', () => {
+  const digitalFirstHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>BaraTrust — Small Business Growth &amp; Operations Partner</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Run your business. We'll help with the rest. BaraTrust helps small businesses get more customers and cut unnecessary costs." />
+        <meta property="og:title" content="BaraTrust" />
+      </head>
+      <body>
+        <h1>Run your business. We’ll help with the rest.</h1>
+        <p>02 Lose Fewer Opportunities Stop letting warm inquiries and past quotes slip away.</p>
+        <p>03 Cut Unnecessary Costs Spot recurring waste and trim expenses.</p>
+        <p>$10,000 Savings in third-party delivery fees.</p>
+        <p>1 Paste Your Link Paste your website.</p>
+        <p>AI helps BaraTrust research faster, but BaraTrust is human-led.</p>
+        <a class="btn primary" href="#start">Run My Free Reality Check</a>
+        <form><input type="email" name="email" /><textarea name="message"></textarea><button type="submit">Run My Free Reality Check</button></form>
+        <footer><a href="mailto:todd@baratrust.com">todd@baratrust.com</a></footer>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(digitalFirstHtml);
+  assert.deepEqual(
+    parsed.visibleAddressSignals,
+    [],
+    'Prose containing numbers followed by "away", "waste", "Paste", or "third" must never match as street addresses'
+  );
+
+  const rawData: RawPageData = {
+    requestedUrl: 'https://www.baratrust.com',
+    finalUrl: 'https://www.baratrust.com/',
+    normalizedUrl: 'https://www.baratrust.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 120,
+    headers: { 'content-type': 'text/html' },
+    html: digitalFirstHtml,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed });
+  const byKey = new Map(findings.map((f) => [f.checkKey, f]));
+
+  assert.equal(byKey.get('cta_keywords_found')?.state, 'PASS');
+  assert.equal(byKey.get('has_tel_link')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('phone_number_visible')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('address_signals')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('service_area_language')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('local_business_schema')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('has_favicon')?.maxPoints, 5, 'Favicon check weight must be 5 points');
+  assert.equal(byKey.get('has_title')?.maxPoints, 15, 'Title check weight must be 15 points');
+});
+
+test('Calibration Audit Phase 6 & 7 — Meta description and OpenGraph parser preserves apostrophes inside double-quoted attributes and decodes favicon href entities', () => {
+  const htmlWithApostrophes = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Talkin' Tacos | Best Tacos in Town</title>
+        <meta content="Talkin' Tacos serves authentic birria tacos, loaded fries, and fresh aguas frescas across South Florida." name="description" />
+        <meta content="Talkin' Tacos" property="og:title" />
+        <meta content="Talkin' Tacos Official Site" property="og:site_name" />
+        <meta content="Talkin' Tacos serves authentic birria tacos, loaded fries, and fresh aguas frescas." property="og:description" />
+        <link rel="shortcut icon" href="https://talkintacos.net/icon.png?w=32&amp;h=32&amp;fit=contain" />
+      </head>
+      <body>
+        <a href="tel:1-844-24-69637">Call 1-844-24-69637</a>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(htmlWithApostrophes);
+  assert.equal(
+    parsed.metaDescription,
+    "Talkin' Tacos serves authentic birria tacos, loaded fries, and fresh aguas frescas across South Florida."
+  );
+  assert.equal(parsed.ogTags.title, "Talkin' Tacos");
+  assert.equal(parsed.ogTags.siteName, "Talkin' Tacos Official Site");
+  assert.equal(
+    parsed.ogTags.description,
+    "Talkin' Tacos serves authentic birria tacos, loaded fries, and fresh aguas frescas."
+  );
+  assert.equal(
+    parsed.faviconUrl,
+    'https://talkintacos.net/icon.png?w=32&h=32&fit=contain',
+    'Favicon href must decode &amp; entities'
+  );
+  assert.ok(
+    parsed.visiblePhoneNumbers.includes('1-844-24-69637'),
+    'Must recognize toll-free / non-standard hyphenated 11-digit phone number'
+  );
+});
+
+// ==========================================
+// 9. Challenge Review Regression Suite — Cases A–E & 0-Point Informational Semantics
+// ==========================================
+test('Challenge Review 2 (Case A) — Digital-first B2B / SaaS platform (owner.com style) does not fail storefront-only checks even when mentioning restaurants and phone support', () => {
+  const saasHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Owner.com | Restaurant Website &amp; Online Ordering Platform</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="All-in-one restaurant marketing platform built for restaurant owners to grow online ordering, takeout, and delivery." />
+        <meta property="og:title" content="Owner.com" />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+      <body>
+        <h1>The #1 Restaurant Marketing Software for Independent Restaurant Owners</h1>
+        <p>Grow your direct online ordering and loyalty with our all-in-one platform. Trusted by thousands of pizzeria, taqueria, and diner owners nationwide.</p>
+        <a href="/demo" class="button">Get a Free Demo</a>
+        <a href="tel:+18583104850">Call Sales (858) 310-4850</a>
+        <section><h2>Our Story</h2><p>Founded to help local business owners succeed online.</p></section>
+        <form><input type="email" name="email" /><textarea name="message"></textarea><button type="submit">Request a Demo</button></form>
+        <footer><a href="/privacy">Privacy Policy</a></footer>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(saasHtml);
+  assert.equal(
+    parsed.detectedLocalBusinessCues,
+    false,
+    'B2B SaaS platform with demo/software cues and no physical storefront must not be classified as a local brick-and-mortar restaurant'
+  );
+
+  const rawData: RawPageData = {
+    requestedUrl: 'https://owner.com',
+    finalUrl: 'https://owner.com/',
+    normalizedUrl: 'https://owner.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 110,
+    headers: { 'content-type': 'text/html' },
+    html: saasHtml,
+  };
+
+  const findings = runDeterministicChecks({ rawData, parsed });
+  const byKey = new Map(findings.map((f) => [f.checkKey, f]));
+
+  assert.equal(byKey.get('has_tel_link')?.state, 'PASS');
+  assert.equal(byKey.get('phone_number_visible')?.state, 'PASS');
+  assert.equal(byKey.get('address_signals')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('city_state_match')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('service_area_language')?.state, 'UNKNOWN');
+  assert.equal(byKey.get('local_business_schema')?.state, 'UNKNOWN');
+});
+
+test('Challenge Review 2 (Case B & Case C) — Poorly built local plumber/HVAC contractor and single-location restaurant CANNOT use digital-first applicability as an escape hatch', () => {
+  // Case B: Local plumber/HVAC site that omitted its phone number, street address, schema, and city in a URL-only scan
+  const poorlyBuiltPlumberHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Reliable Plumbing &amp; HVAC Services</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Licensed and insured plumbing, drain cleaning, water heater repair, and air conditioning services." />
+      </head>
+      <body>
+        <h1>Emergency Plumbing, Drain Cleaning &amp; Furnace Repair</h1>
+        <p>We provide 24/7 emergency service, water heater installation, sewer line repair, and AC repair for homeowners. Contact us today for a free estimate.</p>
+        <form><input type="email" name="email" /><textarea name="message"></textarea><button type="submit">Contact Us</button></form>
+      </body>
+    </html>
+  `;
+
+  const parsedPlumber = parseHtmlForBusinessSignals(poorlyBuiltPlumberHtml);
+  assert.equal(parsedPlumber.detectedLocalBusinessCues, true, 'Must detect local trade/contractor cues');
+
+  const plumberFindings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://reliableplumbing.example',
+      finalUrl: 'https://reliableplumbing.example/',
+      normalizedUrl: 'https://reliableplumbing.example/',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 100,
+      headers: { 'content-type': 'text/html' },
+      html: poorlyBuiltPlumberHtml,
+    },
+    parsed: parsedPlumber,
+  });
+  const plumberByKey = new Map(plumberFindings.map((f) => [f.checkKey, f]));
+
+  assert.equal(plumberByKey.get('has_tel_link')?.state, 'FAIL', 'Local plumber missing phone link must FAIL, not UNKNOWN');
+  assert.equal(plumberByKey.get('phone_number_visible')?.state, 'FAIL', 'Local plumber missing visible phone must FAIL, not UNKNOWN');
+  assert.equal(plumberByKey.get('address_signals')?.state, 'FAIL', 'Local plumber missing address/location must FAIL, not UNKNOWN');
+  assert.equal(plumberByKey.get('service_area_language')?.state, 'FAIL', 'Local plumber missing service area must FAIL, not UNKNOWN');
+  assert.equal(plumberByKey.get('local_business_schema')?.state, 'FAIL', 'Local plumber missing LocalBusiness schema must FAIL, not UNKNOWN');
+
+  // Case C: Single-location restaurant that omitted its phone number, street address, schema, and city in a URL-only scan
+  const poorlyBuiltRestaurantHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Bella Napoli Trattoria &amp; Pizzeria</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Wood-fired pizza, handmade pasta, appetizers, entrees, dine-in and takeout." />
+      </head>
+      <body>
+        <h1>Bella Napoli Pizzeria</h1>
+        <h2>Our Menu</h2>
+        <p>Join us for dine-in, carryout, happy hour, and table reservations. Browse our appetizers, wood-fired pizzas, and entrees.</p>
+        <a href="/reservations" class="btn">Book a Table</a>
+      </body>
+    </html>
+  `;
+
+  const parsedRestaurant = parseHtmlForBusinessSignals(poorlyBuiltRestaurantHtml);
+  assert.equal(parsedRestaurant.detectedLocalBusinessCues, true, 'Must detect brick-and-mortar restaurant cues');
+
+  const restaurantFindings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://bellanapoli.example',
+      finalUrl: 'https://bellanapoli.example/',
+      normalizedUrl: 'https://bellanapoli.example/',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 100,
+      headers: { 'content-type': 'text/html' },
+      html: poorlyBuiltRestaurantHtml,
+    },
+    parsed: parsedRestaurant,
+  });
+  const restByKey = new Map(restaurantFindings.map((f) => [f.checkKey, f]));
+
+  assert.equal(restByKey.get('menu_or_services')?.state, 'PASS');
+  assert.equal(restByKey.get('has_tel_link')?.state, 'FAIL', 'Single-location restaurant missing phone link must FAIL');
+  assert.equal(restByKey.get('phone_number_visible')?.state, 'FAIL', 'Single-location restaurant missing phone must FAIL');
+  assert.equal(restByKey.get('address_signals')?.state, 'FAIL', 'Single-location restaurant missing street address must FAIL');
+  assert.equal(restByKey.get('service_area_language')?.state, 'FAIL', 'Single-location restaurant missing location/address signals must FAIL');
+  assert.equal(restByKey.get('local_business_schema')?.state, 'FAIL', 'Single-location restaurant missing LocalBusiness schema must FAIL');
+});
+
+test('Challenge Review 2 (Case D & Case E) — Multi-location restaurant with /locations directory passes service_area_language without single city in <title>/<h1>, and ambiguous business model prefers UNKNOWN over false FAIL/PASS', () => {
+  // Case D: Multi-location restaurant (talkintacos.net style) without a single city in <title>/<h1>
+  const multiLocationChainHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Talkin' Tacos | Best Tacos in Town</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Talkin' Tacos serves authentic birria tacos, loaded fries, and fresh aguas frescas across South Florida." />
+      </head>
+      <body>
+        <nav><a href="/menu">Our Menu</a><a href="/locations">Locations</a><a href="/catering">Catering</a></nav>
+        <h1>Talkin' Tacos</h1>
+        <p>Order online for pickup or delivery from any of our locations.</p>
+        <a href="tel:1-844-24-69637">1-844-24-69637</a>
+      </body>
+    </html>
+  `;
+
+  const parsedChain = parseHtmlForBusinessSignals(multiLocationChainHtml);
+  assert.equal(parsedChain.hasMultiLocationSignals, true);
+  assert.equal(parsedChain.detectedServiceAreaSignals, true);
+
+  const chainFindings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://talkintacos.net',
+      finalUrl: 'https://talkintacos.net/',
+      normalizedUrl: 'https://talkintacos.net/',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 110,
+      headers: { 'content-type': 'text/html' },
+      html: multiLocationChainHtml,
+    },
+    parsed: parsedChain,
+    cityState: 'Miami, FL',
+  });
+  const chainByKey = new Map(chainFindings.map((f) => [f.checkKey, f]));
+  assert.equal(
+    chainByKey.get('service_area_language')?.state,
+    'PASS',
+    'Multi-location restaurant with /locations nav and regional coverage must pass service_area_language'
+  );
+  assert.equal(
+    chainByKey.get('city_state_match')?.state,
+    'UNKNOWN',
+    'Multi-location restaurant delegating branch cities to /locations must defer city_state_match to UNKNOWN rather than FAIL'
+  );
+
+  // Case E: Ambiguous business model with generic Organization schema and no clear local or digital-CTA signals
+  const ambiguousHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Horizon Ventures Group</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Horizon Ventures Group provides strategic advisory and operational excellence." />
+        <script type="application/ld+json">
+          { "@context": "https://schema.org", "@type": "Organization", "name": "Horizon Ventures Group" }
+        </script>
+      </head>
+      <body>
+        <h1>Horizon Ventures Group</h1>
+        <p>We partner with leadership teams to navigate complex transitions, build resilient organizations, and unlock sustainable long-term value across markets.</p>
+      </body>
+    </html>
+  `;
+
+  const parsedAmbiguous = parseHtmlForBusinessSignals(ambiguousHtml);
+  assert.equal(parsedAmbiguous.isClientRenderedSpa, false);
+  assert.equal(parsedAmbiguous.detectedLocalBusinessCues, false);
+
+  const ambiguousFindings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://horizonventures.example',
+      finalUrl: 'https://horizonventures.example/',
+      normalizedUrl: 'https://horizonventures.example/',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 100,
+      headers: { 'content-type': 'text/html' },
+      html: ambiguousHtml,
+    },
+    parsed: parsedAmbiguous,
+  });
+  const ambigByKey = new Map(ambiguousFindings.map((f) => [f.checkKey, f]));
+  assert.equal(ambigByKey.get('has_tel_link')?.state, 'UNKNOWN', 'Ambiguous business model must prefer UNKNOWN over false FAIL on phone link');
+  assert.equal(ambigByKey.get('phone_number_visible')?.state, 'UNKNOWN', 'Ambiguous business model must prefer UNKNOWN over false FAIL on visible phone');
+  assert.equal(ambigByKey.get('address_signals')?.state, 'UNKNOWN', 'Ambiguous business model must prefer UNKNOWN over false FAIL on address');
+  assert.equal(ambigByKey.get('service_area_language')?.state, 'UNKNOWN', 'Ambiguous business model must prefer UNKNOWN over false FAIL on service area');
+  assert.equal(
+    ambigByKey.get('local_business_schema')?.state,
+    'UNKNOWN',
+    'Ambiguous business model with only generic Organization schema must prefer UNKNOWN over false PASS or false FAIL on LocalBusiness schema'
+  );
+});
+
+test('Challenge Review 3 — 0-point informational checks return UNKNOWN when not observed, PASS when observed, and never deduct points', () => {
+  const minimalHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Clean Site</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body>
+        <h1>Clean Site</h1>
+        <p>Simple body content exceeding static minimum threshold so SPA mode is not triggered during parsing of this page.</p>
+        <a href="https://facebook.com/cleansite">Facebook</a>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(minimalHtml);
+  const findings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://cleansite.example',
+      finalUrl: 'https://cleansite.example/',
+      normalizedUrl: 'https://cleansite.example/',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 90,
+      headers: { 'content-type': 'text/html' },
+      html: minimalHtml,
+    },
+    parsed,
+  });
+
+  const infoFindings = findings.filter((f) => f.maxPoints === 0);
+  assert.equal(infoFindings.length, 8, 'Must have exactly 8 informational 0-point checks');
+
+  const infoByKey = new Map(infoFindings.map((f) => [f.checkKey, f]));
+  assert.equal(infoByKey.get('social_links')?.state, 'PASS', 'Observed social link must be PASS');
+  assert.equal(infoByKey.get('public_pricing_observed')?.state, 'UNKNOWN', 'Unobserved pricing must be UNKNOWN, not PASS');
+  assert.equal(infoByKey.get('online_booking_observed')?.state, 'UNKNOWN', 'Unobserved booking must be UNKNOWN, not PASS');
+  assert.equal(infoByKey.get('reviews_testimonials')?.state, 'UNKNOWN', 'Unobserved testimonials must be UNKNOWN, not PASS');
+  assert.equal(infoByKey.get('map_embed_present')?.state, 'UNKNOWN', 'Unobserved map embed must be UNKNOWN, not PASS');
+  assert.equal(infoByKey.get('email_list_capture')?.state, 'UNKNOWN', 'Unobserved newsletter must be UNKNOWN, not PASS');
+  assert.equal(infoByKey.get('lead_magnet_observed')?.state, 'UNKNOWN', 'Unobserved lead magnet must be UNKNOWN, not PASS');
+  assert.equal(infoByKey.get('after_hours_messaging')?.state, 'UNKNOWN', 'Unobserved after-hours messaging must be UNKNOWN, not PASS');
+});

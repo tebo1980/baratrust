@@ -833,7 +833,7 @@ export default function ReviewStudioEditor({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-slate-200">{finding.title}</span>
-                        <FindingPill state={finding.state as FindingState} />
+                        <FindingPill state={finding.state as FindingState} maxPoints={finding.maxPoints} supportingDetail={finding.supportingDetail} />
                       </div>
                       <div className="text-[11px] text-slate-400 leading-relaxed">
                         {finding.supportingDetail}
@@ -1206,6 +1206,61 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       />
                     </div>
                   </div>
+
+                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        value={brandReality.evidence?.source || ""}
+                        onChange={(e) =>
+                          setBrandReality({
+                            ...brandReality,
+                            evidence: { ...(brandReality.evidence || {}), source: e.target.value },
+                          })
+                        }
+                        placeholder="Evidence source (e.g. Homepage vs. Google Reviews)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        value={brandReality.evidence?.sourceUrl || ""}
+                        onChange={(e) =>
+                          setBrandReality({
+                            ...brandReality,
+                            evidence: { ...(brandReality.evidence || {}), sourceUrl: e.target.value },
+                          })
+                        }
+                        placeholder="Source URL (optional)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        value={brandReality.evidence?.note || ""}
+                        onChange={(e) =>
+                          setBrandReality({
+                            ...brandReality,
+                            evidence: { ...(brandReality.evidence || {}), note: e.target.value },
+                          })
+                        }
+                        placeholder="Short quote or evidence note (optional)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(brandReality.evidence?.clientVisible)}
+                        onChange={(e) =>
+                          setBrandReality({
+                            ...brandReality,
+                            evidence: { ...(brandReality.evidence || {}), clientVisible: e.target.checked },
+                          })
+                        }
+                        className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                      />
+                      <span>Show citation on client report (otherwise kept internal)</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* 5B. Customer Voice / Review Intelligence */}
@@ -1441,6 +1496,61 @@ Client Edge: Higher authentic review rating and direct owner trust."
                         className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        value={advertisingFunnel.evidence?.source || ""}
+                        onChange={(e) =>
+                          setAdvertisingFunnel({
+                            ...advertisingFunnel,
+                            evidence: { ...(advertisingFunnel.evidence || {}), source: e.target.value },
+                          })
+                        }
+                        placeholder="Evidence source (e.g. Meta Ad Library)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        value={advertisingFunnel.evidence?.sourceUrl || ""}
+                        onChange={(e) =>
+                          setAdvertisingFunnel({
+                            ...advertisingFunnel,
+                            evidence: { ...(advertisingFunnel.evidence || {}), sourceUrl: e.target.value },
+                          })
+                        }
+                        placeholder="Source URL (optional)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        value={advertisingFunnel.evidence?.note || ""}
+                        onChange={(e) =>
+                          setAdvertisingFunnel({
+                            ...advertisingFunnel,
+                            evidence: { ...(advertisingFunnel.evidence || {}), note: e.target.value },
+                          })
+                        }
+                        placeholder="Short quote or evidence note (optional)"
+                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(advertisingFunnel.evidence?.clientVisible)}
+                        onChange={(e) =>
+                          setAdvertisingFunnel({
+                            ...advertisingFunnel,
+                            evidence: { ...(advertisingFunnel.evidence || {}), clientVisible: e.target.checked },
+                          })
+                        }
+                        className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                      />
+                      <span>Show citation on client report (otherwise kept internal)</span>
+                    </label>
                   </div>
                 </div>
 
@@ -2308,7 +2418,27 @@ Client Edge: Higher authentic review rating and direct owner trust."
   );
 }
 
-function FindingPill({ state }: { state: FindingState }) {
+function FindingPill({
+  state,
+  maxPoints,
+  supportingDetail,
+}: {
+  state: FindingState;
+  maxPoints?: number | null;
+  supportingDetail?: string | null;
+}) {
+  if (maxPoints === 0) {
+    const isObserved = state === "PASS" && !/^no\s/i.test((supportingDetail || "").trim());
+    return isObserved ? (
+      <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono font-bold text-[10px]">
+        INFO · OBSERVED
+      </span>
+    ) : (
+      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 font-mono font-bold text-[10px]">
+        INFO · NOT OBSERVED
+      </span>
+    );
+  }
   if (state === "PASS") {
     return (
       <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[10px] flex items-center gap-1">

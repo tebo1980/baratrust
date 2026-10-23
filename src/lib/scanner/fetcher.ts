@@ -77,19 +77,28 @@ export async function safeFetchWebsite(inputUrl: string): Promise<FetchResult> {
             finalUrl: currentUrl,
           };
         }
-        if (fetchErr.message && (fetchErr.message.includes('SSRF') || fetchErr.message.includes('restricted IP'))) {
+        const causeMessage =
+          fetchErr?.cause && typeof fetchErr.cause.message === 'string'
+            ? fetchErr.cause.message
+            : '';
+        const combinedErrorText = `${fetchErr.message || ''} ${causeMessage}`.trim();
+        if (combinedErrorText.includes('SSRF') || combinedErrorText.includes('restricted IP')) {
           return {
             ok: false,
             errorType: 'SSRF_BLOCKED',
-            message: fetchErr.message,
+            message: causeMessage || fetchErr.message,
             normalizedUrl: validation.normalizedUrl,
             finalUrl: currentUrl,
           };
         }
+        const detail =
+          causeMessage && fetchErr.message === 'fetch failed'
+            ? causeMessage
+            : fetchErr.message || causeMessage || 'Connection refused';
         return {
           ok: false,
           errorType: 'NETWORK_ERROR',
-          message: `Network error connecting to target: ${fetchErr.message || 'Connection refused'}`,
+          message: `Network error connecting to target: ${detail}`,
           normalizedUrl: validation.normalizedUrl,
           finalUrl: currentUrl,
         };
@@ -97,6 +106,7 @@ export async function safeFetchWebsite(inputUrl: string): Promise<FetchResult> {
 
       // Check for redirect responses (301, 302, 303, 307, 308)
       if ([301, 302, 303, 307, 308].includes(res.status)) {
+        await res.body?.cancel().catch(() => {});
         redirectsCount++;
         if (redirectsCount > MAX_REDIRECTS) {
           return {
@@ -154,6 +164,7 @@ export async function safeFetchWebsite(inputUrl: string): Promise<FetchResult> {
 
       // Handle HTTP blocking status codes
       if (res.status === 401 || res.status === 403 || res.status === 429) {
+        await res.body?.cancel().catch(() => {});
         return {
           ok: false,
           errorType: 'BLOCKED',
@@ -178,6 +189,7 @@ export async function safeFetchWebsite(inputUrl: string): Promise<FetchResult> {
           'audio/',
         ];
         if (nonHtmlTypes.some(type => ctLower.includes(type))) {
+          await res.body?.cancel().catch(() => {});
           return {
             ok: false,
             errorType: 'NON_HTML_RESPONSE',
@@ -192,6 +204,7 @@ export async function safeFetchWebsite(inputUrl: string): Promise<FetchResult> {
       // Read response body with size limit
       const contentLengthHeader = res.headers.get('content-length');
       if (contentLengthHeader && parseInt(contentLengthHeader, 10) > MAX_BYTES) {
+        await res.body?.cancel().catch(() => {});
         return {
           ok: false,
           errorType: 'SIZE_EXCEEDED',

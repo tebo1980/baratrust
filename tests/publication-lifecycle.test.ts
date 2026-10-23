@@ -34,9 +34,7 @@ function fixture() {
     business: { name: 'Lifecycle Fixture', website: 'https://fixture.example', cityState: 'Louisville, KY', ownerName: 'Fixture Owner' },
     scanner: { overallScore: null, findings: [] }, humanReview,
   };
-  // Keep report prose distinct from research citations: this suite tests structured
-  // evidence visibility, not arbitrary operator-authored prose sanitization.
-  const reportDraft = generateDeterministicFallbackReport({ ...pkg, humanReview: { ...humanReview, humanIntelligence: null } });
+  const reportDraft = generateDeterministicFallbackReport(pkg);
   return { ...humanReview, reportDraft, status: 'draft', realityCheckStatus: 'IN_REVIEW' };
 }
 
@@ -74,6 +72,14 @@ test('Publication integration: draft insert/update and ready saves cannot publis
   }
   assert.match(await h.render(), /Review In Progress/);
   assertClientSafe(await h.render(true));
+  const fresh = await publicationHarness();
+  t.after(fresh.close);
+  assert.equal((await fresh.save({ ...data, status: 'published', realityCheckStatus: 'PUBLISHED' })).status, 200);
+  assert.equal((await fresh.review()).status, 'ready_to_publish', 'Insert must also reject premature publication');
+  assert.equal((await fresh.check()).status, 'READY_TO_PUBLISH');
+  assert.equal((await fresh.review()).publishedReport, null);
+  assert.equal((await fresh.review()).publishedAt, null);
+  assert.equal(fresh.deliveries.length, 0);
 });
 
 test('Publication integration: real publish freezes all client content; retries and later saves preserve it', async t => {
@@ -185,27 +191,36 @@ test('Publication integration: unauthorized save/publish/preview and incomplete 
 });
 
 test('Publication integration: advertising states survive save/freeze/render, including legacy YES/NO', async t => {
-  const h = await publicationHarness();
-  t.after(h.close);
   for (const [input, expected] of [['OBSERVED', 'OBSERVED'], ['NOT_OBSERVED', 'NOT_OBSERVED'], ['UNKNOWN', 'UNKNOWN'], ['YES', 'OBSERVED'], ['NO', 'NOT_OBSERVED']]) {
+    const h = await publicationHarness();
+    t.after(h.close);
     const data = fixture();
+    // Exercise the structured advertising rendering path (fallback prose has its own unit coverage).
+    data.reportDraft.advertisingFunnelSummary = '';
     const humanIntelligence = { advertisingFunnel: { adPresence: input, platformsObserved: 'Public library checked' } };
     assert.equal((await h.save({ ...data, humanIntelligence })).status, 200);
     assert.equal((await h.review()).humanIntelligence?.advertisingFunnel?.adPresence, expected);
     const preview = await h.render(true);
-    assert.ok(preview.includes(expected.replaceAll('_', ' ')));
+    if (expected === 'OBSERVED') assert.match(preview, /Public Ads: Observed/);
+    if (expected === 'NOT_OBSERVED') assert.match(preview, /Public Ads: None Observed in Checked Channels/);
+    if (expected === 'UNKNOWN') assert.doesNotMatch(preview, /Public Ads:/);
     assert.doesNotMatch(preview, /does not advertise|runs no ads|never advertises/i);
     if (expected === 'NOT_OBSERVED') assert.match(preview, /We did not observe active paid ads in the public channels checked during our review/);
+    assert.equal((await h.publish()).status, 200);
+    assert.equal((await h.review()).publishedReport?.frozenHumanIntelligence?.advertisingFunnel?.adPresence, expected);
+    const published = await h.render();
+    assert.doesNotMatch(published, /does not advertise|runs no ads|never advertises/i);
+    if (expected === 'NOT_OBSERVED') assert.match(published, /We did not observe active paid ads in the public channels checked during our review/);
   }
-  assert.equal((await h.publish()).status, 200);
-  assert.equal((await h.review()).publishedReport?.frozenHumanIntelligence?.advertisingFunnel?.adPresence, 'NOT_OBSERVED');
-  assert.match(await h.render(), /We did not observe active paid ads in the public channels checked during our review/);
 });
 
 test('Publication integration: absent Human Intelligence stays absent even after post-publication research', async t => {
   const h = await publicationHarness();
   t.after(h.close);
   const data = fixture();
+  for (const field of ['brandRealitySummary', 'customerVoiceSummary', 'advertisingFunnelSummary', 'ghostFootprintSummary'] as const) {
+    data.reportDraft[field] = '';
+  }
   assert.equal((await h.save({ ...data, humanIntelligence: null })).status, 200);
   const headings = /Brand Reality &amp; First-Impression Alignment|Customer Voice &amp; Review Intelligence|Advertising Presence &amp; Funnel Assessment|Legacy Digital Footprint &amp; Cleanup Items/;
   assert.doesNotMatch(await h.render(true), headings);
@@ -238,13 +253,57 @@ test('Synthesis integration: Gemini optional output cannot fabricate empty Human
       },
     },
   });
-  const { report } = await synthesizer.synthesizeReportWithGemini({
+  const pkg: SynthesisEvidencePackage = {
     business: { name: 'Fixture', website: 'https://fixture.example', cityState: 'Louisville', ownerName: 'Owner' },
     scanner: { overallScore: null, findings: [] },
     humanReview: { ...data, humanIntelligence: null },
-  });
-  assert.equal(calls, 1, 'Exercises Gemini response processing, not the test-mode fallback');
-  for (const field of ['brandRealitySummary', 'customerVoiceSummary', 'advertisingFunnelSummary', 'ghostFootprintSummary'] as const) {
-    assert.equal(report[field], '', field);
+  };
+  const fields = ['brandRealitySummary', 'customerVoiceSummary', 'advertisingFunnelSummary', 'ghostFootprintSummary'] as const;
+  for (const humanIntelligence of [null, {}, {
+    brandReality: { messageClarity: 'UNKNOWN' as const },
+    customerVoice: { topLoves: [], topComplaints: [] },
+    advertisingFunnel: { adPresence: 'UNKNOWN' as const, recommendation: 'UNKNOWN' as const },
+    ghostFootprint: [],
+  }]) {
+    const { report } = await synthesizer.synthesizeReportWithGemini({ ...pkg, humanReview: { ...data, humanIntelligence } });
+    for (const field of fields) assert.equal(report[field], '', field);
   }
+  const populated = await synthesizer.synthesizeReportWithGemini({ ...pkg, humanReview: data });
+  for (const field of fields) assert.match(populated.report[field]!, /^FABRICATED /, 'Supported sections still accept model output');
+  const partial = await synthesizer.synthesizeReportWithGemini({ ...pkg, humanReview: {
+    ...data, humanIntelligence: { brandReality: { apparentBrandMessage: 'Recorded brand observation' } },
+  } });
+  assert.equal(partial.report.brandRealitySummary, 'FABRICATED brand');
+  for (const field of fields.slice(1)) assert.equal(partial.report[field], '', 'Each optional section is gated independently');
+  assert.equal(calls, 5, 'Exercises Gemini response processing, not the test-mode fallback');
+});
+
+test('Publication integration: unsafe non-HTTP evidence sourceUrl schemes are stripped from public report anchors', async t => {
+  const h = await publicationHarness();
+  t.after(h.close);
+  const data = fixture();
+  data.topFixes[0].evidence = {
+    source: 'Unsafe Javascript Citation',
+    sourceUrl: 'javascript:alert(1)',
+    note: 'Safe note text',
+    clientVisible: true,
+  };
+  data.humanIntelligence!.brandReality!.evidence = {
+    source: 'Valid HTTPS Citation',
+    sourceUrl: 'example.com/public-proof',
+    note: 'Public brand proof',
+    clientVisible: true,
+  };
+  assert.equal((await h.save(data)).status, 200);
+  assert.equal((await h.publish()).status, 200);
+  const frozen = (await h.review()).publishedReport;
+  assert.equal(frozen?.frozenTopFixes?.[0]?.evidence?.sourceUrl, undefined);
+  assert.equal(
+    frozen?.frozenHumanIntelligence?.brandReality?.evidence?.sourceUrl,
+    'https://example.com/public-proof'
+  );
+  const html = await h.render();
+  assert.doesNotMatch(html, /javascript:/i);
+  assert.match(html, /Unsafe Javascript Citation/);
+  assert.match(html, /https:\/\/example\.com\/public-proof/);
 });

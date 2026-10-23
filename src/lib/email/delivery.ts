@@ -18,6 +18,15 @@ export interface DeliveryResult {
   error?: string | null;
 }
 
+function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Builds the plain-English, low-pressure transactional notification email.
  */
@@ -32,6 +41,9 @@ export function buildDeliveryEmailContent({
 }) {
   const safeOwnerName = ownerName && ownerName.trim() ? ownerName.trim() : 'there';
   const safeBusinessName = businessName && businessName.trim() ? businessName.trim() : 'your business';
+  const htmlOwnerName = escapeHtml(safeOwnerName);
+  const htmlBusinessName = escapeHtml(safeBusinessName);
+  const htmlReportUrl = escapeHtml(reportUrl);
   const subject = `Your BaraTrust Reality Check is ready — ${safeBusinessName}`;
   const text = `Hi ${safeOwnerName},
 
@@ -48,11 +60,11 @@ BaraTrust (baratrust.com)`;
 
   const html = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; line-height: 1.6; padding: 20px;">
-  <p>Hi ${safeOwnerName},</p>
-  <p>We finished the human review of <strong>${safeBusinessName}</strong>. Your Reality Check is ready at the link below:</p>
+  <p>Hi ${htmlOwnerName},</p>
+  <p>We finished the human review of <strong>${htmlBusinessName}</strong>. Your Reality Check is ready at the link below:</p>
   
   <p style="margin: 28px 0;">
-    <a href="${reportUrl}" style="background-color: #f59e0b; color: #0f172a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+    <a href="${htmlReportUrl}" style="background-color: #f59e0b; color: #0f172a; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
       View Your Reality Check Report &rarr;
     </a>
   </p>

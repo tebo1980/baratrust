@@ -363,6 +363,16 @@ test('Email Delivery — generates low-pressure, plain-English email copy with s
   assert.ok(email.text.includes('— Todd & Noelah'));
   assert.ok(!email.text.includes('BUY NOW'));
   assert.ok(!email.text.includes('Special offer'));
+
+  // Verify HTML escaping against markup injection in ownerName / businessName
+  const escapedEmail = buildDeliveryEmailContent({
+    ownerName: 'Dan <script>alert(1)</script>',
+    businessName: 'Bluegrass & "Sons" <Heating>',
+    reportUrl: 'https://www.baratrust.com/report/a9f8b4c2e6d14739b82190f7a5c8e234',
+  });
+  assert.ok(!escapedEmail.html.includes('<script>'));
+  assert.ok(escapedEmail.html.includes('Dan &lt;script&gt;alert(1)&lt;/script&gt;'));
+  assert.ok(escapedEmail.html.includes('Bluegrass &amp; &quot;Sons&quot; &lt;Heating&gt;'));
 });
 
 test('Email Delivery — dispatches delivery email safely and returns message id', async () => {
@@ -378,4 +388,69 @@ test('Email Delivery — dispatches delivery email safely and returns message id
   assert.equal(result.recipient, 'dan@bluegrassheat.com');
   assert.ok(result.messageId && result.messageId.startsWith('rc-deliv-'));
   assert.equal(result.reportUrl, 'https://www.baratrust.com/report/a9f8b4c2e6d14739b82190f7a5c8e234');
+});
+
+
+test('Challenge Review 1 & 3 — Synthesizer qualifies sub-100% coverage scores as "on evaluated static signals" and never treats unobserved 0-point informational checks as passing strengths', () => {
+  const pkg = createSampleEvidence({
+    scanner: {
+      overallScore: 100,
+      coverage: 79,
+      confidence: 'MEDIUM',
+      findings: [
+        {
+          category: 'digital_presence',
+          checkKey: 'https_enabled',
+          title: 'HTTPS / SSL Encryption',
+          state: 'PASS',
+          scoreContribution: 20,
+          maxPoints: 20,
+          supportingDetail: 'Website is securely delivered over HTTPS.',
+        },
+        {
+          category: 'trust_reputation',
+          checkKey: 'reviews_testimonials',
+          title: 'Customer Reviews & Testimonials',
+          state: 'PASS', // Even if a legacy row stored PASS on an unobserved 0-pt check
+          scoreContribution: 0,
+          maxPoints: 0,
+          supportingDetail: 'No on-page customer reviews or testimonials detected (informational).',
+        },
+        {
+          category: 'digital_presence',
+          checkKey: 'social_links',
+          title: 'Active Social Profiles',
+          state: 'PASS',
+          scoreContribution: 0,
+          maxPoints: 0,
+          supportingDetail: 'Connected social profiles found: Facebook, Instagram.',
+        },
+      ],
+    },
+  });
+
+  const prompt = buildEvidencePrompt(pkg);
+  assert.ok(
+    prompt.includes('100/100 on evaluated static signals (79% observable coverage)'),
+    'Prompt must qualify 100/100 score when coverage is below 100%'
+  );
+  assert.ok(
+    prompt.includes('[INFO_NOT_OBSERVED] Customer Reviews & Testimonials'),
+    'Unobserved 0-point informational check must be labeled INFO_NOT_OBSERVED in prompt, never PASS'
+  );
+  assert.ok(
+    prompt.includes('[INFO_OBSERVED] Active Social Profiles'),
+    'Observed 0-point informational check must be labeled INFO_OBSERVED in prompt'
+  );
+
+  const fallback = generateDeterministicFallbackReport(pkg);
+  assert.ok(
+    fallback.executiveSummary.includes('100/100 on evaluated static signals (79% observable coverage)'),
+    'Deterministic fallback executiveSummary must qualify 100/100 when coverage < 100%'
+  );
+  assert.equal(
+    fallback.whatsWorking.includes('Customer Reviews & Testimonials'),
+    false,
+    'Unobserved 0-point informational check must never appear in whatsWorking'
+  );
 });

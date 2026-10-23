@@ -84,12 +84,30 @@ export function normalizeAdPresenceState(raw?: string | null): 'OBSERVED' | 'NOT
   return 'UNKNOWN';
 }
 
+export function sanitizeExternalEvidenceUrl(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const withScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const parsed = new URL(withScheme);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function filterClientVisibleEvidence(
   ev?: HumanEvidenceCitation | null
 ): HumanEvidenceCitation | null {
   if (!ev || ev.clientVisible !== true) return null;
   const source = ev.source?.trim() || undefined;
-  const sourceUrl = ev.sourceUrl?.trim() || undefined;
+  const sourceUrl = sanitizeExternalEvidenceUrl(ev.sourceUrl);
   const note = ev.note?.trim() || undefined;
   if (!source && !sourceUrl && !note) return null;
   return {
@@ -174,7 +192,7 @@ export function buildClientSafeFrozenSnapshot(input: {
         ...(isVisible
           ? {
               source: g.source?.trim() || undefined,
-              sourceUrl: g.sourceUrl?.trim() || undefined,
+              sourceUrl: sanitizeExternalEvidenceUrl(g.sourceUrl),
               evidenceNote: g.evidenceNote?.trim() || undefined,
               observedAt: g.observedAt?.trim() || undefined,
               clientVisible: true,
@@ -242,9 +260,19 @@ export function buildEvidencePrompt(pkg: SynthesisEvidencePackage): string {
   const { business, scanner, ownerProvided, humanReview } = pkg;
   const hi = humanReview.humanIntelligence;
 
-  const autoDetectedSummary = scanner.findings.map(f => 
-    `- [${f.state}] ${f.title} (${f.category}): ${f.supportingDetail || 'No detail'}`
-  ).join('\n');
+  const autoDetectedSummary = scanner.findings.map(f => {
+    const isInformational = (f.maxPoints ?? 1) === 0;
+    const isInfoObserved =
+      isInformational &&
+      f.state === 'PASS' &&
+      !/^no\s/i.test((f.supportingDetail || '').trim());
+    const stateLabel = isInformational
+      ? isInfoObserved
+        ? 'INFO_OBSERVED'
+        : 'INFO_NOT_OBSERVED'
+      : f.state;
+    return `- [${stateLabel}] ${f.title} (${f.category}): ${f.supportingDetail || 'No detail'}`;
+  }).join('\n');
 
   const ownerProvidedSection = ownerProvided ? `
 - Where new customers come from: ${ownerProvided.customerAcquisition || 'Not stated'}
@@ -375,7 +403,13 @@ Owner: ${business.ownerName}
 Business Type: ${business.businessType || 'Small Business'}
 
 --- [EVIDENCE SOURCE: AUTO_DETECTED] ---
-Overall Automated Score: ${scanner.overallScore !== null ? `${scanner.overallScore}/100` : 'Withheld / Deferred for manual review'}
+Overall Automated Score: ${
+  scanner.overallScore !== null
+    ? scanner.coverage !== null && scanner.coverage !== undefined && scanner.coverage < 100
+      ? `${scanner.overallScore}/100 on evaluated static signals (${scanner.coverage}% observable coverage)`
+      : `${scanner.overallScore}/100`
+    : 'Withheld / Deferred for manual review'
+}
 Coverage: ${scanner.coverage ?? 'N/A'}% (${scanner.confidence || 'PROVISIONAL'})
 Technical Findings:
 ${autoDetectedSummary || 'No automated findings available.'}
@@ -549,8 +583,8 @@ export function buildHumanIntelligenceFallbackSummaries(
   const ghostParts: string[] = [];
   if (ghostItems.length > 0) {
     ghostItems.forEach((g) => {
-      const sourceLabel = g.source?.trim() ? ` (found via ${g.source.trim()})` : '';
-      const detail = g.evidenceNote?.trim() ? ` — ${g.evidenceNote.trim()}` : '';
+      const sourceLabel = g.clientVisible === true && g.source?.trim() ? ` (found via ${g.source.trim()})` : '';
+      const detail = g.clientVisible === true && g.evidenceNote?.trim() ? ` — ${g.evidenceNote.trim()}` : '';
       const prefix = g.assetType && g.summary?.trim() ? `${g.assetType}: ` : '';
       ghostParts.push(`${prefix}${g.summary?.trim() || g.assetType}${sourceLabel}${detail}`);
     });
@@ -572,11 +606,17 @@ export function generateDeterministicFallbackReport(pkg: SynthesisEvidencePackag
   const hi = humanReview.humanIntelligence;
 
   const scoreText = scanner.overallScore !== null 
-    ? `an automated technical score of ${scanner.overallScore}/100` 
+    ? (scanner.coverage !== null && scanner.coverage !== undefined && scanner.coverage < 100
+        ? `an automated technical score of ${scanner.overallScore}/100 on evaluated static signals (${scanner.coverage}% observable coverage)`
+        : `an automated technical score of ${scanner.overallScore}/100`)
     : `a manual technical assessment (with automated scores deferred for coverage)`;
 
   const strengths: string[] = [];
-  const passingChecks = scanner.findings.filter(f => f.state === 'PASS');
+  const passingChecks = scanner.findings.filter(
+    f =>
+      f.state === 'PASS' &&
+      ((f.maxPoints ?? 1) > 0 || !/^no\s/i.test((f.supportingDetail || '').trim()))
+  );
   if (passingChecks.length > 0) {
     passingChecks.slice(0, 3).forEach(c => strengths.push(c.title));
   }
@@ -699,10 +739,11 @@ export async function synthesizeReportWithGemini(
         competitorSummary: parsed.competitorSummary || "",
         lostOpportunitySummary: parsed.lostOpportunitySummary || "",
         opportunitiesSummary: parsed.opportunitiesSummary || "",
-        brandRealitySummary: parsed.brandRealitySummary || hiFallbacks.brandRealitySummary || "",
-        customerVoiceSummary: parsed.customerVoiceSummary || hiFallbacks.customerVoiceSummary || "",
-        advertisingFunnelSummary: parsed.advertisingFunnelSummary || hiFallbacks.advertisingFunnelSummary || "",
-        ghostFootprintSummary: parsed.ghostFootprintSummary || hiFallbacks.ghostFootprintSummary || "",
+        // A model response cannot introduce an optional section without recorded evidence.
+        brandRealitySummary: hiFallbacks.brandRealitySummary ? parsed.brandRealitySummary || hiFallbacks.brandRealitySummary : "",
+        customerVoiceSummary: hiFallbacks.customerVoiceSummary ? parsed.customerVoiceSummary || hiFallbacks.customerVoiceSummary : "",
+        advertisingFunnelSummary: hiFallbacks.advertisingFunnelSummary ? parsed.advertisingFunnelSummary || hiFallbacks.advertisingFunnelSummary : "",
+        ghostFootprintSummary: hiFallbacks.ghostFootprintSummary ? parsed.ghostFootprintSummary || hiFallbacks.ghostFootprintSummary : "",
         closingNote: parsed.closingNote || "",
       },
       modelUsed: activeModel,

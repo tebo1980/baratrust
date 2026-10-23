@@ -726,8 +726,8 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     checkKey: 'terms_privacy',
     title: 'Privacy Policy & Terms of Service',
     observedValue: { hasPrivacyOrTermsLink: hasLegal },
-    passDetail: 'Privacy policy or terms of service link present in navigation/footer.',
-    failDetail: 'No privacy policy or terms link found; critical for compliance and digital ad channels.',
+    passDetail: 'Privacy policy or terms of service link detected on the scanned page.',
+    failDetail: 'No privacy policy or terms link detected on the scanned page (commonly expected by visitors and often required on paid ad landing pages).',
   }));
 
   // Check 5: Customer Reviews & Testimonials (Informational - 0 pts)

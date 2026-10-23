@@ -28,6 +28,17 @@ const PLATFORM_INFRASTRUCTURE_CHECK_KEYS = new Set([
   'terms_privacy',
 ]);
 
+function orderPublicFindings<T extends { maxPoints: number }>(
+  items: T[],
+  isHostedProfile = false
+): T[] {
+  if (isHostedProfile) return items;
+  return [
+    ...items.filter((f) => (f.maxPoints ?? 0) > 0),
+    ...items.filter((f) => (f.maxPoints ?? 0) === 0),
+  ];
+}
+
 function formatPublicFinding(
   f: {
     category: string;
@@ -200,9 +211,12 @@ export async function GET(req: Request) {
     const platformLabel = check.scoreBreakdown?.platformLabel ?? platform.platformLabel;
     const isHostedProfile = sourceType === 'hosted_profile' || platform.isHostedProfile;
 
-    const filteredFindings = isHostedProfile
-      ? findings.filter((f) => !PLATFORM_INFRASTRUCTURE_CHECK_KEYS.has(f.checkKey))
-      : findings;
+    const filteredFindings = orderPublicFindings(
+      isHostedProfile
+        ? findings.filter((f) => !PLATFORM_INFRASTRUCTURE_CHECK_KEYS.has(f.checkKey))
+        : findings,
+      isHostedProfile
+    );
 
     const coverage = check.scoreBreakdown?.coverage;
 
@@ -227,6 +241,8 @@ export async function GET(req: Request) {
       findings: filteredFindings.map((f) =>
         formatPublicFinding(f, platformLabel ?? 'hosted business profile')
       ),
+      scannedAt: check.createdAt ? new Date(check.createdAt).toISOString() : null,
+      restoredFromSavedScan: true,
       humanReviewRequested: Boolean(check.email),
       questionnaireCompleted: Boolean(ownerResp),
     });
@@ -377,6 +393,9 @@ export async function POST(req: Request) {
       data.website.trim(),
       scanResult.normalizedUrl || undefined
     );
+    const resolvedSourceType = scanResult.sourceType || fallbackPlatform.sourceType;
+    const isHostedProfile = resolvedSourceType === 'hosted_profile' || fallbackPlatform.isHostedProfile;
+    const orderedFindings = orderPublicFindings(scanResult.findings, isHostedProfile);
 
     return NextResponse.json({
       success: true,
@@ -385,7 +404,7 @@ export async function POST(req: Request) {
       normalizedUrl: scanResult.normalizedUrl || data.website.trim(),
       businessName: effectiveBusinessName,
       cityState: effectiveCityState,
-      sourceType: scanResult.sourceType || fallbackPlatform.sourceType,
+      sourceType: resolvedSourceType,
       platformKey: scanResult.platformKey ?? fallbackPlatform.platformKey,
       platformLabel: scanResult.platformLabel ?? fallbackPlatform.platformLabel,
       status: nextStatus,
@@ -396,13 +415,15 @@ export async function POST(req: Request) {
       confidence: scanResult.confidence,
       scoreBreakdown: scanResult.scoreBreakdown,
       categoryScores: scanResult.categoryScores || [],
-      findingsCount: scanResult.findings.length,
-      findings: scanResult.findings.map((f) =>
+      findingsCount: orderedFindings.length,
+      findings: orderedFindings.map((f) =>
         formatPublicFinding(
           f,
           scanResult.platformLabel ?? fallbackPlatform.platformLabel ?? 'hosted business profile'
         )
       ),
+      scannedAt: scanResult.scannedAt,
+      restoredFromSavedScan: false,
       humanReviewRequested: Boolean(cleanEmail),
       message: 'Business Reality Check scan completed.',
     });

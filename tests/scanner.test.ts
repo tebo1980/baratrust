@@ -1368,3 +1368,169 @@ test('Challenge Review 3 — 0-point informational checks return UNKNOWN when no
   assert.equal(infoByKey.get('lead_magnet_observed')?.state, 'UNKNOWN', 'Unobserved lead magnet must be UNKNOWN, not PASS');
   assert.equal(infoByKey.get('after_hours_messaging')?.state, 'UNKNOWN', 'Unobserved after-hours messaging must be UNKNOWN, not PASS');
 });
+
+import {
+  partitionFunnelFindings,
+  buildFunnelScoreSummary,
+  resolvePublicFindingBadge,
+  resolveFunnelSnapshotHeader,
+} from '../src/lib/reality-check/funnel';
+
+test('Production Calibration Regression — BaraTrust self-scan (86/100 at 59% coverage) partitions 12 PASS / 2 FAIL / 6 scored UNKNOWN, renders INFO · NOT OBSERVED on 0-point checks, and uses evidence-safe terms_privacy wording', () => {
+  const baratrustSelfHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>BaraTrust — Small Business Growth &amp; Operations Partner</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Run your business. We'll help with the rest. BaraTrust helps small businesses get more customers, lose fewer opportunities, cut unnecessary costs, and automate the busywork." />
+        <meta property="og:title" content="BaraTrust — Small Business Growth &amp; Operations Partner" />
+      </head>
+      <body>
+        <header>
+          <a href="#services">What we help with</a>
+          <a href="#how">How it works</a>
+          <a class="nav-cta" href="#start">Get your free Reality Check</a>
+        </header>
+        <main>
+          <h1>Run your business. We’ll help with the rest.</h1>
+          <section id="services">
+            <h2>What We Help With</h2>
+            <p>Suppliers, tools, or monthly services cost more than they should.</p>
+            <p>02 Lose Fewer Opportunities Stop letting warm inquiries and past quotes slip away.</p>
+            <p>03 Cut Unnecessary Costs Spot recurring waste and trim expenses.</p>
+          </section>
+          <section id="who">
+            <h2>Built by Todd &amp; Noelah</h2>
+            <p>Our story: founded to give small business owners practical help without agency fluff.</p>
+          </section>
+          <form id="reality-check-form">
+            <input type="text" name="website" />
+            <button type="submit">Run My Free Reality Check</button>
+          </form>
+        </main>
+        <footer><a href="mailto:todd@baratrust.com">todd@baratrust.com</a></footer>
+      </body>
+    </html>
+  `;
+
+  const parsed = parseHtmlForBusinessSignals(baratrustSelfHtml);
+  const findings = runDeterministicChecks({
+    rawData: {
+      requestedUrl: 'https://www.baratrust.com',
+      finalUrl: 'https://www.baratrust.com/',
+      normalizedUrl: 'https://www.baratrust.com/',
+      isHttps: true,
+      httpStatus: 200,
+      responseTimeMs: 110,
+      headers: { 'content-type': 'text/html' },
+      html: baratrustSelfHtml,
+    },
+    parsed,
+  });
+
+  const scores = calculateScores(findings);
+  assert.equal(scores.overallScore, 86, 'BaraTrust self-scan score must be 86/100');
+  assert.equal(scores.overallCoverage, 59, 'BaraTrust self-scan coverage must be 59%');
+  assert.equal(scores.confidence, 'MEDIUM', 'BaraTrust self-scan confidence must be MEDIUM');
+
+  // Verify terms_privacy uses evidence-safe language and does not overstate legal compliance or ad channel usage
+  const termsFinding = findings.find((f) => f.checkKey === 'terms_privacy')!;
+  assert.equal(termsFinding.state, 'FAIL');
+  assert.equal(
+    termsFinding.supportingDetail,
+    'No privacy policy or terms link detected on the scanned page (commonly expected by visitors and often required on paid ad landing pages).'
+  );
+  assert.equal(
+    termsFinding.supportingDetail.includes('critical for compliance and digital ad channels'),
+    false,
+    'terms_privacy must not overstate compliance or digital ad channel usage from a missing homepage link'
+  );
+
+  // Partition findings for the public funnel
+  const partitioned = partitionFunnelFindings(findings, false);
+  assert.equal(partitioned.scoredPool.length, 20, 'Must have 20 scored checks (maxPoints > 0)');
+  assert.equal(partitioned.informationalFindings.length, 8, 'Must have 8 informational checks (maxPoints === 0)');
+  assert.equal(partitioned.passingFindings.length, 12, 'Must count 12 scored PASS findings');
+  assert.equal(partitioned.failingFindings.length, 2, 'Must count 2 scored FAIL findings');
+  assert.equal(
+    partitioned.unknownFindings.length,
+    6,
+    'Must count 6 genuinely scored UNKNOWN findings — 8 zero-point informational checks must NOT inflate the count to 14'
+  );
+
+  // Verify score headline and summary text
+  const summary = buildFunnelScoreSummary({
+    overallScore: scores.overallScore!,
+    overallCoverage: scores.overallCoverage,
+    passingCount: partitioned.passingFindings.length,
+    failingCount: partitioned.failingFindings.length,
+    unknownCount: partitioned.unknownFindings.length,
+  });
+  assert.equal(summary.headline, 'Automated Score: 86 / 100 on Evaluated Signals');
+  assert.equal(
+    summary.explanation,
+    'Score reflects performance on the 59% of scored checks observable from static HTML (12 passing, 2 flagged). The remaining 41% (6 checks) was not evaluated automatically and is deferred to human review.'
+  );
+
+  // Verify initial 6 highlighted cards never include 0-point informational checks (like social_links)
+  assert.equal(partitioned.highlightedFindings.length, 6);
+  assert.equal(
+    partitioned.highlightedFindings.some((f) => (f.maxPoints ?? 0) === 0),
+    false,
+    'Zero-point informational checks must never occupy top 6 highlighted card slots'
+  );
+  assert.equal(
+    partitioned.highlightedFindings.some((f) => f.checkKey === 'social_links'),
+    false,
+    'Active Social Profiles (social_links, 0 pts) must not appear as a highlighted HUMAN CHECK card'
+  );
+
+  // Verify resolvePublicFindingBadge renders INFO · NOT OBSERVED / INFO · OBSERVED for 0-point checks, never HUMAN CHECK
+  const socialLinksFinding = findings.find((f) => f.checkKey === 'social_links')!;
+  const socialBadge = resolvePublicFindingBadge(socialLinksFinding, false);
+  assert.equal(socialBadge.badgeText, 'INFO · NOT OBSERVED');
+  assert.equal(socialBadge.isInformational, true);
+
+  const observedInfoBadge = resolvePublicFindingBadge(
+    { state: 'PASS', maxPoints: 0 },
+    false
+  );
+  assert.equal(observedInfoBadge.badgeText, 'INFO · OBSERVED');
+  assert.equal(observedInfoBadge.isInformational, true);
+
+  // Verify fresh vs restored historical snapshot distinction without mutating persisted historical findings
+  const freshHeader = resolveFunnelSnapshotHeader({
+    isHostedProfile: false,
+    restoredFromSavedScan: false,
+  });
+  assert.equal(freshHeader.eyebrow, 'Automated Scan Snapshot');
+  assert.equal(freshHeader.resetActionLabel, 'Scan a different link');
+
+  const restoredHeader = resolveFunnelSnapshotHeader({
+    isHostedProfile: false,
+    restoredFromSavedScan: true,
+  });
+  assert.equal(restoredHeader.eyebrow, 'Restored Scan Snapshot');
+  assert.equal(restoredHeader.resetActionLabel, 'Run a fresh scan or try another link');
+
+  // Historical findings remain preserved as recorded at scan time when partitioned for display
+  const historicalFindings = findings.map((f) =>
+    f.checkKey === 'terms_privacy'
+      ? {
+          ...f,
+          supportingDetail:
+            'No privacy policy or terms link found; critical for compliance and digital ad channels.',
+        }
+      : f
+  );
+  const partitionedHistorical = partitionFunnelFindings(historicalFindings, false);
+  const restoredTerms = partitionedHistorical.highlightedFindings.find(
+    (f) => f.checkKey === 'terms_privacy'
+  )!;
+  assert.equal(
+    restoredTerms.supportingDetail,
+    'No privacy policy or terms link found; critical for compliance and digital ad channels.',
+    'Historical scan findings must remain frozen as recorded at scan time unless a fresh scan is run'
+  );
+});

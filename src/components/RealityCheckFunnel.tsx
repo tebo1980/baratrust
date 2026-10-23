@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { decodeHtmlEntities, classifyProfileSummaryText } from "@/lib/scanner/parser";
+import {
+  partitionFunnelFindings,
+  buildFunnelScoreSummary,
+  resolvePublicFindingBadge,
+  resolveFunnelSnapshotHeader,
+} from "@/lib/reality-check/funnel";
 
 export interface PublicFinding {
   category: string;
@@ -50,6 +56,8 @@ export interface ScanSnapshot {
   } | null;
   findingsCount: number;
   findings: PublicFinding[];
+  scannedAt?: string | null;
+  restoredFromSavedScan?: boolean;
   humanReviewRequested: boolean;
   questionnaireCompleted?: boolean;
 }
@@ -115,6 +123,8 @@ export default function RealityCheckFunnel({
           scoreBreakdown: data.scoreBreakdown || null,
           findingsCount: data.findingsCount || 0,
           findings: data.findings || [],
+          scannedAt: data.scannedAt || null,
+          restoredFromSavedScan: data.restoredFromSavedScan ?? true,
           humanReviewRequested: Boolean(data.humanReviewRequested),
           questionnaireCompleted: Boolean(data.questionnaireCompleted),
         });
@@ -220,6 +230,8 @@ export default function RealityCheckFunnel({
         scoreBreakdown: data.scoreBreakdown || null,
         findingsCount: data.findingsCount || 0,
         findings: data.findings || [],
+        scannedAt: data.scannedAt || null,
+        restoredFromSavedScan: false,
         humanReviewRequested: Boolean(data.humanReviewRequested),
       };
 
@@ -415,38 +427,29 @@ export default function RealityCheckFunnel({
     snapshot.scoreBreakdown?.platformLabel ||
     "hosted business page";
 
-  // Separate scored checks (maxPoints > 0) from informational checks (maxPoints === 0)
-  // so informational "not detected" observations never inflate the passing signal count.
-  const scoredPool = isHostedProfile
-    ? snapshot.findings
-    : snapshot.findings.filter((f) => (f.maxPoints ?? 0) > 0);
+  const {
+    informationalFindings,
+    passingFindings,
+    failingFindings,
+    unknownFindings,
+    highlightedFindings,
+    allScoredFindingsOrdered,
+    allFindingsOrdered,
+    hiddenFailingCount,
+  } = partitionFunnelFindings(snapshot.findings, isHostedProfile);
 
-  const passingFindings = scoredPool.filter((f) => f.state === "PASS");
-  // Sort failing findings by point impact (maxPoints descending) so the most consequential
-  // score deductions always appear in the top highlighted cards.
-  const failingFindings = [...scoredPool.filter((f) => f.state === "FAIL")].sort(
-    (a, b) => (b.maxPoints || 0) - (a.maxPoints || 0)
-  );
-  const unknownFindings = scoredPool.filter((f) => f.state === "UNKNOWN");
-
-  const highlightedFindings: PublicFinding[] = isHostedProfile
-    ? [...passingFindings.slice(0, 4), ...unknownFindings.slice(0, 3)].slice(0, 6)
-    : [
-        ...failingFindings.slice(0, 3),
-        ...passingFindings.slice(0, 3),
-        ...unknownFindings.slice(0, 2),
-      ].slice(0, 6);
-
-  const allScoredFindingsOrdered: PublicFinding[] = isHostedProfile
-    ? [...passingFindings, ...unknownFindings]
-    : [...failingFindings, ...unknownFindings, ...passingFindings];
-
-  const visibleFindings = showAllFindings ? allScoredFindingsOrdered : highlightedFindings;
-  const hiddenFailingCount = Math.max(
-    0,
-    failingFindings.length - highlightedFindings.filter((f) => f.state === "FAIL").length
-  );
-  const hasMoreFindings = allScoredFindingsOrdered.length > highlightedFindings.length;
+  const visibleFindings = showAllFindings ? allFindingsOrdered : highlightedFindings;
+  const hasMoreFindings = allFindingsOrdered.length > highlightedFindings.length;
+  const scoreSummary =
+    snapshot.overallScore !== null
+      ? buildFunnelScoreSummary({
+          overallScore: snapshot.overallScore,
+          overallCoverage: snapshot.overallCoverage,
+          passingCount: passingFindings.length,
+          failingCount: failingFindings.length,
+          unknownCount: unknownFindings.length,
+        })
+      : null;
 
   const displayTarget =
     snapshot.businessName ||
@@ -460,6 +463,10 @@ export default function RealityCheckFunnel({
       .trim() || snapshot.website;
 
   const scannedLinkLabel = isHostedProfile ? platformLabel : cleanDomainLabel;
+  const snapshotHeader = resolveFunnelSnapshotHeader({
+    isHostedProfile,
+    restoredFromSavedScan: Boolean(snapshot.restoredFromSavedScan),
+  });
 
   return (
     <div id="reality-check-form" className="lead-form" aria-live="polite">
@@ -475,7 +482,7 @@ export default function RealityCheckFunnel({
         }}
       >
         <p className="eyebrow" style={{ margin: 0 }}>
-          {isHostedProfile ? "Limited Automated Scan" : "Automated Scan Snapshot"}
+          {snapshotHeader.eyebrow}
         </p>
         <button
           type="button"
@@ -491,7 +498,7 @@ export default function RealityCheckFunnel({
             opacity: 0.8,
           }}
         >
-          Scan a different link
+          {snapshotHeader.resetActionLabel}
         </button>
       </div>
 
@@ -555,8 +562,7 @@ export default function RealityCheckFunnel({
             }}
           >
             <strong style={{ fontSize: "1.2rem" }}>
-              Automated Score: {snapshot.overallScore} / 100
-              {snapshot.overallCoverage < 100 ? " on Evaluated Signals" : ""}
+              {scoreSummary?.headline}
             </strong>
             <span
               style={{
@@ -571,13 +577,7 @@ export default function RealityCheckFunnel({
             </span>
           </div>
           <p style={{ margin: "6px 0 0", fontSize: "0.9rem", lineHeight: 1.5, color: "var(--muted)" }}>
-            {snapshot.overallCoverage < 100
-              ? `Score reflects performance on the ${snapshot.overallCoverage}% of scored checks observable from static HTML (${passingFindings.length} passing, ${failingFindings.length} flagged). The remaining ${100 - snapshot.overallCoverage}% (${unknownFindings.length} ${
-                  unknownFindings.length === 1 ? "check" : "checks"
-                }) was not evaluated automatically and is deferred to human review.`
-              : `Our scanner verified 100% of scored checks (${passingFindings.length} passing, ${failingFindings.length} ${
-                  failingFindings.length === 1 ? "area" : "areas"
-                } flagged).`}
+            {scoreSummary?.explanation}
           </p>
         </div>
       ) : (
@@ -604,14 +604,7 @@ export default function RealityCheckFunnel({
           </strong>
           <ul className="findings-list">
             {visibleFindings.map((f) => {
-              const badgeText =
-                f.state === "PASS" ? "PASS" : f.state === "FAIL" ? "ATTENTION" : "HUMAN CHECK";
-              const badgeModifier =
-                f.state === "PASS"
-                  ? "finding-badge--pass"
-                  : f.state === "FAIL"
-                  ? "finding-badge--attention"
-                  : "finding-badge--human";
+              const { badgeText, badgeModifier } = resolvePublicFindingBadge(f, isHostedProfile);
 
               let resolvedTitle = decodeHtmlEntities(f.title);
               let resolvedDetail = decodeHtmlEntities(f.supportingDetail);
@@ -667,10 +660,18 @@ export default function RealityCheckFunnel({
               {showAllFindings
                 ? "Show fewer checks"
                 : hiddenFailingCount > 0
-                ? `View all ${allScoredFindingsOrdered.length} scored checks (+${hiddenFailingCount} more flagged ${
+                ? `View all ${allScoredFindingsOrdered.length} scored checks${
+                    informationalFindings.length > 0
+                      ? ` + ${informationalFindings.length} informational`
+                      : ""
+                  } (+${hiddenFailingCount} more flagged ${
                     hiddenFailingCount === 1 ? "area" : "areas"
                   })`
-                : `View all ${allScoredFindingsOrdered.length} scored checks`}
+                : `View all ${allScoredFindingsOrdered.length} scored checks${
+                    informationalFindings.length > 0
+                      ? ` + ${informationalFindings.length} informational`
+                      : ""
+                  }`}
             </button>
           )}
         </div>

@@ -191,3 +191,193 @@ export function evaluateHumanReviewClaim(
     nextStatus: resolvePatchedRealityCheckStatus(existing.status),
   };
 }
+
+export interface PublicFunnelFinding {
+  category: string;
+  checkKey: string;
+  title: string;
+  state: 'PASS' | 'FAIL' | 'UNKNOWN';
+  scoreContribution?: number;
+  maxPoints?: number;
+  supportingDetail: string;
+}
+
+export type PublicFindingBadgeText =
+  | 'PASS'
+  | 'ATTENTION'
+  | 'HUMAN CHECK'
+  | 'INFO · OBSERVED'
+  | 'INFO · NOT OBSERVED';
+
+export type PublicFindingBadgeModifier =
+  | 'finding-badge--pass'
+  | 'finding-badge--attention'
+  | 'finding-badge--human';
+
+/**
+ * Resolves the public badge text and CSS modifier for a finding card.
+ * On standalone websites, zero-point informational checks (maxPoints === 0)
+ * render as 'INFO · OBSERVED' or 'INFO · NOT OBSERVED' rather than 'PASS' or 'HUMAN CHECK'.
+ */
+export function resolvePublicFindingBadge(
+  finding: Pick<PublicFunnelFinding, 'state' | 'maxPoints'>,
+  isHostedProfile = false
+): {
+  badgeText: PublicFindingBadgeText;
+  badgeModifier: PublicFindingBadgeModifier;
+  isInformational: boolean;
+} {
+  const isInformational = !isHostedProfile && (finding.maxPoints ?? 0) === 0;
+  if (isInformational) {
+    return {
+      badgeText: finding.state === 'PASS' ? 'INFO · OBSERVED' : 'INFO · NOT OBSERVED',
+      badgeModifier: 'finding-badge--human',
+      isInformational: true,
+    };
+  }
+
+  if (finding.state === 'PASS') {
+    return {
+      badgeText: 'PASS',
+      badgeModifier: 'finding-badge--pass',
+      isInformational: false,
+    };
+  }
+  if (finding.state === 'FAIL') {
+    return {
+      badgeText: 'ATTENTION',
+      badgeModifier: 'finding-badge--attention',
+      isInformational: false,
+    };
+  }
+  return {
+    badgeText: 'HUMAN CHECK',
+    badgeModifier: 'finding-badge--human',
+    isInformational: false,
+  };
+}
+
+/**
+ * Partitions scan findings for the public Reality Check funnel:
+ * - Exclusively counts scored checks (maxPoints > 0) in passingFindings, failingFindings,
+ *   and unknownFindings so zero-point informational checks never inflate passing or
+ *   human-verification counts or consume top highlighted card slots.
+ * - Appends zero-point informational checks after scored checks in allFindingsOrdered.
+ */
+export function partitionFunnelFindings<T extends PublicFunnelFinding>(
+  findings: T[],
+  isHostedProfile = false
+): {
+  scoredPool: T[];
+  informationalFindings: T[];
+  passingFindings: T[];
+  failingFindings: T[];
+  unknownFindings: T[];
+  highlightedFindings: T[];
+  allScoredFindingsOrdered: T[];
+  allFindingsOrdered: T[];
+  hiddenFailingCount: number;
+} {
+  const scoredPool = isHostedProfile
+    ? findings
+    : findings.filter((f) => (f.maxPoints ?? 0) > 0);
+  const informationalFindings = isHostedProfile
+    ? []
+    : findings.filter((f) => (f.maxPoints ?? 0) === 0);
+
+  const passingFindings = scoredPool.filter((f) => f.state === 'PASS');
+  const failingFindings = [...scoredPool.filter((f) => f.state === 'FAIL')].sort(
+    (a, b) => (b.maxPoints || 0) - (a.maxPoints || 0)
+  );
+  const unknownFindings = scoredPool.filter((f) => f.state === 'UNKNOWN');
+
+  const highlightedFindings = isHostedProfile
+    ? [...passingFindings.slice(0, 4), ...unknownFindings.slice(0, 3)].slice(0, 6)
+    : [
+        ...failingFindings.slice(0, 3),
+        ...passingFindings.slice(0, 3),
+        ...unknownFindings.slice(0, 2),
+      ].slice(0, 6);
+
+  const allScoredFindingsOrdered = isHostedProfile
+    ? [...passingFindings, ...unknownFindings]
+    : [...failingFindings, ...unknownFindings, ...passingFindings];
+
+  const allFindingsOrdered = [...allScoredFindingsOrdered, ...informationalFindings];
+
+  const hiddenFailingCount = Math.max(
+    0,
+    failingFindings.length - highlightedFindings.filter((f) => f.state === 'FAIL').length
+  );
+
+  return {
+    scoredPool,
+    informationalFindings,
+    passingFindings,
+    failingFindings,
+    unknownFindings,
+    highlightedFindings,
+    allScoredFindingsOrdered,
+    allFindingsOrdered,
+    hiddenFailingCount,
+  };
+}
+
+/**
+ * Formats the public Reality Check score headline and coverage explanation.
+ */
+export function buildFunnelScoreSummary(params: {
+  overallScore: number;
+  overallCoverage: number;
+  passingCount: number;
+  failingCount: number;
+  unknownCount: number;
+}): {
+  headline: string;
+  explanation: string;
+} {
+  const { overallScore, overallCoverage, passingCount, failingCount, unknownCount } = params;
+  const headline =
+    overallCoverage < 100
+      ? `Automated Score: ${overallScore} / 100 on Evaluated Signals`
+      : `Automated Score: ${overallScore} / 100`;
+
+  const explanation =
+    overallCoverage < 100
+      ? `Score reflects performance on the ${overallCoverage}% of scored checks observable from static HTML (${passingCount} passing, ${failingCount} flagged). The remaining ${
+          100 - overallCoverage
+        }% (${unknownCount} ${
+          unknownCount === 1 ? 'check' : 'checks'
+        }) was not evaluated automatically and is deferred to human review.`
+      : `Our scanner verified 100% of scored checks (${passingCount} passing, ${failingCount} ${
+          failingCount === 1 ? 'area' : 'areas'
+        } flagged).`;
+
+  return { headline, explanation };
+}
+
+/**
+ * Distinguishes newly generated scan snapshots (POST /api/reality-check) from
+ * restored historical scan snapshots (GET /api/reality-check?shareToken=...)
+ * so users and operators can tell whether they are viewing a saved point-in-time
+ * scan or a freshly executed scan without mutating historical findings.
+ */
+export function resolveFunnelSnapshotHeader(params: {
+  isHostedProfile: boolean;
+  restoredFromSavedScan?: boolean;
+}): {
+  eyebrow: string;
+  resetActionLabel: string;
+} {
+  const { isHostedProfile, restoredFromSavedScan = false } = params;
+  if (restoredFromSavedScan) {
+    return {
+      eyebrow: isHostedProfile ? 'Restored Hosted Profile Scan' : 'Restored Scan Snapshot',
+      resetActionLabel: 'Run a fresh scan or try another link',
+    };
+  }
+  return {
+    eyebrow: isHostedProfile ? 'Limited Automated Scan' : 'Automated Scan Snapshot',
+    resetActionLabel: 'Scan a different link',
+  };
+}

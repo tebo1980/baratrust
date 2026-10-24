@@ -88,7 +88,6 @@ export default function RealityCheckFunnel({
   const [emailInput, setEmailInput] = useState("");
   const [businessNameInput, setBusinessNameInput] = useState("");
   const [ownerNameInput, setOwnerNameInput] = useState("");
-  const [cityStateInput, setCityStateInput] = useState("");
   const [submittingEmail, setSubmittingEmail] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [humanReviewRequested, setHumanReviewRequested] = useState(false);
@@ -130,7 +129,6 @@ export default function RealityCheckFunnel({
         });
         setHumanReviewRequested(Boolean(data.humanReviewRequested));
         setBusinessNameInput(data.businessName ? decodeHtmlEntities(data.businessName) : "");
-        setCityStateInput(data.cityState ? decodeHtmlEntities(data.cityState) : "");
       }
     } catch {
       // Ignore background restore errors and fall back to fresh URL entry
@@ -238,7 +236,6 @@ export default function RealityCheckFunnel({
       setSnapshot(nextSnapshot);
       setHumanReviewRequested(Boolean(data.humanReviewRequested));
       setBusinessNameInput(data.businessName ? decodeHtmlEntities(data.businessName) : "");
-      setCityStateInput(data.cityState ? decodeHtmlEntities(data.cityState) : "");
 
       trackFunnelEvent("automated_scan_completed", {
         scan_status: data.scanStatus,
@@ -294,7 +291,7 @@ export default function RealityCheckFunnel({
           email: cleanEmail,
           businessName: businessNameInput.trim() || snapshot.businessName || null,
           ownerName: ownerNameInput.trim() || null,
-          cityState: cityStateInput.trim() || snapshot.cityState || null,
+          cityState: snapshot.cityState || null,
         }),
       });
 
@@ -725,33 +722,39 @@ export default function RealityCheckFunnel({
         >
           <div>
             <p className="eyebrow" style={{ marginBottom: "6px" }}>
-              Next Step — Human Review
+              NEXT STEP — HUMAN REVIEW
             </p>
             <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
-              Want the full human-reviewed Reality Check?
+              Want us to take a closer look?
             </h3>
             <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: 0 }}>
-              Add your email and Todd &amp; Noelah will review the parts software can’t. We’ll send you the finished report when it’s ready.
+              Add your email and Todd &amp; Noelah will review the parts that need human judgment, verify the important findings, and send you the finished Reality Check.
             </p>
           </div>
 
-          <label htmlFor="rc-email-input">
-            Email address (to receive your finished report)
-            <input
-              id="rc-email-input"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@yourbusiness.com"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              required
-              disabled={submittingEmail}
-            />
-          </label>
+          <div>
+            <label htmlFor="rc-email-input" style={{ marginBottom: 0 }}>
+              Email address
+              <input
+                id="rc-email-input"
+                name="email"
+                type="email"
+                autoComplete="email"
+                aria-describedby="rc-email-privacy-note"
+                placeholder="you@yourbusiness.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                required
+                disabled={submittingEmail}
+              />
+            </label>
+            <p id="rc-email-privacy-note" className="form-note" style={{ marginTop: "6px" }}>
+              We’ll only use your email to send your report and follow up about this review.
+            </p>
+          </div>
 
           {!snapshot.businessName && (
-            <label htmlFor="rc-business-name-input">
+            <label htmlFor="rc-business-name-input" style={{ marginBottom: 0 }}>
               Business name (optional)
               <input
                 id="rc-business-name-input"
@@ -766,7 +769,7 @@ export default function RealityCheckFunnel({
             </label>
           )}
 
-          <label htmlFor="rc-owner-name-input">
+          <label htmlFor="rc-owner-name-input" style={{ marginBottom: 0 }}>
             Your name (optional)
             <input
               id="rc-owner-name-input"
@@ -780,34 +783,15 @@ export default function RealityCheckFunnel({
             />
           </label>
 
-          {!snapshot.cityState && (
-            <label htmlFor="rc-city-input">
-              City &amp; State (optional)
-              <input
-                id="rc-city-input"
-                name="cityState"
-                type="text"
-                placeholder="e.g., Louisville, KY"
-                value={cityStateInput}
-                onChange={(e) => setCityStateInput(e.target.value)}
-                disabled={submittingEmail}
-              />
-            </label>
-          )}
-
           <button className="btn primary full" type="submit" disabled={submittingEmail}>
-            {submittingEmail ? "Requesting Human Review..." : "Send Me the Full Human-Reviewed Report"}
+            {submittingEmail ? "Requesting Human Review..." : "Get My Full Reality Check"}
           </button>
-
-          <p className="form-note" style={{ marginTop: "10px" }}>
-            Used only to deliver your Reality Check report and follow up about your review. No mailing list or spam.
-          </p>
 
           {emailError && (
             <p
               className="form-note"
               role="alert"
-              style={{ color: "#b91c1c", fontWeight: 600, marginTop: "10px" }}
+              style={{ color: "#b91c1c", fontWeight: 600, marginTop: "4px" }}
             >
               {emailError}
             </p>

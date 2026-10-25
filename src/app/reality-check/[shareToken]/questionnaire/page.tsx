@@ -3,18 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { 
-  CheckCircle2, 
-  HelpCircle, 
-  ArrowRight, 
-  ArrowLeft,
-  Sparkles, 
-  Clock, 
-  ShieldCheck, 
-  Send, 
+import {
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
+  ShieldCheck,
+  Send,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
+import "../../../landing.css";
 
 interface BusinessData {
   businessName: string | null;
@@ -128,325 +126,397 @@ export default function OwnerQuestionnairePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050810] text-slate-100 flex items-center justify-center p-6">
-        <div className="flex items-center gap-3 text-slate-400 font-mono text-sm">
-          <RefreshCw className="w-5 h-5 animate-spin text-amber-400" />
-          <span>Loading Reality Check questionnaire...</span>
+      <div
+        className="landing-wrapper min-h-screen flex items-center justify-center p-6"
+        data-theme="dark"
+      >
+        <div className="flex items-center gap-3 text-[#bac9bf] text-sm font-medium">
+          <RefreshCw className="w-5 h-5 animate-spin text-[#7be0b8]" />
+          <span>Loading your Reality Check questionnaire...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050810] text-slate-100 font-sans selection:bg-amber-500/30">
+    <div className="landing-wrapper min-h-screen" data-theme="dark">
       {/* Header */}
-      <header className="border-b border-slate-800/80 bg-[#080F1A]/90 backdrop-blur-md sticky top-0 z-30">
-        <div className="max-w-4xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-              <span className="text-amber-400 font-bold text-lg font-serif">B</span>
-            </div>
-            <span className="text-xl font-bold tracking-tight text-white font-serif">
-              Bara<span className="text-amber-400">Trust</span>
-            </span>
+      <header className="site-header">
+        <div className="wrap nav-wrap">
+          <Link className="brand" href="/">
+            <span className="brand-mark">B</span>
+            <span>BaraTrust</span>
           </Link>
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold rounded-full">
-              [OWNER PROVIDED]
+            <span className="finding-badge finding-badge--pass">
+              Owner Context · Optional
             </span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+      <main className="wrap" style={{ maxWidth: "820px", padding: "48px 0 84px" }}>
         {/* Title & Context */}
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400">
-            <span>Optional Owner Context</span>
-            <span>•</span>
-            <span className="text-amber-400 font-bold">100% Optional</span>
-            {business && (
-              <>
-                <span>•</span>
-                <span className="text-slate-300">{business.businessName || business.website}</span>
-                {business.cityState && <span>({business.cityState})</span>}
-              </>
-            )}
-          </div>
-          <h1 className="text-3xl md:text-5xl font-bold text-white font-serif tracking-tight">
+        <div style={{ marginBottom: "28px" }}>
+          <p className="eyebrow" style={{ marginBottom: "10px" }}>
+            Optional Owner Context · 100% Optional
+            {business ? ` · ${business.businessName || business.website}` : ""}
+            {business?.cityState ? ` (${business.cityState})` : ""}
+          </p>
+          <h1
+            style={{
+              fontSize: "clamp(2rem, 4vw, 3rem)",
+              marginBottom: "12px",
+              lineHeight: 1.08,
+            }}
+          >
             Want Us to Make the Human Review More Useful?
           </h1>
-          <p className="text-slate-300 text-base md:text-lg leading-relaxed">
+          <p className="section-intro" style={{ fontSize: "1.08rem", marginTop: 0 }}>
             Answer a few quick questions so Todd and Noelah understand what matters most to your business.
           </p>
 
-          <div className="p-4 bg-[#0A101D] border border-slate-800 rounded-xl flex items-start gap-3 text-xs text-slate-300">
-            <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+          <div
+            className="starter-note"
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              padding: "16px 18px",
+            }}
+          >
+            <ShieldCheck
+              className="w-5 h-5 flex-shrink-0 mt-0.5"
+              style={{ color: "var(--mint)" }}
+            />
             <div>
-              <p className="font-semibold text-white">Your Reality Check Request Is Already Safe &amp; Queued</p>
-              <p className="text-slate-400 mt-0.5">
-                Completing this questionnaire is never mandatory. If you are short on time, you can answer whatever you want, leave questions blank, or skip this page entirely. Every response is strictly private and tagged as <strong className="text-purple-300">[OWNER PROVIDED]</strong> in your review dossier.
-              </p>
+              <strong style={{ fontSize: "0.94rem", color: "var(--ink)" }}>
+                Your Reality Check request is already in our review queue
+              </strong>
+              <span style={{ fontSize: "0.86rem", lineHeight: 1.55, marginTop: "4px" }}>
+                Completing this page is completely optional. You can answer whichever questions are helpful, leave any blank, or skip this step altogether.
+              </span>
             </div>
           </div>
         </div>
 
         {business && !business.humanReviewRequested ? (
-          <div className="bg-[#0E1524] border border-amber-500/40 rounded-2xl p-8 text-center space-y-5 shadow-2xl">
-            <h2 className="text-2xl font-bold text-white font-serif">
+          <div className="lead-form" style={{ textAlign: "center", padding: "36px 28px" }}>
+            <h2 style={{ fontSize: "1.65rem", marginBottom: "10px" }}>
               Request Your Full Human Review First
             </h2>
-            <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+            <p
+              style={{
+                fontSize: "0.95rem",
+                maxWidth: "520px",
+                margin: "0 auto 22px",
+                color: "var(--muted)",
+              }}
+            >
               Before answering the optional owner-context questions, please add your email on your scan snapshot so Todd &amp; Noelah know where to send your finished Reality Check report.
             </p>
-            <div className="pt-2">
-              <Link
-                href={`/reality-check?scan=${encodeURIComponent(shareToken)}`}
-                className="inline-flex items-center gap-2 px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-sm transition-colors shadow-lg"
-              >
-                Return to Scan Snapshot &amp; Add Email <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
+            <Link
+              href={`/reality-check?scan=${encodeURIComponent(shareToken)}`}
+              className="btn primary"
+              style={{ gap: "8px" }}
+            >
+              Return to Scan Snapshot &amp; Add Email <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         ) : submitted ? (
           /* SUCCESS CONFIRMATION */
-          <div className="bg-[#0E1524] border border-emerald-500/40 rounded-2xl p-8 md:p-12 text-center space-y-6 shadow-2xl">
-            <div className="w-16 h-16 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-emerald-400">
-              <CheckCircle2 className="w-8 h-8" />
+          <div className="lead-form" style={{ textAlign: "center", padding: "40px 28px" }}>
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "999px",
+                background: "rgba(123, 224, 184, 0.12)",
+                border: "1px solid rgba(123, 224, 184, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 18px",
+                color: "var(--mint)",
+              }}
+            >
+              <CheckCircle2 className="w-7 h-7" />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl md:text-3xl font-bold text-white font-serif">
-                Context Received &amp; Added to Your Dossier
-              </h2>
-              <p className="text-sm md:text-base text-slate-300 max-w-xl mx-auto">
-                Thank you! Todd and Noelah now have both your technical scan data and your operational context. They are personally preparing your Reality Check report.
-              </p>
+            <h2 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>
+              Context Saved for Your Review
+            </h2>
+            <p
+              style={{
+                fontSize: "0.96rem",
+                maxWidth: "560px",
+                margin: "0 auto 24px",
+                color: "var(--muted)",
+              }}
+            >
+              Thank you. Todd and Noelah now have both your automated scan snapshot and your notes as they prepare your finished Reality Check.
+            </p>
+
+            <div
+              className="finding-card"
+              style={{
+                maxWidth: "440px",
+                margin: "0 auto 26px",
+                textAlign: "left",
+                padding: "16px 18px",
+              }}
+            >
+              <div className="finding-card-header" style={{ marginBottom: "8px" }}>
+                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Business</span>
+                <strong style={{ fontSize: "0.88rem" }}>
+                  {business?.businessName || business?.website}
+                </strong>
+              </div>
+              <div className="finding-card-header" style={{ marginBottom: "8px" }}>
+                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Status</span>
+                <span className="finding-badge finding-badge--pass">In Review Queue</span>
+              </div>
+              <div className="finding-card-header" style={{ marginBottom: 0 }}>
+                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Typical turnaround</span>
+                <strong style={{ fontSize: "0.86rem", color: "var(--mint)" }}>
+                  Within 1 business day
+                </strong>
+              </div>
             </div>
 
-            <div className="p-4 bg-[#080E1C] border border-slate-800 rounded-xl max-w-md mx-auto text-left text-xs text-slate-400 space-y-2 font-mono">
-              <div className="flex justify-between">
-                <span>Business:</span>
-                <span className="text-white font-bold">{business?.businessName || business?.website}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Evidence Tag:</span>
-                <span className="text-purple-300 font-bold">[OWNER PROVIDED]</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Status:</span>
-                <span className="text-amber-400 font-bold">NEEDS_HUMAN_REVIEW</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Turnaround:</span>
-                <span className="text-emerald-400 font-bold">Within 1 business day</span>
-              </div>
-            </div>
-
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/"
-                className="w-full sm:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-sm transition-colors text-center shadow-lg"
-              >
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                gap: "12px",
+              }}
+            >
+              <Link href="/" className="btn primary">
                 Return to BaraTrust Homepage
               </Link>
-              <a
-                href="mailto:todd@baratrust.com"
-                className="w-full sm:w-auto px-8 py-3.5 bg-[#080D18] hover:bg-[#121A2B] border border-slate-700 text-slate-300 font-bold rounded-lg text-sm transition-colors text-center"
-              >
+              <a href="mailto:todd@baratrust.com" className="btn secondary">
                 Email Todd Directly
               </a>
             </div>
           </div>
         ) : (
           /* THE 8 QUESTIONS FORM */
-          <form onSubmit={handleSubmit} className="bg-[#0E1524] border border-slate-800 rounded-2xl p-6 md:p-10 shadow-2xl space-y-8">
-            <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="lead-form" style={{ display: "grid", gap: "22px" }}>
+            {/* Question 1 */}
+            <div>
+              <label htmlFor="q-customer-acquisition" style={{ marginBottom: "4px" }}>
+                1. Where do most new customers currently come from?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                e.g., Word-of-mouth, repeat clients, Google search, Facebook, passing by on the street, direct referrals...
+              </p>
+              <textarea
+                id="q-customer-acquisition"
+                rows={2}
+                value={answers.customerAcquisition}
+                onChange={(e) => handleChange("customerAcquisition", e.target.value)}
+                placeholder="e.g. 70% word of mouth, some Google Maps. We don't get much from our website."
+              />
+            </div>
 
-              {/* Question 1 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  1. Where do most new customers currently come from?
-                </label>
-                <p className="text-xs text-slate-400">
-                  e.g., Word-of-mouth, repeat clients, Google search, Facebook, passing by on the street, direct referrals...
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.customerAcquisition}
-                  onChange={(e) => handleChange("customerAcquisition", e.target.value)}
-                  placeholder="e.g. 70% word of mouth, some Google Maps. We don't get much from our website."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 2 */}
+            <div>
+              <label htmlFor="q-biggest-problem" style={{ marginBottom: "4px" }}>
+                2. What is the biggest business problem you want help with right now?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                What keeps you up at night or feels like friction in your day-to-day operations?
+              </p>
+              <textarea
+                id="q-biggest-problem"
+                rows={2}
+                value={answers.biggestProblem}
+                onChange={(e) => handleChange("biggestProblem", e.target.value)}
+                placeholder="e.g. Too many price-shoppers, not enough high-ticket jobs, or quotes stalling out."
+              />
+            </div>
 
-              {/* Question 2 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  2. What is the biggest business problem you want help with right now?
-                </label>
-                <p className="text-xs text-slate-400">
-                  What keeps you up at night or feels like friction in your day-to-day operations?
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.biggestProblem}
-                  onChange={(e) => handleChange("biggestProblem", e.target.value)}
-                  placeholder="e.g. Too many price-shoppers, not enough high-ticket jobs, or quotes stalling out."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 3 */}
+            <div>
+              <label htmlFor="q-missed-inquiries" style={{ marginBottom: "4px" }}>
+                3. Do you regularly miss calls, messages, quote requests, catering requests, or other inquiries?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                What happens when someone reaches out while you or your team are busy?
+              </p>
+              <textarea
+                id="q-missed-inquiries"
+                rows={2}
+                value={answers.missedInquiries}
+                onChange={(e) => handleChange("missedInquiries", e.target.value)}
+                placeholder="e.g. When we're on a job or during the lunch rush, calls go to voicemail and half don't leave a message."
+              />
+            </div>
 
-              {/* Question 3 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  3. Do you regularly miss calls, messages, quote requests, catering requests, or other inquiries?
-                </label>
-                <p className="text-xs text-slate-400">
-                  Be honest — what happens when someone calls while you or your crew are busy?
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.missedInquiries}
-                  onChange={(e) => handleChange("missedInquiries", e.target.value)}
-                  placeholder="e.g. When we're on a job or during the lunch rush, calls go to voicemail and half don't leave a message."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 4 */}
+            <div>
+              <label htmlFor="q-follow-up" style={{ marginBottom: "4px" }}>
+                4. How do you currently follow up with people who inquire but do not buy immediately?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                Do you have a regular follow-up routine, or do unclosed leads tend to slip away?
+              </p>
+              <textarea
+                id="q-follow-up"
+                rows={2}
+                value={answers.followUpProcess}
+                onChange={(e) => handleChange("followUpProcess", e.target.value)}
+                placeholder="e.g. I try to text them back next week, but honestly if they don't respond we usually forget about them."
+              />
+            </div>
 
-              {/* Question 4 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  4. How do you currently follow up with people who inquire but do not buy immediately?
-                </label>
-                <p className="text-xs text-slate-400">
-                  Do you have a regular follow-up routine, or do unclosed leads tend to disappear?
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.followUpProcess}
-                  onChange={(e) => handleChange("followUpProcess", e.target.value)}
-                  placeholder="e.g. I try to text them back next week, but honestly if they don't respond we usually forget about them."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 5 */}
+            <div>
+              <label htmlFor="q-marketing-spend" style={{ marginBottom: "4px" }}>
+                5. Are you currently paying for advertising or marketing services?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                e.g., Google Ads, Yelp, an agency retainer, local mailers, software subscriptions...
+              </p>
+              <textarea
+                id="q-marketing-spend"
+                rows={2}
+                value={answers.currentMarketingSpend}
+                onChange={(e) => handleChange("currentMarketingSpend", e.target.value)}
+                placeholder="e.g. Paying an SEO agency $800/mo and $300 on Google Ads, not sure if it's working."
+              />
+            </div>
 
-              {/* Question 5 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  5. Are you currently paying for advertising or marketing services?
-                </label>
-                <p className="text-xs text-slate-400">
-                  e.g., Google Ads, Yelp, an agency retainer, local mailers, software subscriptions...
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.currentMarketingSpend}
-                  onChange={(e) => handleChange("currentMarketingSpend", e.target.value)}
-                  placeholder="e.g. Paying an SEO agency $800/mo and $300 on Google Ads, not sure if it's working."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 6 */}
+            <div>
+              <label htmlFor="q-admin-waste" style={{ marginBottom: "4px" }}>
+                6. What repetitive or administrative task wastes the most time every week?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                The manual busywork you wish would just happen on its own.
+              </p>
+              <textarea
+                id="q-admin-waste"
+                rows={2}
+                value={answers.repetitiveAdminWaste}
+                onChange={(e) => handleChange("repetitiveAdminWaste", e.target.value)}
+                placeholder="e.g. Writing out estimates by hand, chasing unpaid invoices, copying info between apps."
+              />
+            </div>
 
-              {/* Question 6 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  6. What repetitive or administrative task wastes the most time every week?
-                </label>
-                <p className="text-xs text-slate-400">
-                  The manual busywork you wish would just happen on its own.
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.repetitiveAdminWaste}
-                  onChange={(e) => handleChange("repetitiveAdminWaste", e.target.value)}
-                  placeholder="e.g. Writing out estimates by hand, chasing unpaid invoices, copying info between apps."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 7 */}
+            <div>
+              <label htmlFor="q-growth-opportunity" style={{ marginBottom: "4px" }}>
+                7. Is there a product, service, or revenue stream you want to grow?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                What part of your business has higher margins or could grow if more people knew about it?
+              </p>
+              <textarea
+                id="q-growth-opportunity"
+                rows={2}
+                value={answers.growthOpportunity}
+                onChange={(e) => handleChange("growthOpportunity", e.target.value)}
+                placeholder="e.g. We want to do more commercial accounts and recurring quarterly service plans."
+              />
+            </div>
 
-              {/* Question 7 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  7. Is there a product, service, or revenue stream you want to grow?
-                </label>
-                <p className="text-xs text-slate-400">
-                  What part of your business has higher margins or could scale if more people knew about it?
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.growthOpportunity}
-                  onChange={(e) => handleChange("growthOpportunity", e.target.value)}
-                  placeholder="e.g. We want to do more commercial accounts and recurring quarterly service plans."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
+            {/* Question 8 */}
+            <div>
+              <label htmlFor="q-free-employee" style={{ marginBottom: "4px" }}>
+                8. If you could add one extra employee for free, what would you have them handle?
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                This helps us see which bottleneck is holding back your time or growth the most.
+              </p>
+              <textarea
+                id="q-free-employee"
+                rows={2}
+                value={answers.freeEmployeeRole}
+                onChange={(e) => handleChange("freeEmployeeRole", e.target.value)}
+                placeholder="e.g. Answering every phone call instantly and scheduling appointments on our calendar."
+              />
+            </div>
 
-              {/* Question 8 */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-white">
-                  8. If you could add one extra employee for free, what would you have them handle?
-                </label>
-                <p className="text-xs text-slate-400">
-                  This tells us what bottleneck is capping your growth the most.
-                </p>
-                <textarea
-                  rows={2}
-                  value={answers.freeEmployeeRole}
-                  onChange={(e) => handleChange("freeEmployeeRole", e.target.value)}
-                  placeholder="e.g. Answering every phone call instantly and scheduling appointments on our calendar."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
-
-              {/* Free-text field */}
-              <div className="space-y-2 pt-2 border-t border-slate-800">
-                <label className="block text-sm font-semibold text-white flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  Anything else you want us to know? (Optional)
-                </label>
-                <p className="text-xs text-slate-400">
-                  Specific competitors to look at, recent changes, pricing concerns, or goals.
-                </p>
-                <textarea
-                  rows={3}
-                  value={answers.additionalNotes}
-                  onChange={(e) => handleChange("additionalNotes", e.target.value)}
-                  placeholder="e.g. Our main rival down the road just revamped their site. Also, we are thinking about opening a second location next year."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-sm"
-                />
-              </div>
-
+            {/* Free-text field */}
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: "18px" }}>
+              <label
+                htmlFor="q-additional-notes"
+                style={{
+                  marginBottom: "4px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <Sparkles className="w-4 h-4" style={{ color: "var(--mint)" }} />
+                Anything else you want us to know? (Optional)
+              </label>
+              <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                Specific competitors to look at, recent changes, pricing concerns, or goals.
+              </p>
+              <textarea
+                id="q-additional-notes"
+                rows={3}
+                value={answers.additionalNotes}
+                onChange={(e) => handleChange("additionalNotes", e.target.value)}
+                placeholder="e.g. Our main rival down the road just revamped their site. Also, we are thinking about opening a second location next year."
+              />
             </div>
 
             {errorMsg && (
-              <div className="p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-400 text-xs flex items-center gap-2">
+              <div
+                role="alert"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "12px",
+                  border: "1px solid rgba(248, 113, 113, 0.45)",
+                  background: "rgba(127, 29, 29, 0.25)",
+                  color: "#fca5a5",
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
-            <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: "12px",
+                paddingTop: "6px",
+              }}
+            >
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full sm:flex-1 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                className="btn primary"
+                style={{ flex: "1 1 260px", gap: "8px" }}
               >
                 {submitting ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin" />
                     Saving Responses...
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    Send Context to Todd & Noelah
+                    Send Context to Todd &amp; Noelah
                   </>
                 )}
               </button>
 
               <Link
                 href="/"
-                className="w-full sm:w-auto px-6 py-4 bg-[#080D18] hover:bg-[#121A2B] border border-slate-700 text-slate-300 font-bold rounded-lg text-sm transition-colors text-center"
+                className="btn secondary"
+                style={{ flex: "0 1 auto", padding: "0 22px" }}
               >
                 Skip / Return Home
               </Link>

@@ -7,12 +7,18 @@ const isProtectedRoute = createRouteMatcher([
   "/api/internal(.*)"
 ]);
 
-const clerkHandler = clerkMiddleware((auth, req) => {
-  // 2. If they try to enter the VIP area, demand to see their ID
-  if (isProtectedRoute(req)) {
-    auth().protect();
+const clerkHandler = clerkMiddleware(
+  (auth, req) => {
+    // 2. If they try to enter the VIP area, demand to see their ID
+    if (isProtectedRoute(req)) {
+      auth().protect();
+    }
+  },
+  {
+    signInUrl: "/sign-in",
+    signUpUrl: "/sign-up",
   }
-});
+);
 
 import { NextResponse } from 'next/server';
 

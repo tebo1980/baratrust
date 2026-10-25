@@ -373,7 +373,7 @@ export async function POST(req: Request) {
 
     // 6. Operator Notification (only when human review is requested with an email)
     if (cleanEmail) {
-      sendOperatorNotification({
+      await sendOperatorNotification({
         businessName: effectiveBusinessName || data.website.trim(),
         ownerName: cleanOwnerName || 'Not provided',
         email: cleanEmail,
@@ -547,7 +547,7 @@ export async function PATCH(req: Request) {
 
     // Strictly dispatch operator notification once on the winning initial transition
     if (wonInitialClaim) {
-      sendOperatorNotification({
+      await sendOperatorNotification({
         businessName: finalBusinessName || existing.website,
         ownerName: finalOwnerName || 'Not provided',
         email: claim.email,
@@ -615,11 +615,45 @@ async function sendOperatorNotification(info: {
     `Internal Review Token: ${info.shareToken}`,
   ].join('\n');
 
-  const endpoint = process.env.FORMSPREE_OPERATOR_ENDPOINT || 'https://formspree.io/f/xeaovlgo';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      const fromEmail = process.env.TRANSACTIONAL_FROM_EMAIL || 'Todd & Noelah <todd@baratrust.com>';
+      const toEmail = process.env.OPERATOR_NOTIFICATION_EMAIL || 'todd@baratrust.com';
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: toEmail,
+          reply_to: info.email,
+          subject,
+          text: message,
+        }),
+      });
+      if (resp.ok) {
+        console.log(`[OPERATOR NOTIFICATION SENT VIA RESEND] ${subject}`);
+        return;
+      }
+      console.warn(`[OPERATOR NOTIFICATION RESEND FAILED] HTTP ${resp.status}`);
+    } catch (e: any) {
+      console.warn(`[OPERATOR NOTIFICATION RESEND ERROR] ${e.message}`);
+    }
+  }
+
+  const endpoint = process.env.FORMSPREE_OPERATOR_ENDPOINT || 'https://formspree.io/f/xzdkqaap';
   try {
-    await fetch(endpoint, {
+    const resp = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Origin: 'https://www.baratrust.com',
+        Referer: 'https://www.baratrust.com/reality-check',
+      },
       body: JSON.stringify({
         _subject: subject,
         name: info.ownerName,
@@ -627,7 +661,11 @@ async function sendOperatorNotification(info: {
         message,
       }),
     });
-    console.log(`[OPERATOR NOTIFICATION SENT] ${subject}`);
+    if (resp.ok) {
+      console.log(`[OPERATOR NOTIFICATION SENT] ${subject}`);
+    } else {
+      console.warn(`[OPERATOR NOTIFICATION FAILED] Formspree HTTP ${resp.status} for ${subject}`);
+    }
   } catch (e: any) {
     console.log(`[OPERATOR NOTIFICATION LOGGED ONLY] ${subject}: ${e.message}`);
   }

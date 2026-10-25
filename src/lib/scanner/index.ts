@@ -2,9 +2,13 @@ import { safeFetchWebsite } from './fetcher';
 import { parseHtmlForBusinessSignals } from './parser';
 import { runDeterministicChecks, buildUnknownFindings } from './checks';
 import { calculateScores } from './scoring';
-import { ScanResult, ScanStatus } from './types';
+import { BrowserRenderedEvidence, ScanResult, ScanStatus } from './types';
 import { normalizeSubmittedUrl } from './ssrf';
 import { classifySubmittedUrl } from './platform';
+import {
+  captureBrowserRenderedEvidence,
+  buildBrowserEvidenceFindings,
+} from './browser-evidence';
 
 export * from './types';
 export * from './ssrf';
@@ -13,11 +17,14 @@ export * from './parser';
 export * from './checks';
 export * from './scoring';
 export * from './platform';
+export * from './browser-evidence';
 
 export interface ExecuteScanOptions {
   websiteUrl: string;
   businessName?: string | null;
   cityState?: string | null;
+  enableBrowserRender?: boolean;
+  browserEvidence?: BrowserRenderedEvidence | null;
 }
 
 /**
@@ -26,9 +33,10 @@ export interface ExecuteScanOptions {
  * 2. Fetches website HTML with timeout & size limits.
  * 3. If unreachable/blocked, records failure reason and returns UNKNOWN findings for human review.
  * 4. If reachable, extracts observable signals, executes deterministic checks, and calculates weighted scores.
+ * 5. Optionally runs a browser-rendered desktop + mobile evidence pass without altering numeric scores.
  */
 export async function executeDeterministicScan(options: ExecuteScanOptions): Promise<ScanResult> {
-  const { websiteUrl, businessName, cityState } = options;
+  const { websiteUrl, businessName, cityState, enableBrowserRender = false } = options;
   const normalizedUrl = normalizeSubmittedUrl(websiteUrl);
   const scannedAt = new Date().toISOString();
   const initialPlatform = classifySubmittedUrl(normalizedUrl);
@@ -84,9 +92,32 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     platform,
   });
 
-  // 5. Calculate scores
+  // 5. Calculate scores from static checks ONLY (browser evidence never alters numeric score)
   const { overallScore, overallCoverage, confidence, scoreBreakdown, categoryScores } =
     calculateScores(findings, platform);
+
+  // 6. Optional browser-rendered desktop + mobile evidence layer
+  let resolvedBrowserEvidence: BrowserRenderedEvidence | null = options.browserEvidence ?? null;
+  if (!resolvedBrowserEvidence && enableBrowserRender && !platform.isHostedProfile) {
+    try {
+      resolvedBrowserEvidence = await captureBrowserRenderedEvidence({
+        url: rawData.finalUrl || rawData.normalizedUrl,
+        platform,
+      });
+    } catch {
+      resolvedBrowserEvidence = null;
+    }
+  }
+
+  const browserFindings = buildBrowserEvidenceFindings(resolvedBrowserEvidence);
+  const combinedFindings =
+    browserFindings.length > 0 ? [...findings, ...browserFindings] : findings;
+  const enrichedScoreBreakdown = scoreBreakdown
+    ? {
+        ...scoreBreakdown,
+        ...(resolvedBrowserEvidence ? { browserEvidence: resolvedBrowserEvidence } : {}),
+      }
+    : scoreBreakdown;
 
   return {
     scanStatus: 'completed',
@@ -96,9 +127,10 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     overallScore,
     overallCoverage,
     confidence,
-    scoreBreakdown,
+    scoreBreakdown: enrichedScoreBreakdown,
     categoryScores,
-    findings,
+    findings: combinedFindings,
+    browserEvidence: resolvedBrowserEvidence,
     normalizedUrl: rawData.normalizedUrl,
     derivedBusinessName: parsed.derivedBusinessName,
     derivedCityState: parsed.derivedCityState,

@@ -3,11 +3,72 @@ import crypto from 'crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
+import { desc } from 'drizzle-orm';
 import {
   executeDeterministicScan,
   classifySubmittedUrl,
   classifyProfileSummaryText,
+  sanitizeBrowserEvidenceForPublic,
+  evaluateScreenshotRetention,
 } from '@/lib/scanner';
+
+/**
+ * Opportunistically prunes expired base64 screenshots from older anonymous/published rows
+ * without touching DOM metrics, findings, or active human-review records. Non-blocking.
+ */
+async function pruneExpiredScreenshotsInDb(): Promise<void> {
+  try {
+    const recentRows = await db
+      .select({
+        id: realityChecks.id,
+        email: realityChecks.email,
+        status: realityChecks.status,
+        createdAt: realityChecks.createdAt,
+        updatedAt: realityChecks.updatedAt,
+        scoreBreakdown: realityChecks.scoreBreakdown,
+      })
+      .from(realityChecks)
+      .orderBy(desc(realityChecks.createdAt))
+      .limit(40);
+
+    for (const row of recentRows) {
+      const ev = row.scoreBreakdown?.browserEvidence;
+      if (!ev) continue;
+      const retention = evaluateScreenshotRetention({
+        evidence: ev,
+        hasEmail: Boolean(row.email && row.email.trim()),
+        status: row.status,
+        createdAt: row.createdAt,
+        publishedAt: row.status === 'PUBLISHED' ? row.updatedAt : null,
+      });
+      if (retention.shouldPrune && retention.prunedEvidence && row.scoreBreakdown) {
+        await db
+          .update(realityChecks)
+          .set({
+            scoreBreakdown: {
+              ...row.scoreBreakdown,
+              browserEvidence: retention.prunedEvidence,
+            },
+          })
+          .where(eq(realityChecks.id, row.id));
+      }
+    }
+  } catch {
+    // Non-blocking background hygiene
+  }
+}
+
+function sanitizePublicScoreBreakdown<T extends { browserEvidence?: any } | null | undefined>(
+  scoreBreakdown: T
+): T {
+  if (!scoreBreakdown || !scoreBreakdown.browserEvidence) {
+    return scoreBreakdown;
+  }
+  return {
+    ...scoreBreakdown,
+    browserEvidence: sanitizeBrowserEvidenceForPublic(scoreBreakdown.browserEvidence),
+  };
+}
 import {
   RealityCheckSubmissionSchema,
   RequestHumanReviewSchema,
@@ -193,7 +254,7 @@ export async function GET(req: Request) {
           overallScore: null,
           overallCoverage: refreshed.overallCoverage,
           confidence: refreshed.confidence,
-          scoreBreakdown: refreshed.scoreBreakdown,
+          scoreBreakdown: sanitizePublicScoreBreakdown(refreshed.scoreBreakdown),
           findingsCount: refreshed.findings.length,
           findings: refreshed.findings.map((f) =>
             formatPublicFinding(f, refreshed.platformLabel ?? platform.platformLabel ?? 'hosted business profile')
@@ -236,7 +297,7 @@ export async function GET(req: Request) {
       overallScore: isHostedProfile ? null : check.overallScore,
       overallCoverage: coverage?.overall ?? 0,
       confidence: coverage?.confidence ?? 'INSUFFICIENT',
-      scoreBreakdown: check.scoreBreakdown || null,
+      scoreBreakdown: sanitizePublicScoreBreakdown(check.scoreBreakdown || null),
       findingsCount: filteredFindings.length,
       findings: filteredFindings.map((f) =>
         formatPublicFinding(f, platformLabel ?? 'hosted business profile')
@@ -303,6 +364,8 @@ export async function POST(req: Request) {
         websiteUrl: data.website.trim(),
         businessName: cleanBusinessName,
         cityState: cleanCityState,
+        enableBrowserRender:
+          process.env.NODE_ENV !== 'test' && process.env.TEST_ENV !== 'true',
       });
     } catch (scanErr: any) {
       console.error('[SCANNER ERROR]', scanErr);
@@ -371,6 +434,9 @@ export async function POST(req: Request) {
       console.error('[DB UPDATE ERROR] Failed to update reality check record:', updateErr);
     }
 
+    // 5b. Opportunistic non-blocking screenshot TTL pruning on expired older rows
+    pruneExpiredScreenshotsInDb().catch(() => {});
+
     // 6. Operator Notification (only when human review is requested with an email)
     if (cleanEmail) {
       await sendOperatorNotification({
@@ -413,7 +479,7 @@ export async function POST(req: Request) {
       overallScore: scanResult.overallScore,
       overallCoverage: scanResult.overallCoverage,
       confidence: scanResult.confidence,
-      scoreBreakdown: scanResult.scoreBreakdown,
+      scoreBreakdown: sanitizePublicScoreBreakdown(scanResult.scoreBreakdown),
       categoryScores: scanResult.categoryScores || [],
       findingsCount: orderedFindings.length,
       findings: orderedFindings.map((f) =>

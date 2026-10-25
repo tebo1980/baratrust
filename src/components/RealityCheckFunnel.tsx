@@ -53,6 +53,9 @@ export interface ScanSnapshot {
       localDiscovery: number;
       opportunityCapture: number;
     };
+    browserEvidence?: {
+      status?: string;
+    } | null;
   } | null;
   findingsCount: number;
   findings: PublicFinding[];
@@ -706,6 +709,18 @@ export default function RealityCheckFunnel({
           <strong style={{ display: "inline", color: "var(--text)" }}>Requires human review:</strong>{" "}
           Whether local buyers actually find you over competitors, whether your offer and reputation build real trust, where calls or quotes slip through the cracks, and what you should <em>not</em> waste money on.
         </p>
+        {snapshot.scoreBreakdown?.browserEvidence?.status === "UNAVAILABLE" && (
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: "0.81rem",
+              lineHeight: 1.45,
+              color: "var(--muted)",
+            }}
+          >
+            Note: This snapshot was evaluated from static HTML only; live browser-rendered layout checks were unavailable during this scan and are deferred to human review without affecting your score.
+          </p>
+        )}
       </div>
 
       {/* STEP 3: ASK FOR EMAIL AFTER VALUE */}

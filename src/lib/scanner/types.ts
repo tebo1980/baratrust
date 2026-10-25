@@ -40,6 +40,103 @@ export interface CheckDefinition {
   isInformational?: boolean;
 }
 
+export type BrowserRenderViewportStatus =
+  | 'RENDERED'
+  | 'BLOCKED'
+  | 'TIMEOUT'
+  | 'FAILED'
+  | 'SKIPPED';
+
+export type BrowserRenderOverallStatus =
+  | 'COMPLETED'
+  | 'BLOCKED'
+  | 'FAILED'
+  | 'SKIPPED'
+  | 'UNAVAILABLE';
+
+export type BrowserCheckClassification = 'AUTO' | 'VERIFY' | 'HUMAN';
+
+export interface BrowserViewportEvidence {
+  viewportLabel: 'desktop' | 'mobile';
+  viewport: { width: number; height: number };
+  status: BrowserRenderViewportStatus;
+  failureReason?: string;
+  finalUrl?: string;
+  httpStatus?: number | null;
+  renderDurationMs?: number;
+  pageTitle?: string | null;
+  documentDimensions?: { width: number; height: number };
+  horizontalOverflowPx?: number;
+  hasHorizontalOverflow?: boolean;
+  visibleTextLength?: number;
+  isNearEmptyRender?: boolean;
+  navigationObserved?: boolean;
+  primaryCtaObserved?: boolean;
+  primaryCtaCandidates?: string[];
+  majorHeadings?: string[];
+  visibleControlsCount?: number;
+  visibleTopBarControls?: string[];
+  clippedTextElements?: Array<{
+    text: string;
+    left: number;
+    right: number;
+    viewportWidth: number;
+  }>;
+  mediaTextOverlaps?: Array<{
+    text: string;
+    mediaSrc: string;
+    overlapRatio: number;
+  }>;
+  smallTapTargets?: Array<{
+    label: string;
+    width: number;
+    height: number;
+  }>;
+  consoleOrPageErrors?: string[];
+  screenshotDataUrl?: string | null;
+  screenshotBytes?: number;
+  hasScreenshot?: boolean;
+  screenshotOmittedReason?: string | null;
+  screenshotPrunedAt?: string | null;
+  screenshotPruneReason?: string | null;
+  notes?: string[];
+}
+
+export interface BrowserComparisonEvidence {
+  materiallyDifferent: boolean;
+  missingDesktopElements: string[];
+  missingMobileElements: string[];
+  objectiveWarnings: string[];
+}
+
+export interface BrowserCheckItem {
+  key: string;
+  title: string;
+  classification: BrowserCheckClassification;
+  state: 'PASS' | 'ATTENTION' | 'VERIFY' | 'UNKNOWN';
+  detail: string;
+}
+
+export interface BrowserRenderedEvidence {
+  status: BrowserRenderOverallStatus;
+  capturedAt: string;
+  totalDurationMs?: number;
+  desktop: BrowserViewportEvidence;
+  mobile: BrowserViewportEvidence;
+  comparison: BrowserComparisonEvidence;
+  checks: BrowserCheckItem[];
+}
+
+export interface VisualReviewPromptContext {
+  capturedAt: string;
+  hasDesktopScreenshot: boolean;
+  hasMobileScreenshot: boolean;
+  desktopViewport: { width: number; height: number };
+  mobileViewport: { width: number; height: number };
+  objectiveWarnings: string[];
+  candidateQuestionsForReview: string[];
+}
+
 export interface EvaluatedFinding {
   category: CategoryKey;
   checkKey: string;
@@ -49,7 +146,7 @@ export interface EvaluatedFinding {
   maxPoints: number;
   isInformational?: boolean;
   observedValue: Record<string, any>;
-  evidenceSource: 'HTTP_PROBE' | 'HTML_PARSER' | 'DNS' | 'SYSTEM';
+  evidenceSource: 'HTTP_PROBE' | 'HTML_PARSER' | 'DNS' | 'SYSTEM' | 'BROWSER_RENDER';
   evidenceLabel: EvidenceLabel;
   supportingDetail: string;
 }
@@ -87,6 +184,7 @@ export interface ScoreBreakdown {
     localDiscovery: number;
     opportunityCapture: number;
   };
+  browserEvidence?: BrowserRenderedEvidence | null;
 }
 
 export interface ScanResult {
@@ -101,6 +199,7 @@ export interface ScanResult {
   scoreBreakdown: ScoreBreakdown | null;
   categoryScores: CategoryScore[];
   findings: EvaluatedFinding[];
+  browserEvidence?: BrowserRenderedEvidence | null;
   normalizedUrl?: string;
   derivedBusinessName?: string | null;
   derivedCityState?: string | null;

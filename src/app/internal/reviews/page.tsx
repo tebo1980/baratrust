@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { realityChecks, ownerResponses, humanReviews } from "@/db/schema";
 import { getOperatorUser } from "@/lib/auth/operator";
+import { sanitizeBrowserEvidenceForPublic } from "@/lib/scanner/browser-evidence";
 import { 
   ShieldAlert, 
   ExternalLink, 
@@ -115,7 +116,12 @@ export default async function OperatorReviewQueuePage() {
       email: check.email || '',
       humanReviewRequested,
       overallScore: check.overallScore,
-      scoreBreakdown: check.scoreBreakdown,
+      scoreBreakdown: check.scoreBreakdown?.browserEvidence
+        ? {
+            ...check.scoreBreakdown,
+            browserEvidence: sanitizeBrowserEvidenceForPublic(check.scoreBreakdown.browserEvidence),
+          }
+        : check.scoreBreakdown,
       scanStatus: check.scanStatus,
       status: check.status,
       shareToken: check.shareToken,

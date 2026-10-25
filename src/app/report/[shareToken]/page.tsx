@@ -852,25 +852,44 @@ export default async function PublishedRealityCheckReportPage({
                 }
               }
 
-              const isInformationalFinding = check.scoreBreakdown?.sourceType !== "hosted_profile" && (rawFinding.maxPoints ?? 1) === 0;
+              const isBrowserFinding =
+                typeof rawFinding.checkKey === "string" &&
+                rawFinding.checkKey.startsWith("browser_");
+              const isInformationalFinding =
+                check.scoreBreakdown?.sourceType !== "hosted_profile" &&
+                (rawFinding.maxPoints ?? 1) === 0;
               const isInfoObserved =
                 isInformationalFinding &&
                 rawFinding.state === "PASS" &&
                 !/^no\s/i.test(resolvedDetail.trim());
-              const findingBadgeLabel = isInformationalFinding
-                ? isInfoObserved
-                  ? "INFO · OBSERVED"
-                  : "INFO · NOT OBSERVED"
-                : rawFinding.state;
-              const findingBadgeClass = isInformationalFinding
-                ? isInfoObserved
-                  ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
-                  : "bg-slate-800 text-slate-400 border border-slate-700"
-                : rawFinding.state === "PASS"
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                : rawFinding.state === "FAIL"
-                ? "bg-red-500/10 text-red-400 border border-red-500/30"
-                : "bg-slate-800 text-slate-400 border border-slate-700";
+              const findingBadgeLabel =
+                isInformationalFinding && isBrowserFinding
+                  ? rawFinding.state === "FAIL"
+                    ? "ATTENTION"
+                    : rawFinding.state === "UNKNOWN"
+                    ? "HUMAN CHECK"
+                    : "INFO · OBSERVED"
+                  : isInformationalFinding
+                  ? isInfoObserved
+                    ? "INFO · OBSERVED"
+                    : "INFO · NOT OBSERVED"
+                  : rawFinding.state;
+              const findingBadgeClass =
+                isInformationalFinding && isBrowserFinding
+                  ? rawFinding.state === "FAIL"
+                    ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                    : rawFinding.state === "UNKNOWN"
+                    ? "bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                    : "bg-blue-500/10 text-blue-300 border border-blue-500/30"
+                  : isInformationalFinding
+                  ? isInfoObserved
+                    ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
+                    : "bg-slate-800 text-slate-400 border border-slate-700"
+                  : rawFinding.state === "PASS"
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                  : rawFinding.state === "FAIL"
+                  ? "bg-red-500/10 text-red-400 border border-red-500/30"
+                  : "bg-slate-800 text-slate-400 border border-slate-700";
 
               return (
               <div

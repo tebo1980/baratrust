@@ -235,6 +235,8 @@ export default function ReviewStudioEditor({
   // Left sidebar tab: 'facts' | 'findings' | 'owner'
   const [activeDossierTab, setActiveDossierTab] = useState<'facts' | 'findings' | 'owner'>('findings');
   const [findingsSearch, setFindingsSearch] = useState("");
+  const [expandedViewportPreview, setExpandedViewportPreview] = useState<'desktop' | 'mobile' | null>(null);
+  const browserEvidence = check.scoreBreakdown?.browserEvidence || null;
 
   // Opportunity handlers
   const addOpportunity = () => {
@@ -815,6 +817,221 @@ export default function ReviewStudioEditor({
                 </div>
               </div>
 
+              {/* Compact Browser-Rendered Experience Section */}
+              <div className="p-3.5 bg-[#080D18] border border-slate-800 rounded-xl space-y-3 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block">
+                      [BROWSER_RENDER] RENDERED EXPERIENCE
+                    </span>
+                    <span className="text-slate-200 font-semibold">
+                      Desktop (1440×900) &amp; Mobile (390×844)
+                    </span>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                      !browserEvidence
+                        ? "bg-slate-800 text-slate-400 border border-slate-700"
+                        : browserEvidence.status === "COMPLETED"
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                        : browserEvidence.status === "BLOCKED"
+                        ? "bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                        : "bg-slate-800 text-slate-400 border border-slate-700"
+                    }`}
+                  >
+                    {browserEvidence ? browserEvidence.status : "NOT CAPTURED"}
+                  </span>
+                </div>
+
+                {!browserEvidence ? (
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Browser-rendered desktop and mobile evidence was not captured for this earlier scan snapshot.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                      <span>
+                        Captured:{" "}
+                        {browserEvidence.capturedAt
+                          ? new Date(browserEvidence.capturedAt).toLocaleString()
+                          : "—"}
+                      </span>
+                      {typeof browserEvidence.totalDurationMs === "number" && (
+                        <span>{browserEvidence.totalDurationMs}ms</span>
+                      )}
+                    </div>
+
+                    {/* Desktop & Mobile Viewport Cards */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[browserEvidence.desktop, browserEvidence.mobile].map((vp) => {
+                        if (!vp) return null;
+                        const isExpanded = expandedViewportPreview === vp.viewportLabel;
+                        return (
+                          <div
+                            key={vp.viewportLabel}
+                            className="p-2.5 bg-[#0E1524] border border-slate-800 rounded-lg space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-mono text-[10px] uppercase font-bold text-slate-200">
+                                {vp.viewportLabel} ({vp.viewport?.width}×{vp.viewport?.height})
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {vp.status}
+                              </span>
+                            </div>
+
+                            {vp.screenshotDataUrl ? (
+                              <div className="space-y-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedViewportPreview(
+                                      isExpanded ? null : vp.viewportLabel
+                                    )
+                                  }
+                                  className="w-full overflow-hidden rounded border border-slate-700/80 hover:border-amber-400/60 transition-colors block text-left"
+                                  title="Click to toggle larger screenshot preview"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={vp.screenshotDataUrl}
+                                    alt={`Rendered ${vp.viewportLabel} viewport`}
+                                    className="w-full h-24 object-cover object-top"
+                                  />
+                                </button>
+                                <span className="text-[10px] font-mono text-slate-500 block">
+                                  Click thumbnail to {isExpanded ? "collapse" : "enlarge"}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="h-16 rounded bg-[#080D18] border border-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-mono text-center px-2">
+                                {vp.screenshotPruneReason
+                                  ? "Screenshot expired per retention policy (metrics preserved)"
+                                  : vp.screenshotOmittedReason ||
+                                    vp.failureReason ||
+                                    "No screenshot captured"}
+                              </div>
+                            )}
+
+                            {vp.status === "RENDERED" && (
+                              <div className="text-[10px] font-mono text-slate-400 space-y-0.5 pt-0.5">
+                                <div>
+                                  Text: {vp.visibleTextLength ?? 0} chars · Headings:{" "}
+                                  {(vp.majorHeadings || []).length}
+                                </div>
+                                <div>
+                                  CTA: {vp.primaryCtaObserved ? "Yes" : "No"} · Nav:{" "}
+                                  {vp.navigationObserved ? "Yes" : "No"}
+                                </div>
+                                {vp.hasHorizontalOverflow && (
+                                  <div className="text-red-400 font-bold">
+                                    Overflow: +{vp.horizontalOverflowPx}px
+                                  </div>
+                                )}
+                                {(vp.mediaTextOverlaps || []).length > 0 && (
+                                  <div className="text-amber-300 font-bold">
+                                    Artwork-over-text: {(vp.mediaTextOverlaps || []).length} block(s)
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Enlarged Screenshot View */}
+                    {expandedViewportPreview &&
+                      browserEvidence[expandedViewportPreview]?.screenshotDataUrl && (
+                        <div className="p-2.5 bg-[#0E1524] border border-amber-500/40 rounded-lg space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono uppercase text-amber-300 font-bold">
+                              Enlarged {expandedViewportPreview} Preview (
+                              {browserEvidence[expandedViewportPreview].viewport?.width}×
+                              {browserEvidence[expandedViewportPreview].viewport?.height})
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setExpandedViewportPreview(null)}
+                              className="text-[10px] font-mono text-slate-400 hover:text-white underline"
+                            >
+                              Close Preview
+                            </button>
+                          </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={browserEvidence[expandedViewportPreview].screenshotDataUrl!}
+                            alt={`Enlarged ${expandedViewportPreview} screenshot`}
+                            className="w-full rounded border border-slate-700"
+                          />
+                        </div>
+                      )}
+
+                    {/* Objective Layout Warnings & Disparity Notes */}
+                    {(browserEvidence.comparison?.objectiveWarnings?.length > 0 ||
+                      browserEvidence.comparison?.missingMobileElements?.length > 0 ||
+                      browserEvidence.comparison?.missingDesktopElements?.length > 0) && (
+                      <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-1 text-[11px] text-amber-200">
+                        <span className="font-mono text-[10px] font-bold uppercase text-amber-300 block">
+                          Objective Layout &amp; Viewport Findings
+                        </span>
+                        {(browserEvidence.comparison.objectiveWarnings || []).map(
+                          (warn: string, idx: number) => (
+                            <p key={`warn-${idx}`} className="leading-relaxed">
+                              • {warn}
+                            </p>
+                          )
+                        )}
+                        {(browserEvidence.comparison.missingMobileElements || []).map(
+                          (item: string, idx: number) => (
+                            <p key={`mm-${idx}`} className="leading-relaxed text-slate-300">
+                              • Mobile difference: {item}
+                            </p>
+                          )
+                        )}
+                        {(browserEvidence.comparison.missingDesktopElements || []).map(
+                          (item: string, idx: number) => (
+                            <p key={`md-${idx}`} className="leading-relaxed text-slate-300">
+                              • Desktop difference: {item}
+                            </p>
+                          )
+                        )}
+                      </div>
+                    )}
+
+                    {/* AUTO / VERIFY / HUMAN Classified Browser Checks */}
+                    {Array.isArray(browserEvidence.checks) && browserEvidence.checks.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        {browserEvidence.checks.map((chk: any) => (
+                          <div
+                            key={chk.key}
+                            className="p-2 bg-[#0E1524] border border-slate-800/90 rounded flex items-start justify-between gap-2 text-[11px]"
+                          >
+                            <div>
+                              <span className="font-semibold text-slate-200">{chk.title}</span>
+                              <p className="text-slate-400 text-[10px] mt-0.5 leading-relaxed">
+                                {chk.detail}
+                              </p>
+                            </div>
+                            <span
+                              className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold flex-shrink-0 ${
+                                chk.classification === "AUTO"
+                                  ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
+                                  : chk.classification === "VERIFY"
+                                  ? "bg-amber-500/10 text-amber-300 border border-amber-500/30"
+                                  : "bg-purple-500/10 text-purple-300 border border-purple-500/30"
+                              }`}
+                            >
+                              {chk.classification} · {chk.state}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Search findings */}
               <div className="space-y-3">
                 <input
@@ -833,7 +1050,7 @@ export default function ReviewStudioEditor({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-slate-200">{finding.title}</span>
-                        <FindingPill state={finding.state as FindingState} maxPoints={finding.maxPoints} supportingDetail={finding.supportingDetail} />
+                        <FindingPill checkKey={finding.checkKey} state={finding.state as FindingState} maxPoints={finding.maxPoints} supportingDetail={finding.supportingDetail} />
                       </div>
                       <div className="text-[11px] text-slate-400 leading-relaxed">
                         {finding.supportingDetail}
@@ -2419,15 +2636,38 @@ Client Edge: Higher authentic review rating and direct owner trust."
 }
 
 function FindingPill({
+  checkKey,
   state,
   maxPoints,
   supportingDetail,
 }: {
+  checkKey?: string | null;
   state: FindingState;
   maxPoints?: number | null;
   supportingDetail?: string | null;
 }) {
   if (maxPoints === 0) {
+    if (typeof checkKey === "string" && checkKey.startsWith("browser_")) {
+      if (state === "FAIL") {
+        return (
+          <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 font-mono font-bold text-[10px]">
+            ATTENTION
+          </span>
+        );
+      }
+      if (state === "UNKNOWN") {
+        return (
+          <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono font-bold text-[10px]">
+            HUMAN CHECK
+          </span>
+        );
+      }
+      return (
+        <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono font-bold text-[10px]">
+          INFO · OBSERVED
+        </span>
+      );
+    }
     const isObserved = state === "PASS" && !/^no\s/i.test((supportingDetail || "").trim());
     return isObserved ? (
       <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono font-bold text-[10px]">

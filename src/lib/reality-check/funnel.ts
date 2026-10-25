@@ -220,14 +220,39 @@ export type PublicFindingBadgeModifier =
  * render as 'INFO · OBSERVED' or 'INFO · NOT OBSERVED' rather than 'PASS' or 'HUMAN CHECK'.
  */
 export function resolvePublicFindingBadge(
-  finding: Pick<PublicFunnelFinding, 'state' | 'maxPoints'>,
+  finding: Pick<PublicFunnelFinding, 'state' | 'maxPoints'> & { checkKey?: string },
   isHostedProfile = false
 ): {
   badgeText: PublicFindingBadgeText;
   badgeModifier: PublicFindingBadgeModifier;
   isInformational: boolean;
 } {
+  const isBrowserCheck =
+    typeof finding.checkKey === 'string' && finding.checkKey.startsWith('browser_');
   const isInformational = !isHostedProfile && (finding.maxPoints ?? 0) === 0;
+
+  if (isInformational && isBrowserCheck) {
+    if (finding.state === 'FAIL') {
+      return {
+        badgeText: 'ATTENTION',
+        badgeModifier: 'finding-badge--attention',
+        isInformational: true,
+      };
+    }
+    if (finding.state === 'UNKNOWN') {
+      return {
+        badgeText: 'HUMAN CHECK',
+        badgeModifier: 'finding-badge--human',
+        isInformational: true,
+      };
+    }
+    return {
+      badgeText: 'INFO · OBSERVED',
+      badgeModifier: 'finding-badge--human',
+      isInformational: true,
+    };
+  }
+
   if (isInformational) {
     return {
       badgeText: finding.state === 'PASS' ? 'INFO · OBSERVED' : 'INFO · NOT OBSERVED',
@@ -260,9 +285,11 @@ export function resolvePublicFindingBadge(
 /**
  * Partitions scan findings for the public Reality Check funnel:
  * - Exclusively counts scored checks (maxPoints > 0) in passingFindings, failingFindings,
- *   and unknownFindings so zero-point informational checks never inflate passing or
- *   human-verification counts or consume top highlighted card slots.
- * - Appends zero-point informational checks after scored checks in allFindingsOrdered.
+ *   and unknownFindings so zero-point informational or browser checks never inflate passing or
+ *   human-verification counts or alter the automated numeric score.
+ * - Surfaces up to 1 actionable browser-rendered warning (overflow, desktop/mobile disparity,
+ *   or sparse render) in highlightedFindings while keeping static informational checks out of
+ *   the initial 6-card highlight list.
  */
 export function partitionFunnelFindings<T extends PublicFunnelFinding>(
   findings: T[],
@@ -281,9 +308,25 @@ export function partitionFunnelFindings<T extends PublicFunnelFinding>(
   const scoredPool = isHostedProfile
     ? findings
     : findings.filter((f) => (f.maxPoints ?? 0) > 0);
-  const informationalFindings = isHostedProfile
+  const rawInformational = isHostedProfile
     ? []
     : findings.filter((f) => (f.maxPoints ?? 0) === 0);
+
+  // Order browser-rendered observations before static informational checks
+  const informationalFindings = [
+    ...rawInformational.filter((f) => typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_')),
+    ...rawInformational.filter((f) => !(typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_'))),
+  ];
+
+  const actionableBrowserFindings = isHostedProfile
+    ? []
+    : informationalFindings.filter(
+        (f) =>
+          typeof f.checkKey === 'string' &&
+          f.checkKey.startsWith('browser_') &&
+          (f.state === 'FAIL' ||
+            (f.state === 'UNKNOWN' && f.checkKey !== 'browser_render_experience'))
+      );
 
   const passingFindings = scoredPool.filter((f) => f.state === 'PASS');
   const failingFindings = [...scoredPool.filter((f) => f.state === 'FAIL')].sort(
@@ -296,7 +339,8 @@ export function partitionFunnelFindings<T extends PublicFunnelFinding>(
     : [
         ...failingFindings.slice(0, 3),
         ...passingFindings.slice(0, 3),
-        ...unknownFindings.slice(0, 2),
+        ...unknownFindings.slice(0, actionableBrowserFindings.length > 0 ? 1 : 2),
+        ...actionableBrowserFindings.slice(0, 1),
       ].slice(0, 6);
 
   const allScoredFindingsOrdered = isHostedProfile

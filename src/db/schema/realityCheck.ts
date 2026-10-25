@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, uuid, integer, jsonb } from 'drizzle-orm/pg-core';
+import type { BrowserRenderedEvidence } from '@/lib/scanner/types';
 
 export type FindingState = 'PASS' | 'FAIL' | 'UNKNOWN';
 export type EvidenceLabel = 'AUTO_DETECTED' | 'OWNER_PROVIDED' | 'BARATRUST_REVIEW' | 'OPPORTUNITY_FOUND';
@@ -39,6 +40,7 @@ export interface ScoreBreakdown {
     localDiscovery: number;
     opportunityCapture: number;
   };
+  browserEvidence?: BrowserRenderedEvidence | null;
 }
 
 export interface OwnerQuestionnaireAnswers {

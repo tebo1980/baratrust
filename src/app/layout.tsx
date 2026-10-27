@@ -81,6 +81,12 @@ export default function RootLayout({
     >
       <html lang="en">
         <head>
+          <script
+            id="clerk-js-retry-guard"
+            dangerouslySetInnerHTML={{
+              __html: `(function(){function attach(s){if(!s||s.__clerkRetryAttached)return;s.__clerkRetryAttached=true;var settled=null,loads=[],errors=[],origAdd=s.addEventListener.bind(s);s.addEventListener=function(t,fn,o){if(t==='load'){if(settled==='loaded'){setTimeout(fn,0);}else{loads.push(fn);}return;}if(t==='error'){if(settled==='failed'){setTimeout(fn,0);}else{errors.push(fn);}return;}return origAdd(t,fn,o);};origAdd('load',function(ev){settled='loaded';for(var i=0;i<loads.length;i++)loads[i](ev);});origAdd('error',function(){var src=s.getAttribute('src'),key=s.getAttribute('data-clerk-publishable-key'),attempt=0;function retry(){attempt++;var r=document.createElement('script');r.async=true;r.crossOrigin='anonymous';if(key)r.setAttribute('data-clerk-publishable-key',key);r.src=src;r.onload=function(ev){settled='loaded';for(var i=0;i<loads.length;i++)loads[i](ev);};r.onerror=function(ev){if(r.parentNode)r.parentNode.removeChild(r);if(attempt<5){setTimeout(retry,125*Math.pow(2,attempt-1));}else{settled='failed';for(var i=0;i<errors.length;i++)errors[i](ev);}};document.head.appendChild(r);}setTimeout(retry,125);});}var existing=document.querySelector('script[data-clerk-js-script]');if(existing){attach(existing);}else{new MutationObserver(function(m,obs){var el=document.querySelector('script[data-clerk-js-script]');if(el){attach(el);obs.disconnect();}}).observe(document.documentElement,{childList:true,subtree:true});}})();`,
+            }}
+          />
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
             strategy="afterInteractive"

@@ -8,6 +8,7 @@ import { classifySubmittedUrl } from './platform';
 import {
   captureBrowserRenderedEvidence,
   buildBrowserEvidenceFindings,
+  applyBrowserDomFallback,
 } from './browser-evidence';
 
 export * from './types';
@@ -109,9 +110,12 @@ export async function executeDeterministicScan(options: ExecuteScanOptions): Pro
     }
   }
 
+  const resolvedFindings = applyBrowserDomFallback(findings, resolvedBrowserEvidence, {
+    cityState: cityState || parsed.derivedCityState || null,
+  });
   const browserFindings = buildBrowserEvidenceFindings(resolvedBrowserEvidence);
   const combinedFindings =
-    browserFindings.length > 0 ? [...findings, ...browserFindings] : findings;
+    browserFindings.length > 0 ? [...resolvedFindings, ...browserFindings] : resolvedFindings;
   const enrichedScoreBreakdown = scoreBreakdown
     ? {
         ...scoreBreakdown,

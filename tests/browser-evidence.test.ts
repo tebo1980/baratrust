@@ -8,6 +8,7 @@ import {
   captureBrowserRenderedEvidence,
   compareDesktopAndMobileEvidence,
   buildBrowserEvidenceFindings,
+  applyBrowserDomFallback,
   sanitizeBrowserEvidenceForPublic,
   enforceBrowserEvidencePayloadCap,
   evaluateScreenshotRetention,
@@ -737,4 +738,152 @@ test('Browser Evidence 12 — evaluateScreenshotRetention enforces 24h anonymous
   });
   assert.equal(pub15d.shouldPrune, true);
   assert.equal(pub15d.reason, 'PUBLISHED_TTL_EXPIRED');
+});
+
+// ==========================================
+// 13. Browser DOM Fallback Resolution & Desktop/Mobile Discrepancy Handling
+// ==========================================
+test('Browser Evidence 13 — applyBrowserDomFallback resolves SPA checks (phone, price, CTA, address) from rendered DOM with BROWSER_RENDER provenance while preserving numeric score and desktop/mobile discrepancies', () => {
+  const spaShellHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Fistful Craft Tacos & Ale</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Craft tacos and ale in New Albany, IN." />
+        <link rel="icon" href="/favicon.png" />
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="module" src="/assets/index.js"></script>
+      </body>
+    </html>
+  `;
+  const rawData: RawPageData = {
+    requestedUrl: 'https://fistfulcraft.com',
+    finalUrl: 'https://fistfulcraft.com/',
+    normalizedUrl: 'https://fistfulcraft.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 100,
+    headers: { 'content-type': 'text/html' },
+    html: spaShellHtml,
+  };
+  const parsed = parseHtmlForBusinessSignals(spaShellHtml, 'New Albany, IN');
+  const staticFindings = runDeterministicChecks({
+    rawData,
+    parsed,
+    businessName: 'Fistful',
+    cityState: 'New Albany, IN',
+  });
+  const staticScores = calculateScores(staticFindings);
+
+  // 13a. When browser render is unavailable, SPA checks remain UNKNOWN / HUMAN CHECK with no false absence
+  const unavailResolved = applyBrowserDomFallback(staticFindings, null, { cityState: 'New Albany, IN' });
+  const unavailPrice = unavailResolved.find((f) => f.checkKey === 'public_pricing_observed')!;
+  assert.equal(unavailPrice.state, 'UNKNOWN');
+  assert.equal(resolvePublicFindingBadge(unavailPrice, false).badgeText, 'HUMAN CHECK');
+
+  // 13b. When both desktop and mobile viewports render phone, price, CTA, and address, fallback resolves them with BROWSER_RENDER
+  const sharedSignals = {
+    telLinks: ['tel:812-557-0226'],
+    mailtoLinks: ['mailto:sales@fistfuloftacos.com'],
+    visiblePhoneNumbers: ['812-557-0226'],
+    visibleAddressSignals: ['2708 Paoli Pike, New Albany, IN 47150'],
+    detectedPricingSignals: true,
+    pricingSnippets: ['$12'],
+    detectedMenuOrServices: true,
+    detectedAboutOrTeamKeywords: true,
+    hasPrivacyOrTermsLink: true,
+    socialLinks: [{ platform: 'facebook', url: 'https://www.facebook.com/fistfulnewalbany' }],
+    hasMapEmbed: true,
+    hasForms: false,
+    hasLeadCaptureForm: false,
+    detectedQuoteOrCateringKeywords: true,
+    detectedBookingSignals: false,
+    detectedReviewOrTestimonialKeywords: false,
+    searchableText: 'Fistful Craft Tacos & Ale 2708 Paoli Pike New Albany IN 812-557-0226 Starting at $12 per person',
+  };
+
+  const desktop = makeRenderedViewport('desktop', {
+    primaryCtaObserved: true,
+    primaryCtaCandidates: ['Order Online', 'Catering Inquiry'],
+    renderedSignals: sharedSignals,
+  });
+  const mobile = makeRenderedViewport('mobile', {
+    primaryCtaObserved: true,
+    primaryCtaCandidates: ['Order Online', 'Catering Inquiry'],
+    renderedSignals: sharedSignals,
+  });
+  const { comparison, checks } = compareDesktopAndMobileEvidence(desktop, mobile);
+  const completedEvidence = {
+    status: 'COMPLETED' as const,
+    capturedAt: new Date().toISOString(),
+    desktop,
+    mobile,
+    comparison,
+    checks,
+  };
+
+  const fallbackFindings = applyBrowserDomFallback(staticFindings, completedEvidence, {
+    cityState: 'New Albany, IN',
+  });
+
+  for (const key of [
+    'phone_number_visible',
+    'has_tel_link',
+    'address_signals',
+    'cta_keywords_found',
+    'public_pricing_observed',
+    'social_links',
+  ]) {
+    const resolved = fallbackFindings.find((f) => f.checkKey === key)!;
+    assert.equal(resolved.state, 'PASS', `${key} should resolve to PASS from rendered DOM`);
+    assert.equal(resolved.evidenceSource, 'BROWSER_RENDER');
+    assert.equal(resolved.scoreContribution, 0, 'Browser fallback must keep scoreContribution = 0');
+  }
+
+  const resolvedPricingBadge = resolvePublicFindingBadge(
+    fallbackFindings.find((f) => f.checkKey === 'public_pricing_observed')!,
+    false
+  );
+  assert.equal(resolvedPricingBadge.badgeText, 'INFO · OBSERVED');
+
+  // Verify numeric static score and coverage are never silently inflated by BROWSER_RENDER findings
+  const postFallbackScores = calculateScores(fallbackFindings);
+  assert.equal(postFallbackScores.overallScore, staticScores.overallScore);
+  assert.equal(postFallbackScores.overallCoverage, staticScores.overallCoverage);
+
+  // 13c. When desktop and mobile disagree (e.g. phone and CTA present on desktop, missing on mobile), do NOT fabricate a single PASS truth
+  const mobileMissingPhoneAndCta = makeRenderedViewport('mobile', {
+    primaryCtaObserved: false,
+    primaryCtaCandidates: [],
+    renderedSignals: {
+      ...sharedSignals,
+      telLinks: [],
+      visiblePhoneNumbers: [],
+    },
+  });
+  const discrepancyEvidence = {
+    status: 'COMPLETED' as const,
+    capturedAt: new Date().toISOString(),
+    desktop,
+    mobile: mobileMissingPhoneAndCta,
+    ...compareDesktopAndMobileEvidence(desktop, mobileMissingPhoneAndCta),
+  };
+
+  const discrepancyFindings = applyBrowserDomFallback(staticFindings, discrepancyEvidence, {
+    cityState: 'New Albany, IN',
+  });
+  const discrepantPhone = discrepancyFindings.find((f) => f.checkKey === 'phone_number_visible')!;
+  assert.equal(discrepantPhone.state, 'UNKNOWN', 'Desktop/mobile phone disagreement must remain UNKNOWN');
+  assert.equal(discrepantPhone.evidenceSource, 'BROWSER_RENDER');
+  assert.equal(discrepantPhone.observedValue?.viewportDiscrepancy, true);
+  assert.match(discrepantPhone.supportingDetail, /Observed on desktop.*not observed on mobile/i);
+
+  const discrepantCta = discrepancyFindings.find((f) => f.checkKey === 'cta_keywords_found')!;
+  assert.equal(discrepantCta.state, 'UNKNOWN', 'Desktop/mobile CTA disagreement must remain UNKNOWN');
+  assert.equal(discrepantCta.observedValue?.viewportDiscrepancy, true);
+/* end test 13 */
+
 });

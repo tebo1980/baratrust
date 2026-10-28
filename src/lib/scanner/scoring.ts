@@ -48,9 +48,14 @@ export function calculateScores(
     const scoredFindings = catFindings.filter(f => !f.isInformational && f.maxPoints > 0);
     const totalMax = scoredFindings.reduce((sum, f) => sum + f.maxPoints, 0) || 100;
 
-    const evaluatedFindings = scoredFindings.filter(f => f.state !== 'UNKNOWN');
+    const evaluatedFindings = scoredFindings.filter(
+      f => f.state !== 'UNKNOWN' && f.evidenceSource !== 'BROWSER_RENDER'
+    );
     const evaluatedMax = evaluatedFindings.reduce((sum, f) => sum + f.maxPoints, 0);
-    const earned = scoredFindings.reduce((sum, f) => sum + (f.state === 'PASS' ? f.scoreContribution : 0), 0);
+    const earned = evaluatedFindings.reduce(
+      (sum, f) => sum + (f.state === 'PASS' ? f.scoreContribution : 0),
+      0
+    );
 
     const coveragePercent = totalMax > 0 
       ? Math.min(100, Math.max(0, Math.round((evaluatedMax / totalMax) * 100))) 

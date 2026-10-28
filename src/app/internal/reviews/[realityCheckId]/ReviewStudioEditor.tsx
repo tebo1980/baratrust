@@ -1056,13 +1056,22 @@ export default function ReviewStudioEditor({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-[#F0EBE0]">{finding.title}</span>
-                        <FindingPill checkKey={finding.checkKey} state={finding.state as FindingState} maxPoints={finding.maxPoints} supportingDetail={finding.supportingDetail} />
+                        <FindingPill
+                          checkKey={finding.checkKey}
+                          state={finding.state as FindingState}
+                          maxPoints={finding.maxPoints}
+                          supportingDetail={finding.supportingDetail}
+                          observedValue={finding.observedValue}
+                        />
                       </div>
                       <div className="text-[11px] text-[#bac9bf] leading-relaxed">
                         {finding.supportingDetail}
                       </div>
                       <div className="flex items-center justify-between text-[10px] font-mono text-[#8fa396] pt-1">
-                        <span>{finding.category}</span>
+                        <span>
+                          {finding.category}
+                          {finding.evidenceSource === 'BROWSER_RENDER' ? ' · [BROWSER_RENDER]' : ''}
+                        </span>
                         <span>Pts: {finding.scoreContribution}/{finding.maxPoints}</span>
                       </div>
                     </div>
@@ -2646,21 +2655,23 @@ function FindingPill({
   state,
   maxPoints,
   supportingDetail,
+  observedValue,
 }: {
   checkKey?: string | null;
   state: FindingState;
   maxPoints?: number | null;
   supportingDetail?: string | null;
+  observedValue?: any;
 }) {
   if (maxPoints === 0) {
+    if (state === "FAIL") {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
+          ATTENTION
+        </span>
+      );
+    }
     if (typeof checkKey === "string" && checkKey.startsWith("browser_")) {
-      if (state === "FAIL") {
-        return (
-          <span className="px-2 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
-            ATTENTION
-          </span>
-        );
-      }
       if (state === "UNKNOWN") {
         return (
           <span className="px-2 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
@@ -2674,7 +2685,23 @@ function FindingPill({
         </span>
       );
     }
-    const isObserved = state === "PASS" && !/^no\s/i.test((supportingDetail || "").trim());
+    const detail = (supportingDetail || "").trim();
+    const isDeferredUnknown =
+      state === "UNKNOWN" &&
+      (observedValue?.observationState === "UNKNOWN" ||
+        observedValue?.isClientRenderedSpa === true ||
+        observedValue?.viewportDiscrepancy === true ||
+        observedValue?.status === "SCAN_DEFERRED" ||
+        /^(?:client-rendered|check deferred|could not\b)/i.test(detail) ||
+        /deferred to (?:browser or )?human review/i.test(detail));
+    if (isDeferredUnknown) {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
+          HUMAN CHECK
+        </span>
+      );
+    }
+    const isObserved = state === "PASS" && !/^no\s/i.test(detail);
     return isObserved ? (
       <span className="px-2 py-0.5 rounded-full bg-[#bac9bf]/10 border border-[#bac9bf]/25 text-[#c2d1c7] font-mono font-bold text-[10px]">
         INFO · OBSERVED

@@ -6,13 +6,20 @@ export interface ParsedHtmlData {
   viewportMeta: string | null;
   metaDescription: string | null;
   faviconUrl: string | null;
+  canonicalUrl?: string | null;
   ogTags: {
     title?: string;
     siteName?: string;
     image?: string;
     description?: string;
     type?: string;
+    url?: string;
   };
+  twitterTags?: {
+    url?: string;
+    image?: string;
+  };
+  jsonLdUrls?: string[];
   derivedBusinessName: string | null;
   derivedCityState: string | null;
   jsonLdSchemas: any[];
@@ -409,23 +416,27 @@ export function parseHtmlForBusinessSignals(
     extractMetaContent(html, 'name', 'description') ||
     extractMetaContent(html, 'itemprop', 'description');
 
-  // 4. Favicon (handles rel="icon", "shortcut icon", "apple-touch-icon", "mask-icon" in any attribute order)
+  // 4. Favicon & Canonical URL (handles rel="icon", "shortcut icon", "apple-touch-icon", "mask-icon", "canonical" in any attribute order)
   let faviconUrl: string | null = null;
+  let canonicalUrl: string | null = null;
   const linkTagRegex = /<link\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi;
   let linkMatch: RegExpExecArray | null;
   while ((linkMatch = linkTagRegex.exec(html)) !== null) {
     const tag = linkMatch[0];
     const rel = extractHtmlAttribute(tag, 'rel');
-    if (rel && /\b(?:icon|apple-touch-icon|mask-icon)\b/i.test(rel)) {
-      const href = extractHtmlAttribute(tag, 'href');
-      if (href && href.trim()) {
-        faviconUrl = decodeHtmlEntities(href.trim());
-        break;
-      }
+    if (!rel) continue;
+    const href = extractHtmlAttribute(tag, 'href');
+    if (!href || !href.trim()) continue;
+    const cleanedHref = decodeHtmlEntities(href.trim());
+    if (!faviconUrl && /\b(?:icon|apple-touch-icon|mask-icon)\b/i.test(rel)) {
+      faviconUrl = cleanedHref;
+    }
+    if (!canonicalUrl && /\bcanonical\b/i.test(rel)) {
+      canonicalUrl = cleanedHref;
     }
   }
 
-  // 5. OpenGraph (exact property matching so og:image never matches og:image:alt)
+  // 5. OpenGraph & Twitter URL/Image metadata (exact property matching so og:image never matches og:image:alt)
   const ogTags: ParsedHtmlData['ogTags'] = {};
   const ogTitle = extractMetaContent(html, 'property', 'og:title');
   if (ogTitle) ogTags.title = ogTitle;
@@ -442,8 +453,25 @@ export function parseHtmlForBusinessSignals(
   const ogType = extractMetaContent(html, 'property', 'og:type');
   if (ogType) ogTags.type = ogType;
 
+  const ogUrl =
+    extractMetaContent(html, 'property', 'og:url') ||
+    extractMetaContent(html, 'name', 'og:url');
+  if (ogUrl) ogTags.url = ogUrl;
+
+  const twitterTags: NonNullable<ParsedHtmlData['twitterTags']> = {};
+  const twitterUrl =
+    extractMetaContent(html, 'name', 'twitter:url') ||
+    extractMetaContent(html, 'property', 'twitter:url');
+  if (twitterUrl) twitterTags.url = twitterUrl;
+
+  const twitterImage =
+    extractMetaContent(html, 'name', 'twitter:image') ||
+    extractMetaContent(html, 'property', 'twitter:image');
+  if (twitterImage) twitterTags.image = twitterImage;
+
   // 6. JSON-LD Schemas (handles multiple blocks and malformed blocks safely)
   const jsonLdSchemas: any[] = [];
+  const jsonLdUrls: string[] = [];
   let hasLocalBusinessSchema = false;
   let hasOrganizationSchema = false;
   let jsonLdBusinessName: string | null = null;
@@ -485,6 +513,13 @@ export function parseHtmlForBusinessSignals(
 
         if ((isLocalBiz || isOrg) && typeof item.name === 'string' && item.name.trim().length > 1 && !jsonLdBusinessName) {
           jsonLdBusinessName = decodeHtmlEntities(item.name.trim());
+        }
+
+        if ((isLocalBiz || isOrg) && typeof item.url === 'string' && item.url.trim().length > 4) {
+          const cleanedLdUrl = decodeHtmlEntities(item.url.trim());
+          if (cleanedLdUrl && !jsonLdUrls.includes(cleanedLdUrl) && jsonLdUrls.length < 5) {
+            jsonLdUrls.push(cleanedLdUrl);
+          }
         }
 
         if (item.address && typeof item.address === 'object') {
@@ -691,7 +726,7 @@ export function parseHtmlForBusinessSignals(
 
   // 11. Address signals in text (word-bounded street suffixes & bounded street tokens so prose words like "away", "waste", "third" never match)
   const streetAddressRegex =
-    /(?<![$#.,\d])\b[1-9]\d{0,4}\s+(?:[A-Za-z0-9.#-]+\s+){1,5}(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Lane|Ln\.?|Drive|Dr\.?|Court|Ct\.?|Way|Suite|Ste\.?|Parkway|Pkwy\.?|Highway|Hwy\.?|Circle|Cir\.?|Plaza|Plz\.?|Trail|Trl\.?|FM\s*\d+)\b/gi;
+    /(?<![$#.,\d])\b[1-9]\d{0,4}\s+(?:[A-Za-z0-9.#-]+\s+){1,5}(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Lane|Ln\.?|Drive|Dr\.?|Court|Ct\.?|Way|Suite|Ste\.?|Parkway|Pkwy\.?|Highway|Hwy\.?|Circle|Cir\.?|Plaza|Plz\.?|Trail|Trl\.?|Pike|Pke\.?|FM\s*\d+)\b/gi;
   const cityStateZipRegex =
     /\b[A-Z][A-Za-z .'-]{1,25},\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|DC)\s+\d{5}(?:-\d{4})?\b/g;
 
@@ -999,7 +1034,10 @@ export function parseHtmlForBusinessSignals(
     viewportMeta,
     metaDescription,
     faviconUrl,
+    canonicalUrl,
     ogTags,
+    twitterTags,
+    jsonLdUrls,
     derivedBusinessName,
     derivedCityState,
     jsonLdSchemas,
@@ -1040,5 +1078,321 @@ export function parseHtmlForBusinessSignals(
       ? 'Page appears to be a client-rendered SPA shell with minimal static text content; in-page DOM features cannot be reliably evaluated without a headless browser.' 
       : undefined,
     textSnippet: visibleText.substring(0, 500),
+  };
+}
+
+const SHARED_APP_HOST_SUFFIXES = [
+  'replit.app',
+  'repl.co',
+  'vercel.app',
+  'netlify.app',
+  'herokuapp.com',
+  'wixsite.com',
+  'github.io',
+  'pages.dev',
+  'web.app',
+  'firebaseapp.com',
+  'ondigitalocean.app',
+  'onrender.com',
+  'fly.dev',
+  'railway.app',
+  'glitch.me',
+  'webflow.io',
+  'myshopify.com',
+  'square.site',
+  'ngrok-free.app',
+];
+
+const EPHEMERAL_DEV_APP_SUFFIXES = [
+  'replit.app',
+  'repl.co',
+  'vercel.app',
+  'netlify.app',
+  'herokuapp.com',
+  'ngrok-free.app',
+  'glitch.me',
+  'onrender.com',
+  'fly.dev',
+  'railway.app',
+  'pages.dev',
+  'web.app',
+  'firebaseapp.com',
+];
+
+const KNOWN_CDN_ASSET_SUFFIXES = [
+  'cloudfront.net',
+  'amazonaws.com',
+  'cloudinary.com',
+  'imgix.net',
+  'shopify.com',
+  'shopifycdn.com',
+  'squarespace-cdn.com',
+  'wixstatic.com',
+  'fbcdn.net',
+  'googleusercontent.com',
+  'gstatic.com',
+  'wp.com',
+  'ctfassets.net',
+  'fastly.net',
+  'akamaized.net',
+  'jsdelivr.net',
+  'unpkg.com',
+  'unsplash.com',
+  'pexels.com',
+  'vimeocdn.com',
+  'ytimg.com',
+  'licdn.com',
+  'twimg.com',
+  'sanity.io',
+  'prismic.io',
+  'supabase.co',
+  'windows.net',
+  'r2.dev',
+  'vercel-storage.com',
+];
+
+const MULTI_PART_PUBLIC_SUFFIXES = new Set([
+  'co.uk',
+  'org.uk',
+  'ac.uk',
+  'com.au',
+  'net.au',
+  'org.au',
+  'co.nz',
+  'co.jp',
+  'com.br',
+  'com.mx',
+  'co.in',
+  'co.za',
+]);
+
+function normalizeHostForComparison(rawHost: string): string {
+  return rawHost
+    .trim()
+    .toLowerCase()
+    .replace(/\.+$/, '')
+    .replace(/^www\./, '');
+}
+
+function getComparableRegistrableDomain(rawHost: string): string {
+  const host = normalizeHostForComparison(rawHost);
+  if (!host) return '';
+  for (const suffix of SHARED_APP_HOST_SUFFIXES) {
+    if (host === suffix || host.endsWith(`.${suffix}`)) {
+      return host;
+    }
+  }
+  const labels = host.split('.').filter(Boolean);
+  if (labels.length <= 2) return host;
+  const lastTwo = `${labels[labels.length - 2]}.${labels[labels.length - 1]}`;
+  if (MULTI_PART_PUBLIC_SUFFIXES.has(lastTwo) && labels.length >= 3) {
+    return `${labels[labels.length - 3]}.${lastTwo}`;
+  }
+  return lastTwo;
+}
+
+function isKnownCdnOrAssetHost(rawHost: string): boolean {
+  const host = normalizeHostForComparison(rawHost);
+  if (!host) return false;
+  if (/^(?:cdn|assets|static|images|img|media|files|uploads|res|storage)\d*\./i.test(host)) {
+    return true;
+  }
+  return KNOWN_CDN_ASSET_SUFFIXES.some((s) => host === s || host.endsWith(`.${s}`));
+}
+
+function isEphemeralAppHost(rawHost: string): boolean {
+  const host = normalizeHostForComparison(rawHost);
+  if (!host) return false;
+  if (host === 'localhost' || host === '127.0.0.1') return true;
+  return EPHEMERAL_DEV_APP_SUFFIXES.some((s) => host === s || host.endsWith(`.${s}`));
+}
+
+export interface DeclaredDomainMismatchEntry {
+  field: string;
+  url: string;
+  hostname: string;
+  isEphemeralAppHost: boolean;
+}
+
+export interface DeclaredDomainEvaluation {
+  status: 'MATCH' | 'MISMATCH' | 'CDN_ASSET_ONLY' | 'UNKNOWN';
+  scannedDomain: string;
+  mismatches: DeclaredDomainMismatchEntry[];
+  matchedFields: string[];
+  cdnAssetHosts: string[];
+}
+
+/**
+ * Evaluates whether machine-readable identity URLs (canonical, og:url, twitter:url,
+ * schema.org url) and social share image URLs agree with the scanned business domain,
+ * distinguishing genuine brand/app-domain mismatches (e.g. fistful.replit.app vs fistfulcraft.com)
+ * from legitimate CDN/asset hosts.
+ */
+export function evaluateDeclaredDomainConsistency(params: {
+  scannedUrl: string;
+  canonicalUrl?: string | null;
+  ogUrl?: string | null;
+  twitterUrl?: string | null;
+  ogImage?: string | null;
+  twitterImage?: string | null;
+  jsonLdUrls?: string[];
+}): DeclaredDomainEvaluation {
+  let scannedHost = '';
+  try {
+    scannedHost = new URL(params.scannedUrl).hostname;
+  } catch {
+    return {
+      status: 'UNKNOWN',
+      scannedDomain: '',
+      mismatches: [],
+      matchedFields: [],
+      cdnAssetHosts: [],
+    };
+  }
+
+  const scannedDomain = normalizeHostForComparison(scannedHost);
+  const scannedComparable = getComparableRegistrableDomain(scannedHost);
+  if (!scannedDomain || !scannedComparable) {
+    return {
+      status: 'UNKNOWN',
+      scannedDomain: '',
+      mismatches: [],
+      matchedFields: [],
+      cdnAssetHosts: [],
+    };
+  }
+
+  const mismatches: DeclaredDomainMismatchEntry[] = [];
+  const matchedFields: string[] = [];
+  const cdnAssetHosts: string[] = [];
+
+  const checkIdentityUrl = (field: string, rawVal?: string | null) => {
+    if (!rawVal || !rawVal.trim()) return;
+    const trimmed = rawVal.trim();
+    if (trimmed.startsWith('/')) {
+      matchedFields.push(field);
+      return;
+    }
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+      const declComparable = getComparableRegistrableDomain(u.hostname);
+      const declHost = normalizeHostForComparison(u.hostname);
+      if (!declComparable) return;
+      if (declComparable === scannedComparable) {
+        matchedFields.push(field);
+      } else {
+        mismatches.push({
+          field,
+          url: trimmed,
+          hostname: declHost,
+          isEphemeralAppHost: isEphemeralAppHost(u.hostname),
+        });
+      }
+    } catch {
+      // Ignore malformed URLs
+    }
+  };
+
+  checkIdentityUrl('canonical', params.canonicalUrl);
+  checkIdentityUrl('og:url', params.ogUrl);
+  checkIdentityUrl('twitter:url', params.twitterUrl);
+  for (const ldUrl of params.jsonLdUrls || []) {
+    checkIdentityUrl('schema.org url', ldUrl);
+  }
+
+  const checkImageUrl = (field: string, rawVal?: string | null) => {
+    if (!rawVal || !rawVal.trim()) return;
+    const trimmed = rawVal.trim();
+    if (trimmed.startsWith('/')) return;
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return;
+      const imgComparable = getComparableRegistrableDomain(u.hostname);
+      const imgHost = normalizeHostForComparison(u.hostname);
+      if (!imgComparable || imgComparable === scannedComparable) return;
+
+      if (isKnownCdnOrAssetHost(u.hostname)) {
+        if (!cdnAssetHosts.includes(imgHost)) cdnAssetHosts.push(imgHost);
+        return;
+      }
+
+      if (isEphemeralAppHost(u.hostname)) {
+        mismatches.push({
+          field,
+          url: trimmed,
+          hostname: imgHost,
+          isEphemeralAppHost: true,
+        });
+      } else {
+        if (!cdnAssetHosts.includes(imgHost)) cdnAssetHosts.push(imgHost);
+      }
+    } catch {
+      // Ignore malformed image URLs
+    }
+  };
+
+  checkImageUrl('og:image', params.ogImage);
+  checkImageUrl('twitter:image', params.twitterImage);
+
+  let status: DeclaredDomainEvaluation['status'] = 'UNKNOWN';
+  if (mismatches.length > 0) {
+    status = 'MISMATCH';
+  } else if (matchedFields.length > 0) {
+    status = 'MATCH';
+  } else if (cdnAssetHosts.length > 0) {
+    status = 'CDN_ASSET_ONLY';
+  }
+
+  return {
+    status,
+    scannedDomain,
+    mismatches,
+    matchedFields,
+    cdnAssetHosts,
+  };
+}
+
+export interface ViewportDirectiveInspection {
+  hasResponsiveWidth: boolean;
+  restrictsZoom: boolean;
+  restrictiveDirectives: string[];
+}
+
+/**
+ * Separates responsive viewport declaration (width=device-width) from
+ * directives that restrict user pinch-zoom (user-scalable=no/0, maximum-scale < 2).
+ */
+export function inspectViewportMetaDirectives(
+  viewportMeta: string | null | undefined
+): ViewportDirectiveInspection {
+  if (!viewportMeta || !viewportMeta.trim()) {
+    return {
+      hasResponsiveWidth: false,
+      restrictsZoom: false,
+      restrictiveDirectives: [],
+    };
+  }
+
+  const hasResponsiveWidth = /width\s*=\s*device-width/i.test(viewportMeta);
+  const restrictiveDirectives: string[] = [];
+
+  const userScalableMatch = viewportMeta.match(/user-scalable\s*=\s*(no|0|false)\b/i);
+  if (userScalableMatch) {
+    restrictiveDirectives.push(`user-scalable=${userScalableMatch[1].toLowerCase()}`);
+  }
+
+  const maxScaleMatch = viewportMeta.match(/maximum-scale\s*=\s*([0-9]+(?:\.[0-9]+)?)/i);
+  if (maxScaleMatch) {
+    const val = parseFloat(maxScaleMatch[1]);
+    if (Number.isFinite(val) && val > 0 && val < 2) {
+      restrictiveDirectives.push(`maximum-scale=${maxScaleMatch[1]}`);
+    }
+  }
+
+  return {
+    hasResponsiveWidth,
+    restrictsZoom: restrictiveDirectives.length > 0,
+    restrictiveDirectives,
   };
 }

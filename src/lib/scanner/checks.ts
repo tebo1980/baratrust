@@ -1,5 +1,9 @@
 import { RawPageData, EvaluatedFinding, CategoryKey, PlatformClassification } from './types';
-import { ParsedHtmlData } from './parser';
+import {
+  ParsedHtmlData,
+  evaluateDeclaredDomainConsistency,
+  inspectViewportMetaDirectives,
+} from './parser';
 
 export interface EvaluateInput {
   rawData: RawPageData;
@@ -85,6 +89,88 @@ function evaluateContentCheck(options: {
     evidenceSource: 'HTML_PARSER',
     evidenceLabel: 'AUTO_DETECTED',
     supportingDetail: failDetail,
+  };
+}
+
+/**
+ * Evaluates zero-point informational observations with strict epistemic separation:
+ * - OBSERVED: evidence source positively saw the signal (state: 'PASS', observationState: 'OBSERVED')
+ * - NOT_OBSERVED: evidence source had sufficient static content visibility (!isSpa) and confirmed absence (state: 'UNKNOWN', observationState: 'NOT_OBSERVED')
+ * - UNKNOWN: evidence source could not reliably inspect the page (isSpa) so absence cannot be claimed (state: 'UNKNOWN', observationState: 'UNKNOWN')
+ */
+function evaluateInformationalCheck(options: {
+  isSpa: boolean;
+  found: boolean;
+  category: CategoryKey;
+  checkKey: string;
+  title: string;
+  observedValue: Record<string, any>;
+  passDetail: string;
+  notObservedDetail: string;
+  unknownDetail?: string;
+}): EvaluatedFinding {
+  const {
+    isSpa,
+    found,
+    category,
+    checkKey,
+    title,
+    observedValue,
+    passDetail,
+    notObservedDetail,
+    unknownDetail,
+  } = options;
+
+  if (found) {
+    return {
+      category,
+      checkKey,
+      title,
+      state: 'PASS',
+      scoreContribution: 0,
+      maxPoints: 0,
+      isInformational: true,
+      observedValue: { ...observedValue, observationState: 'OBSERVED' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'OPPORTUNITY_FOUND',
+      supportingDetail: passDetail,
+    };
+  }
+
+  if (isSpa) {
+    return {
+      category,
+      checkKey,
+      title,
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 0,
+      isInformational: true,
+      observedValue: {
+        ...observedValue,
+        isClientRenderedSpa: true,
+        observationState: 'UNKNOWN',
+      },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        unknownDetail ||
+        `Client-rendered SPA shell detected; ${title.toLowerCase()} could not be verified from static HTML alone. Deferred to browser or human review.`,
+    };
+  }
+
+  return {
+    category,
+    checkKey,
+    title,
+    state: 'UNKNOWN',
+    scoreContribution: 0,
+    maxPoints: 0,
+    isInformational: true,
+    observedValue: { ...observedValue, observationState: 'NOT_OBSERVED' },
+    evidenceSource: 'HTML_PARSER',
+    evidenceLabel: 'AUTO_DETECTED',
+    supportingDetail: notObservedDetail,
   };
 }
 
@@ -421,8 +507,9 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       : `Server returned non-standard status code HTTP ${rawData.httpStatus}.`,
   });
 
-  // Check 3: Mobile Viewport (20 pts)
-  const hasViewport = Boolean(parsed.viewportMeta && parsed.viewportMeta.toLowerCase().includes('width=device-width'));
+  // Check 3: Mobile Viewport (20 pts) + Zoom Accessibility (0 pts ATTENTION if zoom is restricted)
+  const viewportInspection = inspectViewportMetaDirectives(parsed.viewportMeta);
+  const hasViewport = viewportInspection.hasResponsiveWidth;
   findings.push({
     category: 'digital_presence',
     checkKey: 'mobile_viewport',
@@ -430,13 +517,42 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     state: hasViewport ? 'PASS' : 'FAIL',
     scoreContribution: hasViewport ? 20 : 0,
     maxPoints: 20,
-    observedValue: { viewportMeta: parsed.viewportMeta },
+    observedValue: {
+      viewportMeta: parsed.viewportMeta,
+      hasResponsiveWidth: viewportInspection.hasResponsiveWidth,
+      restrictsZoom: viewportInspection.restrictsZoom,
+      restrictiveDirectives: viewportInspection.restrictiveDirectives,
+    },
     evidenceSource: 'HTML_PARSER',
     evidenceLabel: 'AUTO_DETECTED',
     supportingDetail: hasViewport
-      ? 'Responsive mobile viewport meta tag is properly configured.'
+      ? viewportInspection.restrictsZoom
+        ? 'Responsive mobile viewport metadata (width=device-width) is present; see Zoom Accessibility note regarding pinch-zoom restriction.'
+        : 'Responsive mobile viewport metadata (width=device-width) is present.'
       : 'Missing mobile viewport meta tag; page may not scale naturally on mobile devices.',
   });
+
+  if (viewportInspection.restrictsZoom) {
+    findings.push({
+      category: 'digital_presence',
+      checkKey: 'viewport_zoom_restriction',
+      title: 'Viewport Zoom Accessibility',
+      state: 'FAIL', // 0-point ATTENTION / VERIFY finding
+      scoreContribution: 0,
+      maxPoints: 0,
+      isInformational: true,
+      observedValue: {
+        viewportMeta: parsed.viewportMeta,
+        restrictiveDirectives: viewportInspection.restrictiveDirectives,
+        classification: 'VERIFY',
+      },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: `Viewport configuration ("${parsed.viewportMeta}") includes ${viewportInspection.restrictiveDirectives.join(
+        ' and '
+      )}, which appears to restrict browser pinch-to-zoom on mobile devices.`,
+    });
+  }
 
   // Check 4: Page Title (15 pts)
   const hasTitle = Boolean(parsed.title && parsed.title.trim().length > 3);
@@ -492,8 +608,19 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       : 'No explicit favicon <link> tag detected in HTML header (browsers may still fall back to /favicon.ico).',
   });
 
-  // Check 7: OpenGraph Metadata (10 pts)
+  // Check 7: OpenGraph Metadata (10 pts) + Declared Domain Consistency (0 pts ATTENTION if mismatched)
+  const domainCheck = evaluateDeclaredDomainConsistency({
+    scannedUrl: rawData.finalUrl || rawData.normalizedUrl || rawData.requestedUrl,
+    canonicalUrl: parsed.canonicalUrl,
+    ogUrl: parsed.ogTags.url,
+    twitterUrl: parsed.twitterTags?.url,
+    ogImage: parsed.ogTags.image,
+    twitterImage: parsed.twitterTags?.image,
+    jsonLdUrls: parsed.jsonLdUrls,
+  });
+
   const hasOg = Boolean(parsed.ogTags.title || parsed.ogTags.image);
+  const ogUrlMismatch = domainCheck.mismatches.find((m) => m.field === 'og:url');
   findings.push({
     category: 'digital_presence',
     checkKey: 'opengraph_presence',
@@ -501,31 +628,61 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     state: hasOg ? 'PASS' : 'FAIL',
     scoreContribution: hasOg ? 10 : 0,
     maxPoints: 10,
-    observedValue: parsed.ogTags,
+    observedValue: {
+      ...parsed.ogTags,
+      declaredDomainStatus: domainCheck.status,
+    },
     evidenceSource: 'HTML_PARSER',
     evidenceLabel: 'AUTO_DETECTED',
     supportingDetail: hasOg
-      ? 'OpenGraph social preview metadata is configured for link sharing.'
+      ? ogUrlMismatch
+        ? `OpenGraph social preview tags are present, though og:url declares "${ogUrlMismatch.url}" rather than "${domainCheck.scannedDomain}".`
+        : 'OpenGraph social preview metadata is configured for link sharing.'
       : 'Missing OpenGraph tags; links shared in text messages or social media will lack custom previews.',
   });
 
+  if (domainCheck.status === 'MISMATCH' && domainCheck.mismatches.length > 0) {
+    const primaryMismatch = domainCheck.mismatches[0];
+    const mismatchedFields = Array.from(new Set(domainCheck.mismatches.map((m) => m.field))).join(
+      ', '
+    );
+    findings.push({
+      category: 'digital_presence',
+      checkKey: 'declared_domain_mismatch',
+      title: 'Declared Website Identity Does Not Match Scanned Domain',
+      state: 'FAIL', // 0-point ATTENTION / VERIFY finding
+      scoreContribution: 0,
+      maxPoints: 0,
+      isInformational: true,
+      observedValue: {
+        scannedDomain: domainCheck.scannedDomain,
+        declaredUrl: primaryMismatch.url,
+        declaredHostname: primaryMismatch.hostname,
+        sourceFields: Array.from(new Set(domainCheck.mismatches.map((m) => m.field))),
+        mismatches: domainCheck.mismatches,
+        classification: 'VERIFY',
+      },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: `Scanned domain is "${domainCheck.scannedDomain}", but machine-readable metadata (${mismatchedFields}) declares "${primaryMismatch.url}" (host "${primaryMismatch.hostname}"). Verify canonical domain and social share configuration.`,
+    });
+  }
+
   // Check 8: Social Links (Informational - 0 pts)
   const hasSocial = parsed.socialLinks.length > 0;
-  findings.push({
-    category: 'digital_presence',
-    checkKey: 'social_links',
-    title: 'Active Social Profiles',
-    state: hasSocial ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { platforms: parsed.socialLinks.map(s => s.platform) },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: hasSocial ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: hasSocial
-      ? `Connected social profiles found: ${parsed.socialLinks.map(s => s.platform).join(', ')}.`
-      : 'No outbound links to business social profiles found on page (informational: social presence is optional).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: hasSocial,
+      category: 'digital_presence',
+      checkKey: 'social_links',
+      title: 'Active Social Profiles',
+      observedValue: { platforms: parsed.socialLinks.map((s) => s.platform) },
+      passDetail: `Connected social profiles found: ${parsed.socialLinks.map((s) => s.platform).join(', ')}.`,
+      notObservedDetail:
+        'No outbound links to business social profiles found on page (informational: social presence is optional).',
+    })
+  );
 
   // ==========================================
   // 2. CUSTOMER JOURNEY (25% Weight) - 100 Scored Points
@@ -605,38 +762,35 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   }));
 
   // Check 5: Public Pricing (Informational - 0 pts)
-  findings.push({
-    category: 'customer_journey',
-    checkKey: 'public_pricing_observed',
-    title: 'Public Pricing Display',
-    state: parsed.detectedPricingSignals ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { detectedPricingSignals: parsed.detectedPricingSignals },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: parsed.detectedPricingSignals ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: parsed.detectedPricingSignals
-      ? 'Public pricing or dollar rate signals detected on page.'
-      : 'No public pricing detected (informational: pricing display is business-model dependent).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: parsed.detectedPricingSignals,
+      category: 'customer_journey',
+      checkKey: 'public_pricing_observed',
+      title: 'Public Pricing Display',
+      observedValue: { detectedPricingSignals: parsed.detectedPricingSignals },
+      passDetail: 'Public pricing or dollar rate signals detected on page.',
+      notObservedDetail:
+        'No public pricing detected (informational: pricing display is business-model dependent).',
+    })
+  );
 
   // Check 6: Online Booking (Informational - 0 pts)
-  findings.push({
-    category: 'customer_journey',
-    checkKey: 'online_booking_observed',
-    title: 'Direct Online Scheduling / Booking Tool',
-    state: parsed.detectedBookingSignals ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { detectedBookingSignals: parsed.detectedBookingSignals },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: parsed.detectedBookingSignals ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: parsed.detectedBookingSignals
-      ? 'Direct online scheduling or appointment tool detected (Calendly, Acuity, Square, or booking keywords).'
-      : 'No automated online booking tool detected (informational: direct phone/form inquiry is standard).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: parsed.detectedBookingSignals,
+      category: 'customer_journey',
+      checkKey: 'online_booking_observed',
+      title: 'Direct Online Scheduling / Booking Tool',
+      observedValue: { detectedBookingSignals: parsed.detectedBookingSignals },
+      passDetail:
+        'Direct online scheduling or appointment tool detected (Calendly, Acuity, Square, or booking keywords).',
+      notObservedDetail:
+        'No automated online booking tool detected (informational: direct phone/form inquiry is standard).',
+    })
+  );
 
   // ==========================================
   // 3. TRUST & REPUTATION (20% Weight) - 100 Scored Points
@@ -732,21 +886,19 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
 
   // Check 5: Customer Reviews & Testimonials (Informational - 0 pts)
   const hasReviews = parsed.detectedReviewOrTestimonialKeywords;
-  findings.push({
-    category: 'trust_reputation',
-    checkKey: 'reviews_testimonials',
-    title: 'Customer Reviews & Testimonials',
-    state: hasReviews ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { detectedReviewOrTestimonialKeywords: hasReviews },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: hasReviews ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: hasReviews
-      ? 'Customer reviews, ratings, or testimonial sections detected on site.'
-      : 'No on-page customer reviews or testimonials detected (informational: many businesses host reviews primarily on Google or Yelp; deferred to operator review).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: hasReviews,
+      category: 'trust_reputation',
+      checkKey: 'reviews_testimonials',
+      title: 'Customer Reviews & Testimonials',
+      observedValue: { detectedReviewOrTestimonialKeywords: hasReviews },
+      passDetail: 'Customer reviews, ratings, or testimonial sections detected on site.',
+      notObservedDetail:
+        'No on-page customer reviews or testimonials detected (informational: many businesses host reviews primarily on Google or Yelp; deferred to operator review).',
+    })
+  );
 
   // ==========================================
   // 4. LOCAL DISCOVERY (20% Weight) - 100 Scored Points
@@ -883,21 +1035,19 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
 
   // Check 4: Map Embed / Direction Links (Informational - 0 pts)
   const hasMap = parsed.hasMapEmbed;
-  findings.push({
-    category: 'local_discovery',
-    checkKey: 'map_embed_present',
-    title: 'Interactive Map / Directions Link',
-    state: hasMap ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { hasMapEmbed: hasMap },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: hasMap ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: hasMap
-      ? 'Google Maps embed or direct mapping link active.'
-      : 'No interactive Google Maps embed detected (informational: service-area businesses often omit map embeds).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: hasMap,
+      category: 'local_discovery',
+      checkKey: 'map_embed_present',
+      title: 'Interactive Map / Directions Link',
+      observedValue: { hasMapEmbed: hasMap },
+      passDetail: 'Google Maps embed or direct mapping link active.',
+      notObservedDetail:
+        'No interactive Google Maps embed detected (informational: service-area businesses often omit map embeds).',
+    })
+  );
 
   // ==========================================
   // 5. OPPORTUNITY CAPTURE (15% Weight) - 100 Scored Points
@@ -932,56 +1082,50 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   }));
 
   // Check 3: Customer List & Email / Newsletter Signup (Informational - 0 pts)
-  findings.push({
-    category: 'opportunity_capture',
-    checkKey: 'email_list_capture',
-    title: 'Customer List & Email Signup',
-    state: parsed.hasEmailNewsletterForm ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { hasEmailNewsletterForm: parsed.hasEmailNewsletterForm },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: parsed.hasEmailNewsletterForm ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: parsed.hasEmailNewsletterForm
-      ? 'Dedicated email / VIP customer list capture mechanism detected.'
-      : 'No newsletter/email list signup detected (informational: email list capture is optional and business-model dependent).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: parsed.hasEmailNewsletterForm,
+      category: 'opportunity_capture',
+      checkKey: 'email_list_capture',
+      title: 'Customer List & Email Signup',
+      observedValue: { hasEmailNewsletterForm: parsed.hasEmailNewsletterForm },
+      passDetail: 'Dedicated email / VIP customer list capture mechanism detected.',
+      notObservedDetail:
+        'No newsletter/email list signup detected (informational: email list capture is optional and business-model dependent).',
+    })
+  );
 
   // Check 4: Lead Magnet / Downloadable Resource (Informational - 0 pts)
-  findings.push({
-    category: 'opportunity_capture',
-    checkKey: 'lead_magnet_observed',
-    title: 'Lead Magnet / Downloadable Guide',
-    state: parsed.detectedLeadMagnetSignals ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { detectedLeadMagnetSignals: parsed.detectedLeadMagnetSignals },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: parsed.detectedLeadMagnetSignals ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: parsed.detectedLeadMagnetSignals
-      ? 'Lead magnet, guide, or downloadable asset detected on page.'
-      : 'No downloadable lead magnet detected (informational: optional marketing asset).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: parsed.detectedLeadMagnetSignals,
+      category: 'opportunity_capture',
+      checkKey: 'lead_magnet_observed',
+      title: 'Lead Magnet / Downloadable Guide',
+      observedValue: { detectedLeadMagnetSignals: parsed.detectedLeadMagnetSignals },
+      passDetail: 'Lead magnet, guide, or downloadable asset detected on page.',
+      notObservedDetail:
+        'No downloadable lead magnet detected (informational: optional marketing asset).',
+    })
+  );
 
   // Check 5: After-Hours Messaging Safeguard (Informational - 0 pts)
   const hasAfterHours = parsed.detectedAfterHoursSignals;
-  findings.push({
-    category: 'opportunity_capture',
-    checkKey: 'after_hours_messaging',
-    title: 'After-Hours Messaging / Text Safeguard',
-    state: hasAfterHours ? 'PASS' : 'UNKNOWN',
-    scoreContribution: 0,
-    maxPoints: 0,
-    isInformational: true,
-    observedValue: { detectedAfterHoursSignals: hasAfterHours },
-    evidenceSource: 'HTML_PARSER',
-    evidenceLabel: hasAfterHours ? 'OPPORTUNITY_FOUND' : 'AUTO_DETECTED',
-    supportingDetail: hasAfterHours
-      ? 'Text message (SMS), live chat, or 24/7 inquiry path detected.'
-      : 'No after-hours messaging or instant text-back path observed (informational: potential growth opportunity for operator review).',
-  });
+  findings.push(
+    evaluateInformationalCheck({
+      isSpa,
+      found: hasAfterHours,
+      category: 'opportunity_capture',
+      checkKey: 'after_hours_messaging',
+      title: 'After-Hours Messaging / Text Safeguard',
+      observedValue: { detectedAfterHoursSignals: hasAfterHours },
+      passDetail: 'Text message (SMS), live chat, or 24/7 inquiry path detected.',
+      notObservedDetail:
+        'No after-hours messaging or instant text-back path observed (informational: potential growth opportunity for operator review).',
+    })
+  );
 
   return findings;
 }
@@ -1134,7 +1278,11 @@ export function buildUnknownFindings(
         scoreContribution: 0,
         maxPoints: c.maxPoints,
         isInformational: c.isInformational,
-        observedValue: { status: 'SCAN_DEFERRED', reason },
+        observedValue: {
+          status: 'SCAN_DEFERRED',
+          reason,
+          ...(c.isInformational ? { observationState: 'UNKNOWN' } : {}),
+        },
         evidenceSource: 'SYSTEM',
         evidenceLabel: 'AUTO_DETECTED',
         supportingDetail: `Check deferred to Todd & Noelah review: ${reason}`,

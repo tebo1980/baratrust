@@ -543,6 +543,166 @@ async function captureSingleViewportWithPlaywright(params: {
             bodyText.slice(0, 400)
           ) && bodyText.length < 600;
 
+        const visibleLinks = Array.from(document.querySelectorAll('a[href]')).filter(isVisible);
+        const telLinks = Array.from(
+          new Set(
+            visibleLinks
+              .map((a) => (a.getAttribute('href') || '').trim())
+              .filter((h) => /^tel:/i.test(h))
+          )
+        ).slice(0, 10);
+        const mailtoLinks = Array.from(
+          new Set(
+            visibleLinks
+              .map((a) => (a.getAttribute('href') || '').trim())
+              .filter((h) => /^mailto:/i.test(h))
+          )
+        ).slice(0, 10);
+
+        const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b/g;
+        const rawPhones = bodyText.match(phoneRegex) || [];
+        const visiblePhoneNumbers = Array.from(
+          new Set(
+            rawPhones.filter((p) => {
+              const digits = p.replace(/\D/g, '');
+              return (
+                digits.length >= 10 &&
+                digits.length <= 11 &&
+                !/^(?:0000000000|1111111111|1234567890|5555555555)$/.test(digits.slice(-10))
+              );
+            })
+          )
+        ).slice(0, 10);
+
+        const streetRegex =
+          /\b\d{1,5}\s+[A-Za-z0-9.\s]{2,35}\s+(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Ln\.?|Way|Court|Ct\.?|Circle|Cir\.?|Parkway|Pkwy\.?|Highway|Hwy\.?|Pike|Pke\.?|Suite|Ste\.?)\b/gi;
+        const rawAddresses = bodyText.match(streetRegex) || [];
+        const mapQueryLinks = visibleLinks
+          .map((a) => ({
+            href: (a.getAttribute('href') || '').trim(),
+            text: (a.textContent || '').replace(/\s+/g, ' ').trim(),
+          }))
+          .filter(
+            (l) =>
+              /google\.com\/maps|maps\.apple\.com|maps\.app\.goo\.gl/i.test(l.href) &&
+              l.text.length >= 8 &&
+              /\d/.test(l.text)
+          )
+          .map((l) => l.text);
+        const visibleAddressSignals = Array.from(
+          new Set([...rawAddresses.map((s) => s.trim()), ...mapQueryLinks])
+        ).slice(0, 8);
+
+        const priceRegex = /\$\s?\d{1,4}(?:,\d{3})*(?:\.\d{2})?(?:\s*\/\s*[a-z]+|\s+per\s+[a-z]+)?/gi;
+        const pricingSnippets = Array.from(new Set(bodyText.match(priceRegex) || [])).slice(0, 8);
+        const detectedPricingSignals =
+          pricingSnippets.length > 0 ||
+          /\b(?:pricing|price list|packages|rates|starting at \$|per person)\b/i.test(bodyText);
+
+        const detectedMenuOrServices =
+          /\b(?:our services|services|menu|our menu|food|drinks|catering|what we do|solutions|offerings|products|practice areas|treatments|specialties)\b/i.test(
+            bodyText
+          ) ||
+          visibleLinks.some((a) =>
+            /\b(?:services|menu|catering|offerings|products|solutions)\b/i.test(
+              `${a.getAttribute('href') || ''} ${a.textContent || ''}`
+            )
+          );
+
+        const detectedAboutOrTeamKeywords =
+          /\b(?:about us|our story|our team|meet the team|who we are|founded|family owned|locally owned|years of experience)\b/i.test(
+            bodyText
+          ) ||
+          visibleLinks.some((a) =>
+            /\b(?:about|our-story|team)\b/i.test(`${a.getAttribute('href') || ''} ${a.textContent || ''}`)
+          );
+
+        const hasPrivacyOrTermsLink = visibleLinks.some((a) =>
+          /\b(?:privacy|terms|legal|refund|policy)\b/i.test(
+            `${a.getAttribute('href') || ''} ${a.textContent || ''}`
+          )
+        );
+
+        const socialDomains: Array<{ platform: string; pattern: RegExp }> = [
+          { platform: 'facebook', pattern: /facebook\.com\/(?!sharer)/i },
+          { platform: 'instagram', pattern: /instagram\.com\//i },
+          { platform: 'linkedin', pattern: /linkedin\.com\/(?:company|in)\//i },
+          { platform: 'youtube', pattern: /youtube\.com\/|youtu\.be\//i },
+          { platform: 'tiktok', pattern: /tiktok\.com\/@/i },
+          { platform: 'yelp', pattern: /yelp\.com\/biz\//i },
+          { platform: 'x', pattern: /(?:twitter\.com|x\.com)\/(?!intent)/i },
+        ];
+        const socialLinks: Array<{ platform: string; url: string }> = [];
+        for (const a of visibleLinks) {
+          const href = (a.getAttribute('href') || '').trim();
+          for (const sd of socialDomains) {
+            if (sd.pattern.test(href) && !socialLinks.some((s) => s.platform === sd.platform)) {
+              socialLinks.push({ platform: sd.platform, url: href });
+            }
+          }
+        }
+
+        const hasMapEmbed =
+          Array.from(document.querySelectorAll('iframe')).some(
+            (f) => isVisible(f) && /google\.com\/maps|maps\.google|openstreetmap|mapbox/i.test(f.getAttribute('src') || '')
+          ) ||
+          visibleLinks.some((a) =>
+            /google\.com\/maps|maps\.apple\.com|maps\.app\.goo\.gl/i.test(a.getAttribute('href') || '')
+          );
+
+        const visibleForms = Array.from(document.querySelectorAll('form')).filter(isVisible);
+        const visibleInputs = Array.from(
+          document.querySelectorAll('input:not([type="hidden"]), textarea, select')
+        ).filter(isVisible);
+        const hasForms = visibleForms.length > 0 || visibleInputs.length >= 2;
+        const hasLeadCaptureForm =
+          visibleForms.length > 0 ||
+          visibleInputs.some((inp) =>
+            /email|phone|tel|name|message/i.test(
+              `${inp.getAttribute('type') || ''} ${inp.getAttribute('name') || ''} ${inp.getAttribute('placeholder') || ''}`
+            )
+          );
+
+        const detectedQuoteOrCateringKeywords =
+          /\b(?:request a quote|get a quote|free estimate|catering|private event|inquire|book an event|schedule a consultation|contact us)\b/i.test(
+            bodyText
+          );
+
+        const detectedBookingSignals =
+          /\b(?:book online|book now|schedule online|reserve a table|make a reservation|calendly|acuity|opentable|toasttab|resy|square\.site)\b/i.test(
+            bodyText
+          ) ||
+          visibleLinks.some((a) =>
+            /calendly\.com|acuityscheduling\.com|opentable\.com|resy\.com|toasttab\.com|squareup\.com\/appointments/i.test(
+              a.getAttribute('href') || ''
+            )
+          );
+
+        const detectedReviewOrTestimonialKeywords =
+          /\b(?:testimonials|what our customers say|customer reviews|client reviews|google reviews|rated \d(?:\.\d)? out of 5)\b/i.test(
+            bodyText
+          );
+
+        const renderedSignals = {
+          telLinks,
+          mailtoLinks,
+          visiblePhoneNumbers,
+          visibleAddressSignals,
+          detectedPricingSignals,
+          pricingSnippets,
+          detectedMenuOrServices,
+          detectedAboutOrTeamKeywords,
+          hasPrivacyOrTermsLink,
+          socialLinks,
+          hasMapEmbed,
+          hasForms,
+          hasLeadCaptureForm,
+          detectedQuoteOrCateringKeywords,
+          detectedBookingSignals,
+          detectedReviewOrTestimonialKeywords,
+          searchableText: bodyText.slice(0, 6000),
+        };
+
         return {
           pageTitle: document.title || null,
           documentDimensions: {
@@ -563,6 +723,7 @@ async function captureSingleViewportWithPlaywright(params: {
           clippedTextElements,
           mediaTextOverlaps,
           smallTapTargets: vw <= 500 ? smallTapTargets : [],
+          renderedSignals,
         };
       },
       {
@@ -664,6 +825,7 @@ async function captureSingleViewportWithPlaywright(params: {
       clippedTextElements: domInspection.clippedTextElements,
       mediaTextOverlaps: domInspection.mediaTextOverlaps,
       smallTapTargets: domInspection.smallTapTargets,
+      renderedSignals: domInspection.renderedSignals,
       consoleOrPageErrors: consoleErrors,
       screenshotDataUrl,
       screenshotBytes,
@@ -773,13 +935,34 @@ export function compareDesktopAndMobileEvidence(
   }
 
   // 3. AUTO: Primary CTA Visibility
-  if (desktop.primaryCtaObserved && mobile.primaryCtaObserved) {
+  const isSparseRender = Boolean(desktop.isNearEmptyRender || mobile.isNearEmptyRender);
+  if (!isSparseRender && desktop.primaryCtaObserved && mobile.primaryCtaObserved) {
     checks.push({
       key: 'browser_cta_visibility',
       title: 'Rendered Above-the-Fold CTA Visibility',
       classification: 'AUTO',
       state: 'PASS',
       detail: `Visible primary CTA controls detected at both desktop (${(desktop.primaryCtaCandidates || []).slice(0, 3).join(', ')}) and mobile (${(mobile.primaryCtaCandidates || []).slice(0, 3).join(', ')}).`,
+    });
+  } else if (!isSparseRender && desktop.primaryCtaObserved !== mobile.primaryCtaObserved) {
+    const presentVp = desktop.primaryCtaObserved ? 'desktop' : 'mobile';
+    const missingVp = desktop.primaryCtaObserved ? 'mobile' : 'desktop';
+    const ctas = (
+      (desktop.primaryCtaObserved ? desktop.primaryCtaCandidates : mobile.primaryCtaCandidates) || []
+    )
+      .slice(0, 3)
+      .join(', ');
+    if (missingVp === 'mobile') {
+      missingMobileElements.push(`Primary CTA visible on desktop (${ctas}) but not observed on mobile`);
+    } else {
+      missingDesktopElements.push(`Primary CTA visible on mobile (${ctas}) but not observed on desktop`);
+    }
+    checks.push({
+      key: 'browser_cta_visibility',
+      title: 'Rendered Above-the-Fold CTA Visibility',
+      classification: 'VERIFY',
+      state: 'VERIFY',
+      detail: `Primary CTA control observed on ${presentVp} (${ctas}) but not observed on ${missingVp}; verify mobile/desktop conversion parity.`,
     });
   } else if (!desktop.primaryCtaObserved && !mobile.primaryCtaObserved) {
     objectiveWarnings.push(
@@ -1127,6 +1310,300 @@ export function buildBrowserEvidenceFindings(
  * Strips raw base64 screenshot payloads from public API responses while preserving
  * non-sensitive browser render observations and `hasScreenshot` flags.
  */
+/**
+ * Resolves eligible objective checks from BrowserRenderedEvidence when static HTML
+ * was incomplete (e.g. client-rendered SPA shell) or detects viewport-specific discrepancies
+ * when desktop and mobile rendered DOM disagree on key customer-facing signals.
+ *
+ * Architecture:
+ *   STATIC EVIDENCE -> unresolved? -> BROWSER DOM EVIDENCE -> unresolved? -> UNKNOWN / HUMAN CHECK
+ *
+ * Rules:
+ * - Only resolves to PASS when BOTH desktop and mobile rendered cleanly (!isNearEmptyRender)
+ *   and both viewports confirm the signal.
+ * - Preserves `evidenceSource = 'BROWSER_RENDER'` and `scoreContribution = 0` so numeric static
+ *   scores and static coverage are never silently inflated.
+ * - If desktop and mobile disagree on an objective signal (e.g. phone or CTA visible on desktop
+ *   but hidden on mobile), does NOT fabricate a single PASS truth — marks `state: 'UNKNOWN'`
+ *   with `viewportDiscrepancy: true` so Review Studio and public badges surface `HUMAN CHECK`.
+ */
+export function applyBrowserDomFallback(
+  findings: EvaluatedFinding[],
+  evidence?: BrowserRenderedEvidence | null,
+  options?: { cityState?: string | null }
+): EvaluatedFinding[] {
+  if (!evidence || evidence.status !== 'COMPLETED') {
+    return findings;
+  }
+
+  const { desktop, mobile } = evidence;
+  if (
+    desktop.status !== 'RENDERED' ||
+    mobile.status !== 'RENDERED' ||
+    desktop.isNearEmptyRender ||
+    mobile.isNearEmptyRender
+  ) {
+    return findings;
+  }
+
+  const evaluateViewportCheck = (
+    vp: BrowserViewportEvidence,
+    checkKey: string
+  ): {
+    supported: boolean;
+    found: boolean;
+    passDetail: string;
+    observedValue: Record<string, any>;
+  } => {
+    const sig = vp.renderedSignals;
+
+    switch (checkKey) {
+      case 'cta_keywords_found': {
+        const ctas = vp.primaryCtaCandidates || [];
+        const found = Boolean(vp.primaryCtaObserved && ctas.length > 0);
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed visible call-to-action control(s) in rendered browser view (${ctas.slice(0, 3).join(', ')}).`,
+          observedValue: { renderedCtaCandidates: ctas.slice(0, 5) },
+        };
+      }
+      case 'phone_number_visible': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const phones = sig.visiblePhoneNumbers || [];
+        const tels = sig.telLinks || [];
+        const found = phones.length > 0 || tels.length > 0;
+        const sample = phones[0] || (tels[0] ? tels[0].replace(/^tel:/i, '') : '');
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed visible phone number (${sample}) in rendered browser view.`,
+          observedValue: { phoneNumbers: phones, telLinks: tels },
+        };
+      }
+      case 'has_tel_link': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const tels = sig.telLinks || [];
+        const found = tels.length > 0;
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed ${tels.length} clickable tel: link(s) (${tels.slice(0, 2).join(', ')}) in rendered browser view.`,
+          observedValue: { telLinks: tels },
+        };
+      }
+      case 'address_signals': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const addrs = sig.visibleAddressSignals || [];
+        const found = addrs.length > 0;
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed physical address signal (${addrs[0]}) in rendered browser view.`,
+          observedValue: { addressSignals: addrs },
+        };
+      }
+      case 'menu_or_services': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.detectedMenuOrServices);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed visible menu, service, or offering descriptions in rendered browser view.',
+          observedValue: { detectedMenuOrServices: found },
+        };
+      }
+      case 'inquiry_or_contact_path': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const hasMail = (sig.mailtoLinks || []).length > 0;
+        const hasTel = (sig.telLinks || []).length > 0;
+        const hasForm = Boolean(sig.hasForms);
+        const found = hasForm || hasMail || hasTel;
+        const methods = [
+          hasForm ? 'form' : null,
+          hasMail ? 'email link' : null,
+          hasTel ? 'phone link' : null,
+        ].filter(Boolean);
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed customer contact path (${methods.join(', ')}) in rendered browser view.`,
+          observedValue: {
+            hasForms: hasForm,
+            mailtoLinks: sig.mailtoLinks || [],
+            telLinks: sig.telLinks || [],
+          },
+        };
+      }
+      case 'about_team_signals': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.detectedAboutOrTeamKeywords);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed business story or team background language in rendered browser view.',
+          observedValue: { detectedAboutOrTeamKeywords: found },
+        };
+      }
+      case 'terms_privacy': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.hasPrivacyOrTermsLink);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed visible Privacy Policy or Terms of Service link in rendered browser view.',
+          observedValue: { hasPrivacyOrTermsLink: found },
+        };
+      }
+      case 'city_state_match':
+      case 'service_area_language': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const text = (sig.searchableText || '').toLowerCase();
+        const rawTarget = (options?.cityState || '').trim();
+        const cityPart = rawTarget.split(',')[0]?.trim().toLowerCase() || '';
+        const found =
+          (cityPart.length >= 3 && text.includes(cityPart)) ||
+          (sig.visibleAddressSignals || []).length > 0;
+        return {
+          supported: true,
+          found,
+          passDetail: rawTarget
+            ? `Observed local service-area reference (${rawTarget}) in rendered browser view.`
+            : 'Observed local address and service-area signals in rendered browser view.',
+          observedValue: { matchedCityState: rawTarget || null },
+        };
+      }
+      case 'quote_or_action_path': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(
+          sig.detectedQuoteOrCateringKeywords || sig.hasLeadCaptureForm || vp.primaryCtaObserved
+        );
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed quote, catering, or inquiry action path in rendered browser view.',
+          observedValue: { detectedQuoteOrCateringKeywords: Boolean(sig.detectedQuoteOrCateringKeywords) },
+        };
+      }
+      case 'lead_capture_form': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.hasLeadCaptureForm);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed interactive lead capture form in rendered browser view.',
+          observedValue: { hasLeadCaptureForm: found },
+        };
+      }
+      case 'public_pricing_observed': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const snippets = sig.pricingSnippets || [];
+        const found = Boolean(sig.detectedPricingSignals);
+        const sample = snippets.length > 0 ? ` (e.g. ${snippets.slice(0, 2).join(', ')})` : '';
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed public pricing signal${sample} in rendered browser view.`,
+          observedValue: { detectedPricingSignals: found, pricingSnippets: snippets },
+        };
+      }
+      case 'online_booking_observed': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.detectedBookingSignals);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed online booking or scheduling path in rendered browser view.',
+          observedValue: { detectedBookingSignals: found },
+        };
+      }
+      case 'social_links': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const links = sig.socialLinks || [];
+        const found = links.length > 0;
+        const platforms = links.map((s) => s.platform).join(', ');
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed ${links.length} social profile link(s) (${platforms}) in rendered browser view.`,
+          observedValue: { socialLinks: links },
+        };
+      }
+      case 'map_embed_present': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.hasMapEmbed);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed interactive map or directions link in rendered browser view.',
+          observedValue: { hasMapEmbed: found },
+        };
+      }
+      case 'reviews_testimonials': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const found = Boolean(sig.detectedReviewOrTestimonialKeywords);
+        return {
+          supported: true,
+          found,
+          passDetail: 'Observed customer review or testimonial section in rendered browser view.',
+          observedValue: { detectedReviewOrTestimonialKeywords: found },
+        };
+      }
+      default:
+        return { supported: false, found: false, passDetail: '', observedValue: {} };
+    }
+  };
+
+  return findings.map((finding) => {
+    const dObs = evaluateViewportCheck(desktop, finding.checkKey);
+    const mObs = evaluateViewportCheck(mobile, finding.checkKey);
+
+    if (!dObs.supported || !mObs.supported) {
+      return finding;
+    }
+
+    // Case 1: Desktop and mobile disagree on an objective signal -> preserve discrepancy as UNKNOWN (HUMAN CHECK)
+    if (dObs.found !== mObs.found) {
+      const presentVp = dObs.found ? 'desktop (1440×900)' : 'mobile (390×844)';
+      const missingVp = dObs.found ? 'mobile (390×844)' : 'desktop (1440×900)';
+      return {
+        ...finding,
+        state: 'UNKNOWN',
+        scoreContribution: 0,
+        evidenceSource: 'BROWSER_RENDER',
+        observedValue: {
+          ...(typeof finding.observedValue === 'object' && finding.observedValue ? finding.observedValue : {}),
+          viewportDiscrepancy: true,
+          desktopObserved: dObs.found,
+          mobileObserved: mObs.found,
+          ...(finding.isInformational ? { observationState: 'UNKNOWN' } : {}),
+        },
+        supportingDetail: `Observed on ${presentVp} in rendered browser view, but not observed on ${missingVp}. Deferred to human review to verify desktop vs. mobile parity.`,
+      };
+    }
+
+    // Case 2: Both viewports positively observe a check that static HTML left unresolved
+    if (dObs.found && mObs.found && finding.state !== 'PASS') {
+      return {
+        ...finding,
+        state: 'PASS',
+        scoreContribution: 0, // Static numeric score remains invariant
+        evidenceSource: 'BROWSER_RENDER',
+        observedValue: {
+          ...(typeof finding.observedValue === 'object' && finding.observedValue ? finding.observedValue : {}),
+          ...dObs.observedValue,
+          resolvedViaBrowserDom: true,
+          evidenceSource: 'BROWSER_RENDER',
+          ...(finding.isInformational ? { observationState: 'OBSERVED' } : {}),
+        },
+        supportingDetail: dObs.passDetail,
+      };
+    }
+
+    return finding;
+  });
+}
+
 export function sanitizeBrowserEvidenceForPublic(
   evidence?: BrowserRenderedEvidence | null
 ): BrowserRenderedEvidence | null {

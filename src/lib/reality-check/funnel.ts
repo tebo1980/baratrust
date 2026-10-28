@@ -200,6 +200,8 @@ export interface PublicFunnelFinding {
   scoreContribution?: number;
   maxPoints?: number;
   supportingDetail: string;
+  observedValue?: any;
+  evidenceSource?: string | null;
 }
 
 export type PublicFindingBadgeText =
@@ -220,7 +222,11 @@ export type PublicFindingBadgeModifier =
  * render as 'INFO · OBSERVED' or 'INFO · NOT OBSERVED' rather than 'PASS' or 'HUMAN CHECK'.
  */
 export function resolvePublicFindingBadge(
-  finding: Pick<PublicFunnelFinding, 'state' | 'maxPoints'> & { checkKey?: string },
+  finding: Pick<PublicFunnelFinding, 'state' | 'maxPoints'> & {
+    checkKey?: string;
+    supportingDetail?: string | null;
+    observedValue?: any;
+  },
   isHostedProfile = false
 ): {
   badgeText: PublicFindingBadgeText;
@@ -254,6 +260,30 @@ export function resolvePublicFindingBadge(
   }
 
   if (isInformational) {
+    if (finding.state === 'FAIL') {
+      return {
+        badgeText: 'ATTENTION',
+        badgeModifier: 'finding-badge--attention',
+        isInformational: true,
+      };
+    }
+    const detail = (finding.supportingDetail || '').trim();
+    const obsState = finding.observedValue?.observationState;
+    const isDeferredUnknown =
+      finding.state === 'UNKNOWN' &&
+      (obsState === 'UNKNOWN' ||
+        finding.observedValue?.isClientRenderedSpa === true ||
+        finding.observedValue?.viewportDiscrepancy === true ||
+        finding.observedValue?.status === 'SCAN_DEFERRED' ||
+        /^(?:client-rendered|check deferred|could not\b)/i.test(detail) ||
+        /deferred to (?:browser or )?human review/i.test(detail));
+    if (isDeferredUnknown) {
+      return {
+        badgeText: 'HUMAN CHECK',
+        badgeModifier: 'finding-badge--human',
+        isInformational: true,
+      };
+    }
     return {
       badgeText: finding.state === 'PASS' ? 'INFO · OBSERVED' : 'INFO · NOT OBSERVED',
       badgeModifier: 'finding-badge--human',
@@ -314,18 +344,19 @@ export function partitionFunnelFindings<T extends PublicFunnelFinding>(
 
   // Order browser-rendered observations before static informational checks
   const informationalFindings = [
-    ...rawInformational.filter((f) => typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_')),
-    ...rawInformational.filter((f) => !(typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_'))),
+    ...rawInformational.filter((f) => f.state === 'FAIL' || (typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_'))),
+    ...rawInformational.filter((f) => !(f.state === 'FAIL' || (typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_')))),
   ];
 
   const actionableBrowserFindings = isHostedProfile
     ? []
     : informationalFindings.filter(
         (f) =>
-          typeof f.checkKey === 'string' &&
-          f.checkKey.startsWith('browser_') &&
-          (f.state === 'FAIL' ||
-            (f.state === 'UNKNOWN' && f.checkKey !== 'browser_render_experience'))
+          f.state === 'FAIL' ||
+          (typeof f.checkKey === 'string' &&
+            f.checkKey.startsWith('browser_') &&
+            f.state === 'UNKNOWN' &&
+            f.checkKey !== 'browser_render_experience')
       );
 
   const passingFindings = scoredPool.filter((f) => f.state === 'PASS');

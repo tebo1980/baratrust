@@ -110,6 +110,7 @@ function formatPublicFinding(
     maxPoints: number;
     supportingDetail: string | null;
     observedValue?: any;
+    evidenceSource?: string | null;
   },
   platformLabel = 'Facebook business page'
 ) {
@@ -148,6 +149,8 @@ function formatPublicFinding(
     scoreContribution: f.scoreContribution,
     maxPoints: f.maxPoints,
     supportingDetail,
+    ...(f.evidenceSource ? { evidenceSource: f.evidenceSource } : {}),
+    ...(f.observedValue ? { observedValue: f.observedValue } : {}),
   };
 }
 

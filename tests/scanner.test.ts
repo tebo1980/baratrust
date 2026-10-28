@@ -15,6 +15,8 @@ import {
   decodeHtmlEntities,
   formatCleanExcerpt,
   classifyProfileSummaryText,
+  evaluateDeclaredDomainConsistency,
+  inspectViewportMetaDirectives,
 } from '../src/lib/scanner/parser';
 import { runDeterministicChecks, buildUnknownFindings } from '../src/lib/scanner/checks';
 import { calculateScores } from '../src/lib/scanner/scoring';
@@ -1533,4 +1535,211 @@ test('Production Calibration Regression — BaraTrust self-scan (86/100 at 59% c
     'No privacy policy or terms link found; critical for compliance and digital ad channels.',
     'Historical scan findings must remain frozen as recorded at scan time unless a fresh scan is run'
   );
+});
+
+// ==========================================
+// 11. Scanner Correctness Pass — UNKNOWN Semantics, Declared Domain Mismatch & Viewport Zoom
+// ==========================================
+test('Correctness Pass A — JS-heavy/static-empty SPA shell defers 0-point informational checks to UNKNOWN (HUMAN CHECK) instead of false NOT OBSERVED claims', () => {
+  const spaShellHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Fistful Craft Tacos & Ale</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Craft tacos and ale in New Albany, IN." />
+        <link rel="icon" href="/favicon.png" />
+      </head>
+      <body>
+        <div id="root"></div>
+        <script type="module" src="/assets/index.js"></script>
+      </body>
+    </html>
+  `;
+
+  const rawData: RawPageData = {
+    requestedUrl: 'https://fistfulcraft.com',
+    finalUrl: 'https://fistfulcraft.com/',
+    normalizedUrl: 'https://fistfulcraft.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 110,
+    headers: { 'content-type': 'text/html' },
+    html: spaShellHtml,
+  };
+
+  const parsed = parseHtmlForBusinessSignals(spaShellHtml, 'New Albany, IN');
+  assert.equal(parsed.isClientRenderedSpa, true);
+
+  const findings = runDeterministicChecks({
+    rawData,
+    parsed,
+    businessName: 'Fistful',
+    cityState: 'New Albany, IN',
+  });
+
+  const infoKeys = [
+    'social_links',
+    'public_pricing_observed',
+    'online_booking_observed',
+    'reviews_testimonials',
+    'map_embed_present',
+    'email_list_capture',
+    'lead_magnet_observed',
+    'after_hours_messaging',
+  ];
+
+  for (const key of infoKeys) {
+    const f = findings.find((item) => item.checkKey === key)!;
+    assert.ok(f, `Expected informational finding ${key}`);
+    assert.equal(f.state, 'UNKNOWN');
+    assert.equal(f.observedValue?.observationState, 'UNKNOWN');
+    assert.equal(
+      /^no\s/i.test(f.supportingDetail),
+      false,
+      `${key} must not claim confident absence ("No ... detected") on an unrendered SPA shell: ${f.supportingDetail}`
+    );
+    const badge = resolvePublicFindingBadge(f, false);
+    assert.equal(
+      badge.badgeText,
+      'HUMAN CHECK',
+      `${key} on SPA shell must render HUMAN CHECK badge, never INFO · NOT OBSERVED`
+    );
+  }
+});
+
+test('Correctness Pass B — Declared domain consistency distinguishes matching domains, legitimate CDN assets, and Replit/app domain mismatches', () => {
+  // 1. Scanned domain example.com with og:url on replit.app -> MISMATCH + 0-point ATTENTION finding
+  const mismatchHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Fistful Craft</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta property="og:title" content="Fistful" />
+        <meta property="og:description" content="Craft tacos and ale." />
+        <meta property="og:url" content="https://Fistful.replit.app/" />
+        <meta property="og:image" content="https://Fistful.replit.app/opengraph.jpg" />
+      </head>
+      <body><h1>Fistful</h1><p>Welcome to our restaurant in New Albany.</p></body>
+    </html>
+  `;
+  const parsedMismatch = parseHtmlForBusinessSignals(mismatchHtml);
+  const mismatchEval = evaluateDeclaredDomainConsistency({
+    scannedUrl: 'https://fistfulcraft.com/',
+    canonicalUrl: parsedMismatch.canonicalUrl,
+    ogUrl: parsedMismatch.ogTags.url,
+    twitterUrl: parsedMismatch.twitterTags?.url,
+    ogImage: parsedMismatch.ogTags.image,
+    twitterImage: parsedMismatch.twitterTags?.image,
+    jsonLdUrls: parsedMismatch.jsonLdUrls,
+  });
+  assert.equal(mismatchEval.status, 'MISMATCH');
+  assert.equal(mismatchEval.scannedDomain, 'fistfulcraft.com');
+  assert.ok(mismatchEval.mismatches.some((m) => m.field === 'og:url' && m.hostname === 'fistful.replit.app'));
+
+  const rawMismatch: RawPageData = {
+    requestedUrl: 'https://fistfulcraft.com',
+    finalUrl: 'https://fistfulcraft.com/',
+    normalizedUrl: 'https://fistfulcraft.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 120,
+    headers: { 'content-type': 'text/html' },
+    html: mismatchHtml,
+  };
+  const mismatchFindings = runDeterministicChecks({ rawData: rawMismatch, parsed: parsedMismatch });
+  const domainFinding = mismatchFindings.find((f) => f.checkKey === 'declared_domain_mismatch')!;
+  assert.ok(domainFinding, 'Expected declared_domain_mismatch finding when og:url points to replit.app');
+  assert.equal(domainFinding.state, 'FAIL');
+  assert.equal(domainFinding.maxPoints, 0);
+  assert.match(domainFinding.supportingDetail, /fistfulcraft\.com/i);
+  assert.match(domainFinding.supportingDetail, /Fistful\.replit\.app/i);
+  const domainBadge = resolvePublicFindingBadge(domainFinding, false);
+  assert.equal(domainBadge.badgeText, 'ATTENTION');
+
+  // 2. Scanned domain example.com with og:url https://www.example.com -> MATCH (no false mismatch)
+  const wwwMatchHtml = `
+    <html>
+      <head>
+        <link rel="canonical" href="https://www.example.com/about" />
+        <meta property="og:title" content="Example" />
+        <meta property="og:url" content="https://www.example.com/" />
+      </head>
+      <body><h1>Example Business</h1></body>
+    </html>
+  `;
+  const parsedWww = parseHtmlForBusinessSignals(wwwMatchHtml);
+  const wwwEval = evaluateDeclaredDomainConsistency({
+    scannedUrl: 'https://example.com',
+    canonicalUrl: parsedWww.canonicalUrl,
+    ogUrl: parsedWww.ogTags.url,
+  });
+  assert.equal(wwwEval.status, 'MATCH');
+  assert.equal(wwwEval.mismatches.length, 0);
+
+  // 3. Image on legitimate CDN (images.unsplash.com / res.cloudinary.com) -> no false mismatch
+  const cdnHtml = `
+    <html>
+      <head>
+        <meta property="og:title" content="Example" />
+        <meta property="og:url" content="https://example.com/" />
+        <meta property="og:image" content="https://images.unsplash.com/photo-123.jpg" />
+      </head>
+      <body><h1>Example Business</h1></body>
+    </html>
+  `;
+  const parsedCdn = parseHtmlForBusinessSignals(cdnHtml);
+  const cdnEval = evaluateDeclaredDomainConsistency({
+    scannedUrl: 'https://example.com',
+    ogUrl: parsedCdn.ogTags.url,
+    ogImage: parsedCdn.ogTags.image,
+  });
+  assert.equal(cdnEval.status, 'MATCH');
+  assert.equal(cdnEval.mismatches.length, 0);
+});
+
+test('Correctness Pass C — Viewport directives separate responsive width PASS from pinch-zoom restrictions', () => {
+  // 1. Standard responsive viewport -> PASS, no zoom warning
+  const cleanViewport = inspectViewportMetaDirectives('width=device-width, initial-scale=1');
+  assert.equal(cleanViewport.hasResponsiveWidth, true);
+  assert.equal(cleanViewport.restrictsZoom, false);
+
+  // 2. Responsive viewport with maximum-scale=1 or user-scalable=no -> mobile_viewport PASS + separate 0-point viewport_zoom_restriction ATTENTION finding
+  const restrictedHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Fistful</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+      </head>
+      <body><h1>Fistful</h1><p>Welcome to Fistful Craft Tacos & Ale.</p></body>
+    </html>
+  `;
+  const parsedRestricted = parseHtmlForBusinessSignals(restrictedHtml);
+  assert.ok(parsedRestricted.viewportMeta);
+
+  const rawRestricted: RawPageData = {
+    requestedUrl: 'https://fistfulcraft.com',
+    finalUrl: 'https://fistfulcraft.com/',
+    normalizedUrl: 'https://fistfulcraft.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 100,
+    headers: { 'content-type': 'text/html' },
+    html: restrictedHtml,
+  };
+  const findings = runDeterministicChecks({ rawData: rawRestricted, parsed: parsedRestricted });
+
+  const mobileViewportFinding = findings.find((f) => f.checkKey === 'mobile_viewport')!;
+  assert.equal(mobileViewportFinding.state, 'PASS');
+  assert.equal(mobileViewportFinding.scoreContribution, 20);
+
+  const zoomFinding = findings.find((f) => f.checkKey === 'viewport_zoom_restriction')!;
+  assert.ok(zoomFinding, 'Expected separate viewport_zoom_restriction finding');
+  assert.equal(zoomFinding.state, 'FAIL');
+  assert.equal(zoomFinding.maxPoints, 0);
+  assert.match(zoomFinding.supportingDetail, /pinch-to-zoom/i);
+  const zoomBadge = resolvePublicFindingBadge(zoomFinding, false);
+  assert.equal(zoomBadge.badgeText, 'ATTENTION');
 });

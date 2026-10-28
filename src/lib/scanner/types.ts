@@ -56,6 +56,26 @@ export type BrowserRenderOverallStatus =
 
 export type BrowserCheckClassification = 'AUTO' | 'VERIFY' | 'HUMAN';
 
+export interface BrowserRenderedSignals {
+  telLinks?: string[];
+  mailtoLinks?: string[];
+  visiblePhoneNumbers?: string[];
+  visibleAddressSignals?: string[];
+  detectedPricingSignals?: boolean;
+  pricingSnippets?: string[];
+  detectedMenuOrServices?: boolean;
+  detectedAboutOrTeamKeywords?: boolean;
+  hasPrivacyOrTermsLink?: boolean;
+  socialLinks?: Array<{ platform: string; url: string }>;
+  hasMapEmbed?: boolean;
+  hasForms?: boolean;
+  hasLeadCaptureForm?: boolean;
+  detectedQuoteOrCateringKeywords?: boolean;
+  detectedBookingSignals?: boolean;
+  detectedReviewOrTestimonialKeywords?: boolean;
+  searchableText?: string;
+}
+
 export interface BrowserViewportEvidence {
   viewportLabel: 'desktop' | 'mobile';
   viewport: { width: number; height: number };
@@ -92,6 +112,7 @@ export interface BrowserViewportEvidence {
     width: number;
     height: number;
   }>;
+  renderedSignals?: BrowserRenderedSignals;
   consoleOrPageErrors?: string[];
   screenshotDataUrl?: string | null;
   screenshotBytes?: number;

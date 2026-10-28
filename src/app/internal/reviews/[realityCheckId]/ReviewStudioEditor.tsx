@@ -546,14 +546,14 @@ export default function ReviewStudioEditor({
     <div className="space-y-6">
 
       {/* Persistence & Control Bar */}
-      <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sticky top-20 z-20 shadow-xl">
+      <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sticky top-20 z-20 shadow-xl">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-slate-400">Review Status:</span>
+            <span className="text-xs font-medium text-[#bac9bf]">Review Status:</span>
             <select
               value={realityCheckStatus}
               onChange={(e) => setRealityCheckStatus(e.target.value as RealityCheckStatus)}
-              className="px-2.5 py-1.5 bg-[#080D18] border border-slate-700 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-amber-400"
+              className="px-2.5 py-1.5 bg-[#101914] border border-[#36493d] rounded-lg text-xs font-mono text-[#F0EBE0] focus:outline-none focus:border-[#7be0b8]"
             >
               <option value="NEEDS_HUMAN_REVIEW">NEEDS_HUMAN_REVIEW</option>
               <option value="IN_REVIEW">IN_REVIEW</option>
@@ -562,19 +562,19 @@ export default function ReviewStudioEditor({
             </select>
           </div>
 
-          <div className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
+          <div className="text-xs text-[#bac9bf] flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-[#8fa396]" />
             <span>{lastSaved ? `Last saved: ${lastSaved}` : "Unsaved changes"}</span>
           </div>
 
           {saveSuccessMsg && (
-            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+            <span className="text-xs font-medium text-[#7be0b8] bg-[#7be0b8]/12 border border-[#7be0b8]/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <Check className="w-3 h-3" /> {saveSuccessMsg}
             </span>
           )}
 
           {saveErrorMsg && (
-            <span className="text-xs font-mono text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded flex items-center gap-1">
+            <span className="text-xs font-medium text-[#f28b82] bg-[#E05A5A]/12 border border-[#E05A5A]/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
               <AlertCircle className="w-3 h-3" /> {saveErrorMsg}
             </span>
           )}
@@ -587,7 +587,7 @@ export default function ReviewStudioEditor({
             type="button"
             onClick={handleGenerateDraft}
             disabled={generating || saving}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md disabled:opacity-50"
+            className="px-3.5 py-2 bg-[#192b22] hover:bg-[#21382c] text-[#7be0b8] border border-[#7be0b8]/35 font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
           >
             {generating ? (
               <>
@@ -596,7 +596,7 @@ export default function ReviewStudioEditor({
               </>
             ) : (
               <>
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <Sparkles className="w-3.5 h-3.5 text-[#7be0b8]" />
                 <span>{reportDraft ? "Regenerate Draft Report" : "Generate Draft Report"}</span>
               </>
             )}
@@ -606,9 +606,9 @@ export default function ReviewStudioEditor({
           <Link
             href={`/report/${check.shareToken}?preview=true`}
             target="_blank"
-            className="px-3.5 py-2 bg-[#080D18] hover:bg-[#121A2B] border border-slate-700 text-slate-200 font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-[#101914] hover:bg-[#1b2821] border border-[#36493d] text-[#F0EBE0] font-medium rounded-lg text-xs transition-colors flex items-center gap-1.5"
           >
-            <Eye className="w-3.5 h-3.5 text-slate-400" />
+            <Eye className="w-3.5 h-3.5 text-[#bac9bf]" />
             <span>Preview Client Report</span>
           </Link>
 
@@ -617,7 +617,7 @@ export default function ReviewStudioEditor({
             type="button"
             onClick={() => handleSave()}
             disabled={saving || generating}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md disabled:opacity-50"
+            className="px-4 py-2 bg-[#22342a] hover:bg-[#2b4135] text-[#F0EBE0] border border-[#3d5446] font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
           >
             {saving ? (
               <>
@@ -626,7 +626,7 @@ export default function ReviewStudioEditor({
               </>
             ) : (
               <>
-                <Save className="w-3.5 h-3.5" />
+                <Save className="w-3.5 h-3.5 text-[#bac9bf]" />
                 <span>Save Draft</span>
               </>
             )}
@@ -637,21 +637,21 @@ export default function ReviewStudioEditor({
             type="button"
             onClick={handlePublish}
             disabled={publishing || realityCheckStatus === 'PUBLISHED'}
-            className={`px-4 py-2 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-md ${
+            className={`px-4 py-2 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-sm ${
               realityCheckStatus === 'PUBLISHED'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                ? 'bg-[#7be0b8]/15 text-[#7be0b8] border border-[#7be0b8]/35 cursor-default'
+                : 'bg-[#7be0b8] hover:bg-[#6bd4aa] text-[#10251a]'
             }`}
           >
             {publishing ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>Publishing & Sending...</span>
+                <span>Publishing &amp; Sending...</span>
               </>
             ) : realityCheckStatus === 'PUBLISHED' ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span>Published & Delivered</span>
+                <span>Published &amp; Delivered</span>
               </>
             ) : (
               <>
@@ -665,15 +665,15 @@ export default function ReviewStudioEditor({
 
       {/* Publish Alerts */}
       {publishSuccessMsg && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs flex items-center justify-between">
+        <div className="p-4 bg-[#131f19] border border-[#7be0b8]/40 rounded-xl text-[#F0EBE0] text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-[#7be0b8]" />
             <span>{publishSuccessMsg}</span>
           </div>
           <Link
             href={`/report/${check.shareToken}`}
             target="_blank"
-            className="text-amber-400 hover:underline flex items-center gap-1 font-mono"
+            className="text-[#7be0b8] hover:underline flex items-center gap-1 font-semibold"
           >
             <span>Open Public Report</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -682,8 +682,8 @@ export default function ReviewStudioEditor({
       )}
 
       {publishErrorMsg && (
-        <div className="p-4 bg-red-950/40 border border-red-500/50 rounded-xl text-red-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
+        <div className="p-4 bg-[#131f19] border border-[#E05A5A]/45 rounded-xl text-[#f28b82] text-xs flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 text-[#f28b82]" />
           <span>{publishErrorMsg}</span>
         </div>
       )}
@@ -695,33 +695,33 @@ export default function ReviewStudioEditor({
         <div className="lg:col-span-5 space-y-6">
 
           {/* Dossier Tabs */}
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2 border-b border-[#2c3e33] pb-3">
             <button
               onClick={() => setActiveDossierTab('findings')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 activeDossierTab === 'findings'
-                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#bac9bf]/15 text-[#F0EBE0] border border-[#36493d]'
+                  : 'text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#16231c]'
               }`}
             >
-              [AUTO_DETECTED] ({findings.length})
+              <span className="font-mono text-[11px]">[AUTO_DETECTED]</span> ({findings.length})
             </button>
             <button
               onClick={() => setActiveDossierTab('owner')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 activeDossierTab === 'owner'
-                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#F0EBE0]/12 text-[#F0EBE0] border border-[#F0EBE0]/30'
+                  : 'text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#16231c]'
               }`}
             >
-              [OWNER_PROVIDED] {ownerResponse ? '✓' : '(None)'}
+              <span className="font-mono text-[11px]">[OWNER_PROVIDED]</span> {ownerResponse ? '✓' : '(None)'}
             </button>
             <button
               onClick={() => setActiveDossierTab('facts')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 activeDossierTab === 'facts'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#7be0b8]/15 text-[#7be0b8] border border-[#7be0b8]/35'
+                  : 'text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#16231c]'
               }`}
             >
               Business Profile
@@ -730,48 +730,48 @@ export default function ReviewStudioEditor({
 
           {/* TAB 1: BUSINESS PROFILE */}
           {activeDossierTab === 'facts' && (
-            <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-6 space-y-5">
-              <div className="border-b border-slate-800 pb-3">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Intake Dossier</span>
-                <h3 className="text-xl font-bold font-serif text-white mt-1">{check.businessName || check.website}</h3>
+            <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-6 space-y-5">
+              <div className="border-b border-[#2c3e33] pb-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#7be0b8]">Intake Dossier</span>
+                <h3 className="text-xl font-bold font-[family-name:var(--font-display)] text-[#F0EBE0] mt-1">{check.businessName || check.website}</h3>
               </div>
 
               <div className="space-y-3 text-xs">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-[#F0EBE0]">
+                  <MapPin className="w-4 h-4 text-[#8fa396] flex-shrink-0" />
                   <span>{check.cityState || "Location not specified"}</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Globe className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-[#F0EBE0]">
+                  <Globe className="w-4 h-4 text-[#8fa396] flex-shrink-0" />
                   <a
                     href={check.website.startsWith("http") ? check.website : `https://${check.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-amber-400 hover:underline flex items-center gap-1 font-mono"
+                    className="text-[#7be0b8] hover:underline flex items-center gap-1 font-mono"
                   >
                     <span>{check.website}</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Building2 className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-[#F0EBE0]">
+                  <Building2 className="w-4 h-4 text-[#8fa396] flex-shrink-0" />
                   <span>{check.businessType || "Small Business"}</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-300">
-                  <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <div className="flex items-center gap-2 text-[#F0EBE0]">
+                  <Mail className="w-4 h-4 text-[#8fa396] flex-shrink-0" />
                   {check.email ? (
-                    <a href={`mailto:${check.email}`} className="hover:text-white underline">
+                    <a href={`mailto:${check.email}`} className="hover:text-[#7be0b8] underline">
                       {check.email}
                     </a>
                   ) : (
-                    <span className="text-slate-500 italic">No email provided yet</span>
+                    <span className="text-[#8fa396] italic">No email provided yet</span>
                   )}
-                  {check.ownerName && <span className="text-slate-500">({check.ownerName})</span>}
+                  {check.ownerName && <span className="text-[#bac9bf]">({check.ownerName})</span>}
                 </div>
                 {check.phone && (
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Phone className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                    <a href={`tel:${check.phone}`} className="hover:text-white">
+                  <div className="flex items-center gap-2 text-[#F0EBE0]">
+                    <Phone className="w-4 h-4 text-[#8fa396] flex-shrink-0" />
+                    <a href={`tel:${check.phone}`} className="hover:text-[#7be0b8]">
                       {check.phone}
                     </a>
                   </div>
@@ -779,11 +779,11 @@ export default function ReviewStudioEditor({
               </div>
 
               {check.primaryHeadache && (
-                <div className="p-4 bg-[#080D18] border border-amber-500/20 rounded-lg space-y-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">
+                <div className="p-4 bg-[#131f19] border border-[#f6b971]/30 rounded-lg space-y-1">
+                  <span className="text-[11px] uppercase tracking-wider text-[#f6b971] font-bold">
                     Primary Operational Headache (From Intake)
                   </span>
-                  <p className="text-xs text-slate-300 italic leading-relaxed">
+                  <p className="text-xs text-[#F0EBE0] italic leading-relaxed">
                     &quot;{check.primaryHeadache}&quot;
                   </p>
                 </div>
@@ -793,50 +793,50 @@ export default function ReviewStudioEditor({
 
           {/* TAB 2: AUTOMATED SCAN FINDINGS */}
           {activeDossierTab === 'findings' && (
-            <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-6 space-y-5">
-              <div className="border-b border-slate-800 pb-4">
+            <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-6 space-y-5">
+              <div className="border-b border-[#2c3e33] pb-4">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-300 font-mono text-[10px] font-bold rounded">
+                  <span className="px-2.5 py-0.5 bg-[#bac9bf]/10 border border-[#bac9bf]/25 text-[#c2d1c7] font-mono text-[10px] font-bold rounded-full">
                     [AUTO_DETECTED] EVIDENCE
                   </span>
-                  <span className="text-xs font-mono text-slate-400">
-                    Status: <strong className="text-white">{check.scanStatus}</strong>
+                  <span className="text-xs text-[#bac9bf]">
+                    Status: <strong className="text-[#F0EBE0] font-mono">{check.scanStatus}</strong>
                   </span>
                 </div>
 
                 <div className="mt-3 flex items-baseline justify-between">
                   <div>
-                    <span className="text-3xl font-bold font-serif text-amber-400">
+                    <span className="text-3xl font-bold font-[family-name:var(--font-display)] text-[#7be0b8]">
                       {check.overallScore !== null ? check.overallScore : "—"}
                     </span>
-                    <span className="text-xs text-slate-500 font-mono"> / 100</span>
+                    <span className="text-xs text-[#8fa396] font-mono"> / 100</span>
                   </div>
-                  <span className="text-xs font-mono text-slate-300">
+                  <span className="text-xs font-medium text-[#bac9bf]">
                     {check.scoreBreakdown?.coverage?.confidence || 'STANDARD'} • {check.scoreBreakdown?.coverage?.overall ?? 0}% Coverage
                   </span>
                 </div>
               </div>
 
               {/* Compact Browser-Rendered Experience Section */}
-              <div className="p-3.5 bg-[#080D18] border border-slate-800 rounded-xl space-y-3 text-xs">
+              <div className="p-3.5 bg-[#131f19] border border-[#2c3e33] rounded-xl space-y-3 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold block">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-[#c2d1c7] font-bold block">
                       [BROWSER_RENDER] RENDERED EXPERIENCE
                     </span>
-                    <span className="text-slate-200 font-semibold">
+                    <span className="text-[#F0EBE0] font-semibold">
                       Desktop (1440×900) &amp; Mobile (390×844)
                     </span>
                   </div>
                   <span
-                    className={`px-2 py-0.5 rounded font-mono text-[10px] font-bold ${
+                    className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
                       !browserEvidence
-                        ? "bg-slate-800 text-slate-400 border border-slate-700"
+                        ? "bg-[#16231c] text-[#bac9bf] border border-[#2c3e33]"
                         : browserEvidence.status === "COMPLETED"
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                        ? "bg-[#7be0b8]/12 text-[#7be0b8] border border-[#7be0b8]/30"
                         : browserEvidence.status === "BLOCKED"
-                        ? "bg-amber-500/10 text-amber-300 border border-amber-500/30"
-                        : "bg-slate-800 text-slate-400 border border-slate-700"
+                        ? "bg-[#f6b971]/12 text-[#f6b971] border border-[#f6b971]/30"
+                        : "bg-[#16231c] text-[#bac9bf] border border-[#2c3e33]"
                     }`}
                   >
                     {browserEvidence ? browserEvidence.status : "NOT CAPTURED"}
@@ -844,12 +844,12 @@ export default function ReviewStudioEditor({
                 </div>
 
                 {!browserEvidence ? (
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-[#bac9bf] leading-relaxed">
                     Browser-rendered desktop and mobile evidence was not captured for this earlier scan snapshot.
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between">
+                    <div className="text-[11px] text-[#bac9bf] flex items-center justify-between">
                       <span>
                         Captured:{" "}
                         {browserEvidence.capturedAt
@@ -857,7 +857,7 @@ export default function ReviewStudioEditor({
                           : "—"}
                       </span>
                       {typeof browserEvidence.totalDurationMs === "number" && (
-                        <span>{browserEvidence.totalDurationMs}ms</span>
+                        <span className="font-mono text-[10px] text-[#8fa396]">{browserEvidence.totalDurationMs}ms</span>
                       )}
                     </div>
 
@@ -869,13 +869,16 @@ export default function ReviewStudioEditor({
                         return (
                           <div
                             key={vp.viewportLabel}
-                            className="p-2.5 bg-[#0E1524] border border-slate-800 rounded-lg space-y-1.5"
+                            className="p-2.5 bg-[#16231c] border border-[#2c3e33] rounded-lg space-y-1.5"
                           >
                             <div className="flex items-center justify-between gap-1">
-                              <span className="font-mono text-[10px] uppercase font-bold text-slate-200">
-                                {vp.viewportLabel} ({vp.viewport?.width}×{vp.viewport?.height})
+                              <span className="text-[11px] uppercase font-bold text-[#F0EBE0]">
+                                {vp.viewportLabel}{" "}
+                                <span className="font-mono text-[10px] font-normal text-[#bac9bf]">
+                                  ({vp.viewport?.width}×{vp.viewport?.height})
+                                </span>
                               </span>
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-[10px] font-mono text-[#bac9bf]">
                                 {vp.status}
                               </span>
                             </div>
@@ -889,7 +892,7 @@ export default function ReviewStudioEditor({
                                       isExpanded ? null : vp.viewportLabel
                                     )
                                   }
-                                  className="w-full overflow-hidden rounded border border-slate-700/80 hover:border-amber-400/60 transition-colors block text-left"
+                                  className="w-full overflow-hidden rounded border border-[#36493d] hover:border-[#7be0b8]/60 transition-colors block text-left"
                                   title="Click to toggle larger screenshot preview"
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -899,12 +902,12 @@ export default function ReviewStudioEditor({
                                     className="w-full h-24 object-cover object-top"
                                   />
                                 </button>
-                                <span className="text-[10px] font-mono text-slate-500 block">
+                                <span className="text-[10px] text-[#8fa396] block">
                                   Click thumbnail to {isExpanded ? "collapse" : "enlarge"}
                                 </span>
                               </div>
                             ) : (
-                              <div className="h-16 rounded bg-[#080D18] border border-slate-800 flex items-center justify-center text-[10px] text-slate-500 font-mono text-center px-2">
+                              <div className="h-16 rounded bg-[#101914] border border-[#2c3e33] flex items-center justify-center text-[10px] text-[#8fa396] text-center px-2">
                                 {vp.screenshotPruneReason
                                   ? "Screenshot expired per retention policy (metrics preserved)"
                                   : vp.screenshotOmittedReason ||
@@ -914,7 +917,7 @@ export default function ReviewStudioEditor({
                             )}
 
                             {vp.status === "RENDERED" && (
-                              <div className="text-[10px] font-mono text-slate-400 space-y-0.5 pt-0.5">
+                              <div className="text-[10px] font-mono text-[#bac9bf] space-y-0.5 pt-0.5">
                                 <div>
                                   Text: {vp.visibleTextLength ?? 0} chars · Headings:{" "}
                                   {(vp.majorHeadings || []).length}
@@ -924,12 +927,12 @@ export default function ReviewStudioEditor({
                                   {vp.navigationObserved ? "Yes" : "No"}
                                 </div>
                                 {vp.hasHorizontalOverflow && (
-                                  <div className="text-red-400 font-bold">
+                                  <div className="text-[#f28b82] font-bold">
                                     Overflow: +{vp.horizontalOverflowPx}px
                                   </div>
                                 )}
                                 {(vp.mediaTextOverlaps || []).length > 0 && (
-                                  <div className="text-amber-300 font-bold">
+                                  <div className="text-[#f6b971] font-bold">
                                     Artwork-over-text: {(vp.mediaTextOverlaps || []).length} block(s)
                                   </div>
                                 )}
@@ -943,17 +946,20 @@ export default function ReviewStudioEditor({
                     {/* Enlarged Screenshot View */}
                     {expandedViewportPreview &&
                       browserEvidence[expandedViewportPreview]?.screenshotDataUrl && (
-                        <div className="p-2.5 bg-[#0E1524] border border-amber-500/40 rounded-lg space-y-2">
+                        <div className="p-2.5 bg-[#16231c] border border-[#7be0b8]/40 rounded-lg space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-mono uppercase text-amber-300 font-bold">
+                            <span className="text-[11px] uppercase text-[#7be0b8] font-bold">
                               Enlarged {expandedViewportPreview} Preview (
-                              {browserEvidence[expandedViewportPreview].viewport?.width}×
-                              {browserEvidence[expandedViewportPreview].viewport?.height})
+                              <span className="font-mono">
+                                {browserEvidence[expandedViewportPreview].viewport?.width}×
+                                {browserEvidence[expandedViewportPreview].viewport?.height}
+                              </span>
+                              )
                             </span>
                             <button
                               type="button"
                               onClick={() => setExpandedViewportPreview(null)}
-                              className="text-[10px] font-mono text-slate-400 hover:text-white underline"
+                              className="text-[11px] text-[#bac9bf] hover:text-[#F0EBE0] underline"
                             >
                               Close Preview
                             </button>
@@ -962,7 +968,7 @@ export default function ReviewStudioEditor({
                           <img
                             src={browserEvidence[expandedViewportPreview].screenshotDataUrl!}
                             alt={`Enlarged ${expandedViewportPreview} screenshot`}
-                            className="w-full rounded border border-slate-700"
+                            className="w-full rounded border border-[#36493d]"
                           />
                         </div>
                       )}
@@ -971,8 +977,8 @@ export default function ReviewStudioEditor({
                     {(browserEvidence.comparison?.objectiveWarnings?.length > 0 ||
                       browserEvidence.comparison?.missingMobileElements?.length > 0 ||
                       browserEvidence.comparison?.missingDesktopElements?.length > 0) && (
-                      <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg space-y-1 text-[11px] text-amber-200">
-                        <span className="font-mono text-[10px] font-bold uppercase text-amber-300 block">
+                      <div className="p-2.5 bg-[#f6b971]/10 border border-[#f6b971]/30 rounded-lg space-y-1 text-[11px] text-[#F0EBE0]">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#f6b971] block">
                           Objective Layout &amp; Viewport Findings
                         </span>
                         {(browserEvidence.comparison.objectiveWarnings || []).map(
@@ -984,14 +990,14 @@ export default function ReviewStudioEditor({
                         )}
                         {(browserEvidence.comparison.missingMobileElements || []).map(
                           (item: string, idx: number) => (
-                            <p key={`mm-${idx}`} className="leading-relaxed text-slate-300">
+                            <p key={`mm-${idx}`} className="leading-relaxed text-[#bac9bf]">
                               • Mobile difference: {item}
                             </p>
                           )
                         )}
                         {(browserEvidence.comparison.missingDesktopElements || []).map(
                           (item: string, idx: number) => (
-                            <p key={`md-${idx}`} className="leading-relaxed text-slate-300">
+                            <p key={`md-${idx}`} className="leading-relaxed text-[#bac9bf]">
                               • Desktop difference: {item}
                             </p>
                           )
@@ -1005,21 +1011,21 @@ export default function ReviewStudioEditor({
                         {browserEvidence.checks.map((chk: any) => (
                           <div
                             key={chk.key}
-                            className="p-2 bg-[#0E1524] border border-slate-800/90 rounded flex items-start justify-between gap-2 text-[11px]"
+                            className="p-2.5 bg-[#16231c] border border-[#2c3e33] rounded-lg flex items-start justify-between gap-2 text-[11px]"
                           >
                             <div>
-                              <span className="font-semibold text-slate-200">{chk.title}</span>
-                              <p className="text-slate-400 text-[10px] mt-0.5 leading-relaxed">
+                              <span className="font-semibold text-[#F0EBE0]">{chk.title}</span>
+                              <p className="text-[#bac9bf] text-[10px] mt-0.5 leading-relaxed">
                                 {chk.detail}
                               </p>
                             </div>
                             <span
-                              className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold flex-shrink-0 ${
+                              className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-bold flex-shrink-0 ${
                                 chk.classification === "AUTO"
-                                  ? "bg-blue-500/10 text-blue-300 border border-blue-500/30"
+                                  ? "bg-[#bac9bf]/10 text-[#c2d1c7] border border-[#bac9bf]/25"
                                   : chk.classification === "VERIFY"
-                                  ? "bg-amber-500/10 text-amber-300 border border-amber-500/30"
-                                  : "bg-purple-500/10 text-purple-300 border border-purple-500/30"
+                                  ? "bg-[#f6b971]/12 text-[#f6b971] border border-[#f6b971]/30"
+                                  : "bg-[#f6b971]/12 text-[#f6b971] border border-[#f6b971]/30"
                               }`}
                             >
                               {chk.classification} · {chk.state}
@@ -1039,23 +1045,23 @@ export default function ReviewStudioEditor({
                   value={findingsSearch}
                   onChange={(e) => setFindingsSearch(e.target.value)}
                   placeholder={`Filter ${findings.length} automated checks...`}
-                  className="w-full px-3 py-1.5 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-1.5 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                 />
 
                 <div className="space-y-2 max-h-[550px] overflow-y-auto pr-1">
                   {filteredFindings.map((finding) => (
                     <div
                       key={finding.id || finding.checkKey}
-                      className="p-3 bg-[#080D18] border border-slate-800 rounded-lg space-y-1 text-xs"
+                      className="p-3 bg-[#131f19] border border-[#2c3e33] rounded-lg space-y-1 text-xs"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-slate-200">{finding.title}</span>
+                        <span className="font-semibold text-[#F0EBE0]">{finding.title}</span>
                         <FindingPill checkKey={finding.checkKey} state={finding.state as FindingState} maxPoints={finding.maxPoints} supportingDetail={finding.supportingDetail} />
                       </div>
-                      <div className="text-[11px] text-slate-400 leading-relaxed">
+                      <div className="text-[11px] text-[#bac9bf] leading-relaxed">
                         {finding.supportingDetail}
                       </div>
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 pt-1">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-[#8fa396] pt-1">
                         <span>{finding.category}</span>
                         <span>Pts: {finding.scoreContribution}/{finding.maxPoints}</span>
                       </div>
@@ -1068,22 +1074,22 @@ export default function ReviewStudioEditor({
 
           {/* TAB 3: OWNER PROVIDED CONTEXT */}
           {activeDossierTab === 'owner' && (
-            <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-6 space-y-5">
-              <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
-                <span className="px-2.5 py-0.5 bg-purple-500/10 border border-purple-500/30 text-purple-300 font-mono text-[10px] font-bold rounded">
+            <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-6 space-y-5">
+              <div className="border-b border-[#2c3e33] pb-3 flex items-center justify-between">
+                <span className="px-2.5 py-0.5 bg-[#F0EBE0]/10 border border-[#F0EBE0]/25 text-[#F0EBE0] font-mono text-[10px] font-bold rounded-full">
                   [OWNER_PROVIDED] CONTEXT
                 </span>
                 {ownerResponse?.submittedAt && (
-                  <span className="text-[10px] font-mono text-slate-400">
+                  <span className="text-[11px] text-[#bac9bf]">
                     {new Date(ownerResponse.submittedAt).toLocaleDateString()}
                   </span>
                 )}
               </div>
 
               {!ownerResponse ? (
-                <div className="p-6 bg-[#080D18] border border-slate-800 rounded-lg text-center space-y-2">
-                  <p className="text-slate-300 font-semibold text-xs">No Questionnaire Submitted</p>
-                  <p className="text-slate-500 text-[11px] leading-relaxed">
+                <div className="p-6 bg-[#131f19] border border-[#2c3e33] rounded-lg text-center space-y-2">
+                  <p className="text-[#F0EBE0] font-semibold text-xs">No Questionnaire Submitted</p>
+                  <p className="text-[#bac9bf] text-[11px] leading-relaxed">
                     The owner has not filled out the optional questionnaire yet. The Reality Check remains completely valid for your manual review.
                   </p>
                 </div>
@@ -1138,67 +1144,67 @@ export default function ReviewStudioEditor({
         <div className="lg:col-span-7 space-y-6">
 
           {/* Workflow Toggle Tabs */}
-          <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-3 border-b border-[#2c3e33] pb-3">
             <button
               onClick={() => setActiveWorkflowTab('investigation')}
-              className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 ${
                 activeWorkflowTab === 'investigation'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#7be0b8]/15 text-[#7be0b8] border border-[#7be0b8]/35'
+                  : 'text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#16231c]'
               }`}
             >
               <span>1. Human Investigation</span>
-              <span className="text-[10px] text-slate-500 font-normal">({opportunities.length} opps, 3 fixes)</span>
+              <span className="text-[11px] text-[#8fa396] font-normal">({opportunities.length} opps, 3 fixes)</span>
             </button>
             <button
               onClick={() => setActiveWorkflowTab('report')}
-              className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 ${
                 activeWorkflowTab === 'report'
-                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-[#7be0b8]/15 text-[#7be0b8] border border-[#7be0b8]/35'
+                  : 'text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#16231c]'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <Sparkles className="w-3.5 h-3.5 text-[#7be0b8]" />
               <span>2. Client Report Draft</span>
               {reportDraft ? (
-                <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">
+                <span className="px-2 py-0.5 rounded-full bg-[#7be0b8]/15 border border-[#7be0b8]/30 text-[#7be0b8] text-[10px] font-bold">
                   Draft Ready
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-500 font-normal">(Not generated)</span>
+                <span className="text-[11px] text-[#8fa396] font-normal">(Not generated)</span>
               )}
             </button>
           </div>
 
           {/* TAB 1: HUMAN INVESTIGATION */}
           {activeWorkflowTab === 'investigation' && (
-            <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-6 md:p-8 space-y-8 shadow-2xl">
-              <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-6 md:p-8 space-y-8 shadow-2xl">
+              <div className="border-b border-[#2c3e33] pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <span className="px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold rounded">
+                  <span className="px-2.5 py-0.5 bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono text-[10px] font-bold rounded-full">
                     [BARATRUST_REVIEW] HUMAN INVESTIGATION
                   </span>
-                  <h2 className="text-2xl font-bold font-serif text-white mt-1">
-                    Todd & Noelah Judgment & Notes
+                  <h2 className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#F0EBE0] mt-1.5">
+                    Todd &amp; Noelah Judgment &amp; Notes
                   </h2>
                 </div>
-                <div className="text-right text-xs font-mono text-slate-400">
+                <div className="text-right text-xs text-[#bac9bf]">
                   <span>Reviewer: </span>
-                  <span className="text-white font-semibold">{reviewerName}</span>
+                  <span className="text-[#F0EBE0] font-semibold">{reviewerName}</span>
                 </div>
               </div>
 
               {/* 1. Findability Test */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">1.</span> Findability Test
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">1.</span> Findability Test
                   </label>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW]
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[#bac9bf] leading-relaxed">
                   How easy is the business to find when searching the way an actual customer would? Record search phrases tested, rankings, competitors appearing above them, and Google Maps presence.
                 </p>
                 <textarea
@@ -1206,21 +1212,21 @@ export default function ReviewStudioEditor({
                   value={findabilityTest}
                   onChange={(e) => setFindabilityTest(e.target.value)}
                   placeholder="e.g. Searched 'emergency furnace repair New Albany'. Business did not appear in top 3 Google map pack. Competitor X held spots 1 and 2."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed"
+                  className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8] text-xs leading-relaxed"
                 />
               </div>
 
               {/* 2. Reputation Summary */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">2.</span> Reputation Summary
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">2.</span> Reputation Summary
                   </label>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW]
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[#bac9bf] leading-relaxed">
                   Human observations of public reputation: review count, recurring praise, recurring complaints, owner response habits.
                 </p>
                 <textarea
@@ -1228,21 +1234,21 @@ export default function ReviewStudioEditor({
                   value={reputationSummary}
                   onChange={(e) => setReputationSummary(e.target.value)}
                   placeholder="e.g. 4.8 stars across 42 Google reviews. Customers repeatedly praise punctual service and honest pricing. 0 owner responses in the last 12 months."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed"
+                  className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8] text-xs leading-relaxed"
                 />
               </div>
 
               {/* 3. Social Presence Review */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">3.</span> Social Presence Review
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">3.</span> Social Presence Review
                   </label>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW]
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[#bac9bf] leading-relaxed">
                   Platforms found, posting freshness, engagement observations, content strengths and weaknesses.
                 </p>
                 <textarea
@@ -1250,21 +1256,21 @@ export default function ReviewStudioEditor({
                   value={socialPresenceReview}
                   onChange={(e) => setSocialPresenceReview(e.target.value)}
                   placeholder="e.g. Active Facebook page with 1.2k followers. Last post was 3 days ago. Instagram is dormant."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed"
+                  className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8] text-xs leading-relaxed"
                 />
               </div>
 
               {/* 4. Competitor Comparison */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">4.</span> Competitor Comparison (2–3 Key Rivals)
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">4.</span> Competitor Comparison (2–3 Key Rivals)
                   </label>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW]
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[#bac9bf] leading-relaxed">
                   Detail 2–3 competitors: their name, why selected, where the competitor appears stronger, and where our client has the edge.
                 </p>
                 <textarea
@@ -1275,21 +1281,21 @@ export default function ReviewStudioEditor({
 1. Ace Mechanical — Ranked #1 locally. Has online booking widget. Weaker on customer reviews (3.9 stars).
 2. Southern HVAC — Strong Facebook ads. Website lacks mobile tap-to-call.
 Client Edge: Higher authentic review rating and direct owner trust."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed font-mono"
+                  className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8] text-xs leading-relaxed"
                 />
               </div>
 
               {/* 5. Lost Opportunity Hunt */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">5.</span> Lost Opportunity Hunt (Friction & Leakage)
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">5.</span> Lost Opportunity Hunt (Friction &amp; Leakage)
                   </label>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW]
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[#bac9bf] leading-relaxed">
                   Where is the business losing customers right now? Missed phone calls, buried quote buttons, lack of follow-up, confusing hours.
                 </p>
                 <textarea
@@ -1297,34 +1303,34 @@ Client Edge: Higher authentic review rating and direct owner trust."
                   value={lostOpportunityHunt}
                   onChange={(e) => setLostOpportunityHunt(e.target.value)}
                   placeholder="e.g. Phone number is plain text on mobile (cannot tap to call). The contact form asks for 9 fields before giving an estimate."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed"
+                  className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8] text-xs leading-relaxed"
                 />
               </div>
 
               {/* HUMAN INTELLIGENCE LAYER (DEEP-DIVE MODULES) */}
-              <div className="space-y-6 pt-4 border-t border-slate-800">
+              <div className="space-y-6 pt-4 border-t border-[#2c3e33]">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <span className="px-2.5 py-0.5 bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[10px] font-bold rounded">
+                    <span className="px-2.5 py-0.5 bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] font-mono text-[10px] font-bold rounded-full">
                       [BARATRUST_REVIEW] HUMAN INTELLIGENCE LAYER
                     </span>
-                    <h3 className="text-lg font-bold font-serif text-white mt-1">
-                      Brand Reality, Customer Voice, Ad Funnel & Legacy Footprint
+                    <h3 className="text-lg font-bold font-[family-name:var(--font-display)] text-[#F0EBE0] mt-1.5">
+                      Brand Reality, Customer Voice, Ad Funnel &amp; Legacy Footprint
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[#bac9bf]">
                       Capture hands-on customer/business judgment. Leave any section blank if not applicable—empty modules are automatically omitted from the final report.
                     </p>
                   </div>
                 </div>
 
                 {/* Mystery-Shop Prompt Guide */}
-                <div className="p-4 bg-[#080D18] border border-amber-500/25 rounded-xl space-y-2 text-xs">
-                  <div className="flex items-center gap-2 font-mono text-[11px] text-amber-400 font-bold uppercase tracking-wider">
+                <div className="p-4 bg-[#131f19] border border-[#36493d] rounded-xl space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-[11px] text-[#7be0b8] font-bold uppercase tracking-wider">
                     <Lightbulb className="w-3.5 h-3.5" />
-                    <span>Customer & Business Mystery-Shop Prompts</span>
+                    <span>Customer &amp; Business Mystery-Shop Prompts</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-slate-300">
-                    <span>• Is the website/social presence pleasant & attractive?</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-[#bac9bf]">
+                    <span>• Is the website/social presence pleasant &amp; attractive?</span>
                     <span>• Does it flow naturally for a real customer?</span>
                     <span>• Is anything confusing, awkward, or broken?</span>
                     <span>• Is it easy to buy, book, order, call, or visit?</span>
@@ -1334,33 +1340,33 @@ Client Edge: Higher authentic review rating and direct owner trust."
                 </div>
 
                 {/* 5A. Brand Reality */}
-                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                <div className="p-5 bg-[#131f19] border border-[#2c3e33] rounded-xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      <span className="text-amber-400 font-mono">5A.</span> Brand Reality & Mystery-Shop Judgment
+                    <h4 className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                      <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">5A.</span> Brand Reality &amp; Mystery-Shop Judgment
                     </h4>
-                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                       [BARATRUST_REVIEW]
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Apparent Brand / Message</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Apparent Brand / Message</label>
                       <input
                         type="text"
                         value={brandReality.apparentBrandMessage || ""}
                         onChange={(e) => setBrandReality({ ...brandReality, apparentBrandMessage: e.target.value })}
                         placeholder="What does this business appear to stand for at first glance?"
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Is Message Obvious?</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Is Message Obvious?</label>
                       <select
                         value={brandReality.messageClarity || "UNKNOWN"}
                         onChange={(e) => setBrandReality({ ...brandReality, messageClarity: e.target.value as BrandMessageClarity })}
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] focus:outline-none focus:border-[#7be0b8]"
                       >
                         <option value="UNKNOWN">Not Evaluated / Unknown</option>
                         <option value="OBVIOUS">OBVIOUS — Clear immediately</option>
@@ -1372,19 +1378,19 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
-                        Customer Experience & Flow (Mystery-Shop Impression)
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">
+                        Customer Experience &amp; Flow (Mystery-Shop Impression)
                       </label>
                       <textarea
                         rows={2}
                         value={brandReality.mysteryShopImpression || ""}
                         onChange={(e) => setBrandReality({ ...brandReality, mysteryShopImpression: e.target.value })}
                         placeholder="Is it pleasant, trustworthy, current, and easy to buy/book/order/call?"
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">
                         Brand / Customer Mismatch
                       </label>
                       <textarea
@@ -1392,14 +1398,14 @@ Client Edge: Higher authentic review rating and direct owner trust."
                         value={brandReality.brandCustomerMismatch || ""}
                         onChange={(e) => setBrandReality({ ...brandReality, brandCustomerMismatch: e.target.value })}
                         placeholder="e.g. Customers describe the business as quirky and family-friendly, but its website feels generic and corporate."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">
                         Cross-Channel Consistency (Website / Social / Search)
                       </label>
                       <input
@@ -1407,11 +1413,11 @@ Client Edge: Higher authentic review rating and direct owner trust."
                         value={brandReality.consistencyNotes || ""}
                         onChange={(e) => setBrandReality({ ...brandReality, consistencyNotes: e.target.value })}
                         placeholder="e.g. Instagram is warm and visual, but Google listing has outdated photos."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">
                         Strongest Brand Opportunity
                       </label>
                       <input
@@ -1419,12 +1425,12 @@ Client Edge: Higher authentic review rating and direct owner trust."
                         value={brandReality.strongestBrandOpportunity || ""}
                         onChange={(e) => setBrandReality({ ...brandReality, strongestBrandOpportunity: e.target.value })}
                         placeholder="e.g. Bring their warm in-store family personality onto the homepage."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                  <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <input
                         type="text"
@@ -1436,7 +1442,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Evidence source (e.g. Homepage vs. Google Reviews)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                       <input
                         type="text"
@@ -1448,7 +1454,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Source URL (optional)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                       <input
                         type="text"
@@ -1460,10 +1466,10 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Short quote or evidence note (optional)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
-                    <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                    <label className="inline-flex items-center gap-2 text-[11px] text-[#bac9bf] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={Boolean(brandReality.evidence?.clientVisible)}
@@ -1473,7 +1479,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             evidence: { ...(brandReality.evidence || {}), clientVisible: e.target.checked },
                           })
                         }
-                        className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                        className="rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                       />
                       <span>Show citation on client report (otherwise kept internal)</span>
                     </label>
@@ -1481,24 +1487,24 @@ Client Edge: Higher authentic review rating and direct owner trust."
                 </div>
 
                 {/* 5B. Customer Voice / Review Intelligence */}
-                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                <div className="p-5 bg-[#131f19] border border-[#2c3e33] rounded-xl space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <span className="text-amber-400 font-mono">5B.</span> Customer Voice / Review Intelligence
+                      <h4 className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                        <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">5B.</span> Customer Voice / Review Intelligence
                       </h4>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-[#bac9bf]">
                         What real customers repeatedly praise or complain about (no exact review counts required unless verified).
                       </p>
                     </div>
-                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                       [BARATRUST_REVIEW]
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-mono text-emerald-400">
+                      <label className="block text-[11px] font-semibold text-[#7be0b8]">
                         Top 3 Things Customers Love
                       </label>
                       {[0, 1, 2].map((i) => (
@@ -1508,13 +1514,13 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           value={customerVoice.topLoves?.[i] || ""}
                           onChange={(e) => updateCustomerVoiceList("topLoves", i, e.target.value)}
                           placeholder={`Customer praise #${i + 1} (e.g. Homemade salsa bar)`}
-                          className="w-full px-3 py-1.5 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                          className="w-full px-3 py-1.5 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                         />
                       ))}
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[11px] font-mono text-amber-400">
+                      <label className="block text-[11px] font-semibold text-[#f6b971]">
                         Top 3 Recurring Complaints / Friction Points
                       </label>
                       {[0, 1, 2].map((i) => (
@@ -1524,7 +1530,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           value={customerVoice.topComplaints?.[i] || ""}
                           onChange={(e) => updateCustomerVoiceList("topComplaints", i, e.target.value)}
                           placeholder={`Friction point #${i + 1} (e.g. Hard to reach by phone at lunch)`}
-                          className="w-full px-3 py-1.5 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-1.5 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#f6b971]"
                         />
                       ))}
                     </div>
@@ -1532,7 +1538,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">
                         Recurring Customer Themes
                       </label>
                       <textarea
@@ -1540,11 +1546,11 @@ Client Edge: Higher authentic review rating and direct owner trust."
                         value={customerVoice.recurringThemes || ""}
                         onChange={(e) => setCustomerVoice({ ...customerVoice, recurringThemes: e.target.value })}
                         placeholder="Patterns in how customers describe their experience..."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-emerald-400 mb-1">
+                      <label className="block text-[11px] font-semibold text-[#7be0b8] mb-1">
                         Hidden / Unmarketed Strengths Customers Praise
                       </label>
                       <textarea
@@ -1552,12 +1558,12 @@ Client Edge: Higher authentic review rating and direct owner trust."
                         value={customerVoice.unmarketedStrengths || ""}
                         onChange={(e) => setCustomerVoice({ ...customerVoice, unmarketedStrengths: e.target.value })}
                         placeholder="Services or strengths customers rave about that the business barely promotes..."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                  <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <input
                         type="text"
@@ -1569,7 +1575,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Evidence source (e.g. Google Reviews, Facebook)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                       <input
                         type="text"
@@ -1581,7 +1587,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Source URL (optional)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                       <input
                         type="text"
@@ -1593,10 +1599,10 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Short quote or evidence note (optional)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
-                    <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                    <label className="inline-flex items-center gap-2 text-[11px] text-[#bac9bf] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={Boolean(customerVoice.evidence?.clientVisible)}
@@ -1606,7 +1612,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             evidence: { ...(customerVoice.evidence || {}), clientVisible: e.target.checked },
                           })
                         }
-                        className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                        className="rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                       />
                       <span>Show citation on client report (otherwise kept internal)</span>
                     </label>
@@ -1614,25 +1620,25 @@ Client Edge: Higher authentic review rating and direct owner trust."
                 </div>
 
                 {/* 5C. Advertising Presence & Funnel */}
-                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                <div className="p-5 bg-[#131f19] border border-[#2c3e33] rounded-xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      <span className="text-amber-400 font-mono">5C.</span> Advertising Presence & Funnel
+                    <h4 className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                      <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">5C.</span> Advertising Presence &amp; Funnel
                     </h4>
-                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                       [BARATRUST_REVIEW]
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Public Ad Evidence</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Public Ad Evidence</label>
                       <select
                         value={advertisingFunnel.adPresence || "UNKNOWN"}
                         onChange={(e) =>
                           setAdvertisingFunnel({ ...advertisingFunnel, adPresence: e.target.value as AdPresenceState })
                         }
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] focus:outline-none focus:border-[#7be0b8]"
                       >
                         <option value="UNKNOWN">UNKNOWN — Not checked / unclear</option>
                         <option value="OBSERVED">OBSERVED — Active ads observed in public channels</option>
@@ -1640,17 +1646,17 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Platforms Observed</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Platforms Observed</label>
                       <input
                         type="text"
                         value={advertisingFunnel.platformsObserved || ""}
                         onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, platformsObserved: e.target.value })}
                         placeholder="e.g. Meta Ad Library, Google Local Ads"
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Ad Spend Recommendation</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Ad Spend Recommendation</label>
                       <select
                         value={advertisingFunnel.recommendation || "UNKNOWN"}
                         onChange={(e) =>
@@ -1659,7 +1665,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             recommendation: e.target.value as AdFunnelRecommendation,
                           })
                         }
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] focus:outline-none focus:border-[#7be0b8]"
                       >
                         <option value="UNKNOWN">No specific ad recommendation</option>
                         <option value="IMPROVE_FUNNEL_FIRST">IMPROVE_FUNNEL_FIRST — Fix landing/follow-up first</option>
@@ -1671,51 +1677,51 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">What They Are Promoting (Offer)</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">What They Are Promoting (Offer)</label>
                       <input
                         type="text"
                         value={advertisingFunnel.offerSummary || ""}
                         onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, offerSummary: e.target.value })}
                         placeholder="e.g. $49 seasonal tune-up special"
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Landing Page / Destination Quality</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Landing Page / Destination Quality</label>
                       <input
                         type="text"
                         value={advertisingFunnel.landingPageQuality || ""}
                         onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, landingPageQuality: e.target.value })}
                         placeholder="e.g. Drops traffic on generic homepage with no mention of the offer"
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Ad-to-Funnel Mismatch / Leakage</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Ad-to-Funnel Mismatch / Leakage</label>
                       <input
                         type="text"
                         value={advertisingFunnel.adToFunnelMismatch || ""}
                         onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, adToFunnelMismatch: e.target.value })}
                         placeholder="Where paid clicks are likely leaking..."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-mono text-slate-400 mb-1">Recommendation Note</label>
+                      <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Recommendation Note</label>
                       <input
                         type="text"
                         value={advertisingFunnel.recommendationNote || ""}
                         onChange={(e) => setAdvertisingFunnel({ ...advertisingFunnel, recommendationNote: e.target.value })}
                         placeholder="Practical guidance on their ad spend..."
-                        className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                  <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <input
                         type="text"
@@ -1727,7 +1733,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Evidence source (e.g. Meta Ad Library)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                       <input
                         type="text"
@@ -1739,7 +1745,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Source URL (optional)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                       <input
                         type="text"
@@ -1751,10 +1757,10 @@ Client Edge: Higher authentic review rating and direct owner trust."
                           })
                         }
                         placeholder="Short quote or evidence note (optional)"
-                        className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                        className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
-                    <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                    <label className="inline-flex items-center gap-2 text-[11px] text-[#bac9bf] cursor-pointer">
                       <input
                         type="checkbox"
                         checked={Boolean(advertisingFunnel.evidence?.clientVisible)}
@@ -1764,7 +1770,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             evidence: { ...(advertisingFunnel.evidence || {}), clientVisible: e.target.checked },
                           })
                         }
-                        className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                        className="rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                       />
                       <span>Show citation on client report (otherwise kept internal)</span>
                     </label>
@@ -1772,20 +1778,20 @@ Client Edge: Higher authentic review rating and direct owner trust."
                 </div>
 
                 {/* 5D. Ghost Footprint / Legacy Assets */}
-                <div className="p-5 bg-[#080D18] border border-slate-800 rounded-xl space-y-4">
+                <div className="p-5 bg-[#131f19] border border-[#2c3e33] rounded-xl space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                        <span className="text-amber-400 font-mono">5D.</span> Ghost Footprint / Legacy Assets
+                      <h4 className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                        <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">5D.</span> Ghost Footprint / Legacy Assets
                       </h4>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-[#bac9bf]">
                         Abandoned social accounts, duplicate listings, old domains, outdated menus/PDFs, or dead links that confuse customers.
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={addGhostFootprintItem}
-                      className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-mono font-semibold flex items-center gap-1 transition-colors"
+                      className="px-3 py-1.5 bg-[#16231c] hover:bg-[#1b2821] text-[#f6b971] border border-[#f6b971]/35 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add Legacy Asset</span>
@@ -1793,7 +1799,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
                   </div>
 
                   {ghostFootprint.length === 0 ? (
-                    <p className="text-[11px] text-slate-500 italic">
+                    <p className="text-[11px] text-[#8fa396] italic">
                       No ghost footprint or legacy asset issues recorded. Click &quot;Add Legacy Asset&quot; if you found abandoned pages, old addresses/numbers, or duplicate listings.
                     </p>
                   ) : (
@@ -1801,16 +1807,16 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       {ghostFootprint.map((item, idx) => (
                         <div
                           key={item.id || idx}
-                          className="p-4 bg-[#0E1524] border border-amber-500/30 rounded-xl space-y-3"
+                          className="p-4 bg-[#16231c] border border-[#f6b971]/30 rounded-xl space-y-3"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono text-[10px] font-bold">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/25 text-[#f6b971] font-mono text-[10px] font-bold">
                               [BARATRUST_REVIEW] LEGACY ASSET #{idx + 1}
                             </span>
                             <button
                               type="button"
                               onClick={() => removeGhostFootprintItem(idx)}
-                              className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                              className="text-[#8fa396] hover:text-[#f28b82] transition-colors p-1"
                               title="Remove legacy asset"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1819,11 +1825,11 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                              <label className="block text-[11px] font-mono text-slate-400 mb-1">Asset Type</label>
+                              <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Asset Type</label>
                               <select
                                 value={item.assetType}
                                 onChange={(e) => updateGhostFootprintItem(idx, "assetType", e.target.value)}
-                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                                className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] focus:outline-none focus:border-[#7be0b8]"
                               >
                                 <option value="Abandoned Social Account">Abandoned Social Account</option>
                                 <option value="Duplicate Listing">Duplicate Listing</option>
@@ -1836,70 +1842,70 @@ Client Edge: Higher authentic review rating and direct owner trust."
                               </select>
                             </div>
                             <div className="sm:col-span-2">
-                              <label className="block text-[11px] font-mono text-slate-400 mb-1">What Was Found *</label>
+                              <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">What Was Found *</label>
                               <input
                                 type="text"
                                 value={item.summary}
                                 onChange={(e) => updateGhostFootprintItem(idx, "summary", e.target.value)}
                                 placeholder="e.g. Old 2019 Facebook page still ranks #2 on Google with disconnected phone number"
-                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                                className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                               />
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[11px] font-mono text-slate-400 mb-1">Customer Impact</label>
+                              <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Customer Impact</label>
                               <input
                                 type="text"
                                 value={item.customerImpact || ""}
                                 onChange={(e) => updateGhostFootprintItem(idx, "customerImpact", e.target.value)}
                                 placeholder="How this confuses or misleads customers..."
-                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                                className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                               />
                             </div>
                             <div>
-                              <label className="block text-[11px] font-mono text-slate-400 mb-1">Recommended Cleanup Action</label>
+                              <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Recommended Cleanup Action</label>
                               <input
                                 type="text"
                                 value={item.recommendedFix || ""}
                                 onChange={(e) => updateGhostFootprintItem(idx, "recommendedFix", e.target.value)}
                                 placeholder="e.g. Merge or unpublish duplicate page and update phone number"
-                                className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                                className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                               />
                             </div>
                           </div>
 
-                          <div className="space-y-2 pt-1 border-t border-slate-800/80">
+                          <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                               <input
                                 type="text"
                                 value={item.source || ""}
                                 onChange={(e) => updateGhostFootprintItem(idx, "source", e.target.value)}
                                 placeholder="Source (e.g. Google Search, Yelp, Facebook)"
-                                className="px-2.5 py-1.5 bg-[#080D18] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                                className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                               />
                               <input
                                 type="text"
                                 value={item.sourceUrl || ""}
                                 onChange={(e) => updateGhostFootprintItem(idx, "sourceUrl", e.target.value)}
                                 placeholder="Source URL (optional)"
-                                className="px-2.5 py-1.5 bg-[#080D18] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                                className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                               />
                               <input
                                 type="text"
                                 value={item.evidenceNote || ""}
                                 onChange={(e) => updateGhostFootprintItem(idx, "evidenceNote", e.target.value)}
                                 placeholder="Evidence note / quote (optional)"
-                                className="px-2.5 py-1.5 bg-[#080D18] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                                className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                               />
                             </div>
-                            <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                            <label className="inline-flex items-center gap-2 text-[11px] text-[#bac9bf] cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={Boolean(item.clientVisible)}
                                 onChange={(e) => updateGhostFootprintItem(idx, "clientVisible", e.target.checked)}
-                                className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                                className="rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                               />
                               <span>Show citation on client report (otherwise kept internal)</span>
                             </label>
@@ -1912,20 +1918,20 @@ Client Edge: Higher authentic review rating and direct owner trust."
               </div>
 
               {/* 6. Opportunities Found (Dynamic List) */}
-              <div className="space-y-3 pt-2 border-t border-slate-800">
+              <div className="space-y-3 pt-2 border-t border-[#2c3e33]">
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-bold text-white flex items-center gap-2">
-                      <span className="text-emerald-400 font-mono">6.</span> Opportunities Found (Including Hidden Opportunities)
+                    <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                      <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">6.</span> Opportunities Found (Including Hidden Opportunities)
                     </label>
-                    <p className="text-xs text-slate-400">
-                      Concrete revenue, hidden strengths, or operational opportunities Todd & Noelah discovered during review.
+                    <p className="text-xs text-[#bac9bf]">
+                      Concrete revenue, hidden strengths, or operational opportunities Todd &amp; Noelah discovered during review.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={addOpportunity}
-                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-mono font-semibold flex items-center gap-1 transition-colors"
+                    className="px-3 py-1.5 bg-[#192b22] hover:bg-[#21382c] text-[#7be0b8] border border-[#7be0b8]/35 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Opportunity</span>
@@ -1936,17 +1942,17 @@ Client Edge: Higher authentic review rating and direct owner trust."
                   {opportunities.map((opp, idx) => (
                     <div
                       key={opp.id || idx}
-                      className="p-4 bg-[#080D18] border border-emerald-500/30 rounded-xl space-y-3 relative group"
+                      className="p-4 bg-[#131f19] border border-[#7be0b8]/30 rounded-xl space-y-3 relative group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono text-[10px] font-bold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] font-mono text-[10px] font-bold">
                           [OPPORTUNITY_FOUND] #{idx + 1}
                         </span>
                         {opportunities.length > 1 && (
                           <button
                             type="button"
                             onClick={() => removeOpportunity(idx)}
-                            className="text-slate-500 hover:text-red-400 transition-colors p-1"
+                            className="text-[#8fa396] hover:text-[#f28b82] transition-colors p-1"
                             title="Remove opportunity"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1956,21 +1962,21 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="sm:col-span-2">
-                          <label className="block text-[11px] font-mono text-slate-400 mb-1">Opportunity Title *</label>
+                          <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Opportunity Title *</label>
                           <input
                             type="text"
                             value={opp.title}
                             onChange={(e) => updateOpportunity(idx, "title", e.target.value)}
                             placeholder="e.g. Promote Customer-Favorite Catering Trays on Homepage"
-                            className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                            className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-mono text-slate-400 mb-1">Type</label>
+                          <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Type</label>
                           <select
                             value={opp.type}
                             onChange={(e) => updateOpportunity(idx, "type", e.target.value)}
-                            className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                            className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] focus:outline-none focus:border-[#7be0b8]"
                           >
                             <option value="Unpromoted Customer Favorite">Unpromoted Customer Favorite</option>
                             <option value="Underserved Offer">Underserved Offer</option>
@@ -1990,70 +1996,70 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">Description & Why It Matters</label>
+                        <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Description &amp; Why It Matters</label>
                         <textarea
                           rows={2}
                           value={opp.description}
                           onChange={(e) => updateOpportunity(idx, "description", e.target.value)}
                           placeholder="Why is this a viable opportunity for this business right now?"
-                          className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                          className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-mono text-slate-400 mb-1">Suggested Next Action</label>
+                          <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Suggested Next Action</label>
                           <input
                             type="text"
                             value={opp.suggestedAction || ""}
                             onChange={(e) => updateOpportunity(idx, "suggestedAction", e.target.value)}
                             placeholder="e.g. Build simple 1-page commercial inquiry form"
-                            className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                            className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-mono text-slate-400 mb-1">Potential Impact</label>
+                          <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Potential Impact</label>
                           <input
                             type="text"
                             value={opp.potentialImpact || ""}
                             onChange={(e) => updateOpportunity(idx, "potentialImpact", e.target.value)}
                             placeholder="e.g. High ($1,500/mo recurring revenue)"
-                            className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-400"
+                            className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
                       </div>
 
                       {/* Lightweight Evidence Citation */}
-                      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                      <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <input
                             type="text"
                             value={opp.evidence?.source || ""}
                             onChange={(e) => updateOpportunityEvidence(idx, "source", e.target.value)}
                             placeholder="Evidence source (e.g. Google Reviews)"
-                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"
+                            className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                           <input
                             type="text"
                             value={opp.evidence?.sourceUrl || ""}
                             onChange={(e) => updateOpportunityEvidence(idx, "sourceUrl", e.target.value)}
                             placeholder="Source URL (optional)"
-                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"
+                            className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                           <input
                             type="text"
                             value={opp.evidence?.note || ""}
                             onChange={(e) => updateOpportunityEvidence(idx, "note", e.target.value)}
                             placeholder="Evidence quote or note (optional)"
-                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-emerald-400"
+                            className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
-                        <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                        <label className="inline-flex items-center gap-2 text-[11px] text-[#bac9bf] cursor-pointer">
                           <input
                             type="checkbox"
                             checked={Boolean(opp.evidence?.clientVisible)}
                             onChange={(e) => updateOpportunityEvidence(idx, "clientVisible", e.target.checked)}
-                            className="rounded border-slate-700 text-emerald-500 focus:ring-emerald-500/30"
+                            className="rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                           />
                           <span>Show citation on client report (otherwise kept internal)</span>
                         </label>
@@ -2064,12 +2070,12 @@ Client Edge: Higher authentic review rating and direct owner trust."
               </div>
 
               {/* 7. Top 3 Things We Would Fix First */}
-              <div className="space-y-4 pt-2 border-t border-slate-800">
+              <div className="space-y-4 pt-2 border-t border-[#2c3e33]">
                 <div>
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">7.</span> Top 3 Things We Would Fix First
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">7.</span> Top 3 Things We Would Fix First
                   </label>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[#bac9bf]">
                     Prioritized, non-negotiable recommendations for immediate owner impact.
                   </p>
                 </div>
@@ -2078,79 +2084,79 @@ Client Edge: Higher authentic review rating and direct owner trust."
                   {topFixes.map((fix, idx) => (
                     <div
                       key={fix.priority || idx}
-                      className="p-4 bg-[#080D18] border border-amber-500/30 rounded-xl space-y-3"
+                      className="p-4 bg-[#131f19] border border-[#f6b971]/30 rounded-xl space-y-3"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono text-[10px] font-bold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/25 text-[#f6b971] font-mono text-[10px] font-bold">
                           [BARATRUST_REVIEW] PRIORITY #{fix.priority}
                         </span>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-mono text-slate-400 mb-1">Recommendation Title *</label>
+                        <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Recommendation Title *</label>
                         <input
                           type="text"
                           value={fix.title}
                           onChange={(e) => updateTopFix(idx, "title", e.target.value)}
                           placeholder={`Priority ${idx + 1} recommendation title`}
-                          className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                         />
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-mono text-slate-400 mb-1">Why It Matters</label>
+                          <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Why It Matters</label>
                           <textarea
                             rows={2}
                             value={fix.whyItMatters}
                             onChange={(e) => updateTopFix(idx, "whyItMatters", e.target.value)}
                             placeholder="The specific business or revenue risk this addresses."
-                            className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                            className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
                         <div>
-                          <label className="block text-[11px] font-mono text-slate-400 mb-1">Suggested Action</label>
+                          <label className="block text-[11px] font-medium text-[#bac9bf] mb-1">Suggested Action</label>
                           <textarea
                             rows={2}
                             value={fix.suggestedAction}
                             onChange={(e) => updateTopFix(idx, "suggestedAction", e.target.value)}
                             placeholder="Exact practical steps to implement the fix."
-                            className="w-full px-3 py-2 bg-[#0E1524] border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-amber-400"
+                            className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
                       </div>
 
                       {/* Lightweight Evidence Citation */}
-                      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                      <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <input
                             type="text"
                             value={fix.evidence?.source || ""}
                             onChange={(e) => updateTopFixEvidence(idx, "source", e.target.value)}
                             placeholder="Evidence source (e.g. Mobile Mystery Shop)"
-                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                            className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                           <input
                             type="text"
                             value={fix.evidence?.sourceUrl || ""}
                             onChange={(e) => updateTopFixEvidence(idx, "sourceUrl", e.target.value)}
                             placeholder="Source URL (optional)"
-                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                            className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                           <input
                             type="text"
                             value={fix.evidence?.note || ""}
                             onChange={(e) => updateTopFixEvidence(idx, "note", e.target.value)}
                             placeholder="Evidence quote or note (optional)"
-                            className="px-2.5 py-1.5 bg-[#0E1524] border border-slate-800 rounded text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"
+                            className="px-2.5 py-1.5 bg-[#101914] border border-[#2c3e33] rounded text-[11px] text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
                           />
                         </div>
-                        <label className="inline-flex items-center gap-2 text-[11px] font-mono text-slate-400 cursor-pointer">
+                        <label className="inline-flex items-center gap-2 text-[11px] text-[#bac9bf] cursor-pointer">
                           <input
                             type="checkbox"
                             checked={Boolean(fix.evidence?.clientVisible)}
                             onChange={(e) => updateTopFixEvidence(idx, "clientVisible", e.target.checked)}
-                            className="rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                            className="rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                           />
                           <span>Show citation on client report (otherwise kept internal)</span>
                         </label>
@@ -2161,36 +2167,36 @@ Client Edge: Higher authentic review rating and direct owner trust."
               </div>
 
               {/* 8. What We Would NOT Spend Money On */}
-              <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-rose-400 font-mono">8.</span> What We Would NOT Spend Money On
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#f28b82] font-[family-name:var(--font-display)]">8.</span> What We Would NOT Spend Money On
                   </label>
-                  <span className="text-[10px] font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f28b82] bg-[#E05A5A]/12 border border-[#E05A5A]/30 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW] CANDID ADVICE
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-[#bac9bf] leading-relaxed">
                   Dedicated section for candid advice about what NOT to waste money on right now.
                 </p>
-                <div className="p-4 bg-gradient-to-r from-rose-950/20 to-[#080D18] border border-rose-500/30 rounded-xl space-y-2">
+                <div className="p-4 bg-[#131f19] border border-[#E05A5A]/30 rounded-xl space-y-2">
                   <textarea
                     rows={3}
                     value={notSpendMoneyOn}
                     onChange={(e) => setNotSpendMoneyOn(e.target.value)}
                     placeholder="e.g. 'We would NOT recommend spending $3,000 on a complete website redesign right now...'"
-                    className="w-full px-4 py-3 bg-[#080D18] border border-rose-500/30 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 text-xs leading-relaxed"
+                    className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#E05A5A] text-xs leading-relaxed"
                   />
                 </div>
               </div>
 
               {/* 9. Final Human Notes */}
-              <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400 font-mono">9.</span> Final Human Notes (Todd & Noelah Summary)
+                  <label className="text-sm font-bold text-[#F0EBE0] flex items-center gap-2">
+                    <span className="text-[#7be0b8] font-[family-name:var(--font-display)]">9.</span> Final Human Notes (Todd &amp; Noelah Summary)
                   </label>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                  <span className="text-[10px] font-mono text-[#f6b971] bg-[#f6b971]/12 border border-[#f6b971]/25 px-2 py-0.5 rounded-full">
                     [BARATRUST_REVIEW]
                   </span>
                 </div>
@@ -2199,21 +2205,21 @@ Client Edge: Higher authentic review rating and direct owner trust."
                   value={toddNotes}
                   onChange={(e) => setToddNotes(e.target.value)}
                   placeholder="Closing observations or follow-up notes."
-                  className="w-full px-4 py-3 bg-[#080D18] border border-slate-700/80 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 text-xs leading-relaxed"
+                  className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8] text-xs leading-relaxed"
                 />
               </div>
 
               {/* Next Step CTA */}
-              <div className="pt-4 border-t border-slate-800 flex justify-end">
+              <div className="pt-4 border-t border-[#2c3e33] flex justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     handleSave();
                     setActiveWorkflowTab('report');
                   }}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-[#22342a] hover:bg-[#2b4135] text-[#F0EBE0] border border-[#3d5446] font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 shadow-sm"
                 >
-                  <span>Save Notes & Proceed to Report Draft →</span>
+                  <span>Save Notes &amp; Proceed to Report Draft →</span>
                 </button>
               </div>
 
@@ -2222,27 +2228,27 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
           {/* TAB 2: CLIENT REPORT DRAFT & SYNTHESIS */}
           {activeWorkflowTab === 'report' && (
-            <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-6 md:p-8 space-y-8 shadow-2xl">
-              <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-6 md:p-8 space-y-8 shadow-2xl">
+              <div className="border-b border-[#2c3e33] pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono text-[10px] font-bold rounded">
+                    <span className="px-2.5 py-0.5 bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] font-mono text-[10px] font-bold rounded-full">
                       GEMINI REPORT SYNTHESIS
                     </span>
                     {reportAudit?.geminiModelUsed && (
                       reportAudit.geminiModelUsed.includes('fallback') ? (
-                        <span className="px-2.5 py-0.5 bg-amber-500/15 border border-amber-500/40 text-amber-400 font-mono text-[10px] font-bold rounded flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3 text-amber-400" />
+                        <span className="px-2.5 py-0.5 bg-[#f6b971]/15 border border-[#f6b971]/35 text-[#f6b971] font-mono text-[10px] font-bold rounded-full flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-[#f6b971]" />
                           Deterministic Fallback (API Offline / Key Missing)
                         </span>
                       ) : (
-                        <span className="text-[10px] font-mono text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+                        <span className="text-[10px] font-mono text-[#bac9bf] bg-[#131f19] px-2.5 py-0.5 rounded-full border border-[#2c3e33]">
                           Model: {reportAudit.geminiModelUsed}
                         </span>
                       )
                     )}
                   </div>
-                  <h2 className="text-2xl font-bold font-serif text-white mt-1">
+                  <h2 className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#F0EBE0] mt-1.5">
                     Client Report Draft Editor
                   </h2>
                 </div>
@@ -2251,9 +2257,9 @@ Client Edge: Higher authentic review rating and direct owner trust."
                     type="button"
                     onClick={handleGenerateDraft}
                     disabled={generating}
-                    className="px-3 py-1.5 bg-[#080D18] hover:bg-[#121A2B] border border-slate-700 text-slate-300 rounded-lg text-xs font-mono flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-[#101914] hover:bg-[#1b2821] border border-[#36493d] text-[#F0EBE0] rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-3.5 h-3.5 text-[#7be0b8]" />
                     <span>Regenerate Synthesis</span>
                   </button>
                 </div>
@@ -2261,8 +2267,8 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
               {/* Prominent Fallback Notice Banner */}
               {reportAudit?.geminiModelUsed?.includes('fallback') && (
-                <div className="p-3.5 bg-amber-950/30 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-center gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <div className="p-3.5 bg-[#f6b971]/10 border border-[#f6b971]/30 rounded-xl text-[#f6b971] text-xs flex items-center gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-[#f6b971] flex-shrink-0" />
                   <span>
                     <strong>Notice:</strong> This draft was assembled using BaraTrust&apos;s deterministic fallback engine because Gemini was offline, rate-limited, or unconfigured. Review and adjust all sections manually before publishing.
                   </span>
@@ -2270,13 +2276,13 @@ Client Edge: Higher authentic review rating and direct owner trust."
               )}
 
               {!reportDraft ? (
-                <div className="p-12 bg-[#080D18] border border-dashed border-slate-800 rounded-xl text-center space-y-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto">
+                <div className="p-12 bg-[#131f19] border border-dashed border-[#36493d] rounded-xl text-center space-y-4">
+                  <div className="w-12 h-12 rounded-full bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] flex items-center justify-center mx-auto">
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-lg font-bold font-serif text-white">No Report Draft Generated Yet</h3>
-                    <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    <h3 className="text-lg font-bold font-[family-name:var(--font-display)] text-[#F0EBE0]">No Report Draft Generated Yet</h3>
+                    <p className="text-xs text-[#bac9bf] max-w-md mx-auto leading-relaxed">
                       Click the button below to synthesize your deterministic scan data, owner questionnaire, and human investigation notes into a plain-English draft report.
                     </p>
                   </div>
@@ -2284,9 +2290,9 @@ Client Edge: Higher authentic review rating and direct owner trust."
                     type="button"
                     onClick={handleGenerateDraft}
                     disabled={generating}
-                    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs transition-colors inline-flex items-center gap-2 shadow-lg"
+                    className="px-6 py-3 bg-[#192b22] hover:bg-[#21382c] text-[#7be0b8] border border-[#7be0b8]/35 font-semibold rounded-lg text-xs transition-colors inline-flex items-center gap-2 shadow-md"
                   >
-                    <Sparkles className="w-4 h-4 text-amber-300" />
+                    <Sparkles className="w-4 h-4 text-[#7be0b8]" />
                     <span>Generate Draft Report with Gemini</span>
                   </button>
                 </div>
@@ -2295,30 +2301,30 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                   {/* 1. Executive Summary */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-white">
+                    <label className="block text-sm font-bold text-[#F0EBE0]">
                       Executive Summary (The Bottom Line)
                     </label>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[#bac9bf]">
                       Plain-English overview of business health, score context, and primary takeaway.
                     </p>
                     <textarea
                       rows={4}
                       value={reportDraft.executiveSummary}
                       onChange={(e) => updateDraftField('executiveSummary', e.target.value)}
-                      className="w-full px-4 py-3 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                      className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                     />
                   </div>
 
                   {/* 2. What's Working */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="block text-sm font-bold text-white">
+                      <label className="block text-sm font-bold text-[#F0EBE0]">
                         What’s Working (Strengths Backed by Evidence)
                       </label>
                       <button
                         type="button"
                         onClick={() => addListItem('whatsWorking')}
-                        className="text-[11px] font-mono text-emerald-400 hover:underline flex items-center gap-1"
+                        className="text-[11px] font-semibold text-[#7be0b8] hover:underline flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" /> Add item
                       </button>
@@ -2330,12 +2336,12 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             type="text"
                             value={item}
                             onChange={(e) => updateListItem('whatsWorking', idx, e.target.value)}
-                            className="flex-1 px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs focus:outline-none focus:border-emerald-400"
+                            className="flex-1 px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs focus:outline-none focus:border-[#7be0b8]"
                           />
                           <button
                             type="button"
                             onClick={() => removeListItem('whatsWorking', idx)}
-                            className="text-slate-500 hover:text-red-400 p-1"
+                            className="text-[#8fa396] hover:text-[#f28b82] p-1"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -2347,13 +2353,13 @@ Client Edge: Higher authentic review rating and direct owner trust."
                   {/* 3. What's Getting in the Way */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="block text-sm font-bold text-white">
-                        What’s Getting in the Way (Friction & Leaks)
+                      <label className="block text-sm font-bold text-[#F0EBE0]">
+                        What’s Getting in the Way (Friction &amp; Leaks)
                       </label>
                       <button
                         type="button"
                         onClick={() => addListItem('whatsGettingInTheWay')}
-                        className="text-[11px] font-mono text-amber-400 hover:underline flex items-center gap-1"
+                        className="text-[11px] font-semibold text-[#f6b971] hover:underline flex items-center gap-1"
                       >
                         <Plus className="w-3 h-3" /> Add item
                       </button>
@@ -2365,12 +2371,12 @@ Client Edge: Higher authentic review rating and direct owner trust."
                             type="text"
                             value={item}
                             onChange={(e) => updateListItem('whatsGettingInTheWay', idx, e.target.value)}
-                            className="flex-1 px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs focus:outline-none focus:border-amber-400"
+                            className="flex-1 px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs focus:outline-none focus:border-[#f6b971]"
                           />
                           <button
                             type="button"
                             onClick={() => removeListItem('whatsGettingInTheWay', idx)}
-                            className="text-slate-500 hover:text-red-400 p-1"
+                            className="text-[#8fa396] hover:text-[#f28b82] p-1"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -2381,154 +2387,154 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
                   {/* 4. Top Fixes Summary */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-white">
+                    <label className="block text-sm font-bold text-[#F0EBE0]">
                       Top 3 Fixes Summary Intro
                     </label>
                     <textarea
                       rows={2}
                       value={reportDraft.topFixesSummary}
                       onChange={(e) => updateDraftField('topFixesSummary', e.target.value)}
-                      className="w-full px-4 py-3 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                      className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                     />
                   </div>
 
                   {/* 5. What NOT to Spend Money On */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-bold text-rose-300">
+                    <label className="block text-sm font-bold text-[#f28b82]">
                       What We Would NOT Spend Money On Summary
                     </label>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-[#bac9bf]">
                       Strategic candor protecting the owner&apos;s budget.
                     </p>
                     <textarea
                       rows={3}
                       value={reportDraft.notWorthSpendingOnSummary}
                       onChange={(e) => updateDraftField('notWorthSpendingOnSummary', e.target.value)}
-                      className="w-full px-4 py-3 bg-[#080D18] border border-rose-500/40 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-rose-400"
+                      className="w-full px-4 py-3 bg-[#101914] border border-[#E05A5A]/35 rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#E05A5A]"
                     />
                   </div>
 
                   {/* 6. Human Review Synthesis Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[#2c3e33]">
                     <div className="space-y-1">
-                      <label className="block font-semibold text-slate-200">Findability Summary</label>
+                      <label className="block font-semibold text-[#F0EBE0]">Findability Summary</label>
                       <textarea
                         rows={3}
                         value={reportDraft.findabilitySummary}
                         onChange={(e) => updateDraftField('findabilitySummary', e.target.value)}
-                        className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block font-semibold text-slate-200">Reputation Summary</label>
+                      <label className="block font-semibold text-[#F0EBE0]">Reputation Summary</label>
                       <textarea
                         rows={3}
                         value={reportDraft.reputationSummary}
                         onChange={(e) => updateDraftField('reputationSummary', e.target.value)}
-                        className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block font-semibold text-slate-200">Social Presence Summary</label>
+                      <label className="block font-semibold text-[#F0EBE0]">Social Presence Summary</label>
                       <textarea
                         rows={3}
                         value={reportDraft.socialSummary}
                         onChange={(e) => updateDraftField('socialSummary', e.target.value)}
-                        className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block font-semibold text-slate-200">Competitor Comparison Summary</label>
+                      <label className="block font-semibold text-[#F0EBE0]">Competitor Comparison Summary</label>
                       <textarea
                         rows={3}
                         value={reportDraft.competitorSummary}
                         onChange={(e) => updateDraftField('competitorSummary', e.target.value)}
-                        className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block font-semibold text-slate-200">Inquiry Friction & Leakage Summary</label>
+                    <label className="block font-semibold text-[#F0EBE0]">Inquiry Friction &amp; Leakage Summary</label>
                     <textarea
                       rows={2}
                       value={reportDraft.lostOpportunitySummary}
                       onChange={(e) => updateDraftField('lostOpportunitySummary', e.target.value)}
-                      className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                      className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                     />
                   </div>
 
                   <div className="space-y-1">
-                    <label className="block font-semibold text-slate-200">Growth Opportunities Summary</label>
+                    <label className="block font-semibold text-[#F0EBE0]">Growth Opportunities Summary</label>
                     <textarea
                       rows={2}
                       value={reportDraft.opportunitiesSummary}
                       onChange={(e) => updateDraftField('opportunitiesSummary', e.target.value)}
-                      className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                      className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                     />
                   </div>
 
                   {/* 6B. Optional Human Intelligence Layer Synthesis Fields */}
-                  <div className="pt-3 border-t border-slate-800 space-y-3">
+                  <div className="pt-3 border-t border-[#2c3e33] space-y-3">
                     <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-bold">
+                      <span className="text-[11px] uppercase tracking-wider text-[#7be0b8] font-bold">
                         Optional Human Intelligence Synthesis (Omitted on Report When Blank)
                       </span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1">
-                        <label className="block font-semibold text-slate-200">Brand Reality & Customer Impression</label>
+                        <label className="block font-semibold text-[#F0EBE0]">Brand Reality &amp; Customer Impression</label>
                         <textarea
                           rows={2}
                           value={reportDraft.brandRealitySummary || ""}
                           onChange={(e) => updateDraftField('brandRealitySummary', e.target.value)}
                           placeholder="Leave blank if not applicable..."
-                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="block font-semibold text-slate-200">Customer Voice & Review Intelligence</label>
+                        <label className="block font-semibold text-[#F0EBE0]">Customer Voice &amp; Review Intelligence</label>
                         <textarea
                           rows={2}
                           value={reportDraft.customerVoiceSummary || ""}
                           onChange={(e) => updateDraftField('customerVoiceSummary', e.target.value)}
                           placeholder="Leave blank if not applicable..."
-                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="block font-semibold text-slate-200">Advertising Presence & Funnel</label>
+                        <label className="block font-semibold text-[#F0EBE0]">Advertising Presence &amp; Funnel</label>
                         <textarea
                           rows={2}
                           value={reportDraft.advertisingFunnelSummary || ""}
                           onChange={(e) => updateDraftField('advertisingFunnelSummary', e.target.value)}
                           placeholder="Leave blank if not applicable..."
-                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="block font-semibold text-slate-200">Legacy Digital Footprint / Cleanup</label>
+                        <label className="block font-semibold text-[#F0EBE0]">Legacy Digital Footprint / Cleanup</label>
                         <textarea
                           rows={2}
                           value={reportDraft.ghostFootprintSummary || ""}
                           onChange={(e) => updateDraftField('ghostFootprintSummary', e.target.value)}
                           placeholder="Leave blank if not applicable..."
-                          className="w-full px-3 py-2 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                          className="w-full px-3 py-2 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] placeholder-[#8fa396] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                         />
                       </div>
                     </div>
                   </div>
 
                   {/* 7. Closing Sign-off */}
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <label className="block text-sm font-bold text-white">
-                      Closing Note (Todd & Noelah Sign-off)
+                  <div className="space-y-2 pt-2 border-t border-[#2c3e33]">
+                    <label className="block text-sm font-bold text-[#F0EBE0]">
+                      Closing Note (Todd &amp; Noelah Sign-off)
                     </label>
                     <textarea
                       rows={2}
                       value={reportDraft.closingNote}
                       onChange={(e) => updateDraftField('closingNote', e.target.value)}
-                      className="w-full px-4 py-3 bg-[#080D18] border border-slate-700 rounded-lg text-white text-xs leading-relaxed focus:outline-none focus:border-amber-400"
+                      className="w-full px-4 py-3 bg-[#101914] border border-[#36493d] rounded-lg text-[#F0EBE0] text-xs leading-relaxed focus:outline-none focus:border-[#7be0b8]"
                     />
                   </div>
 
@@ -2537,33 +2543,33 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
               {/* Human Pre-Publication Quality Checklist */}
               {reportDraft && (
-                <div className="bg-[#080D18] border border-amber-500/30 rounded-xl p-5 space-y-4">
+                <div className="bg-[#131f19] border border-[#f6b971]/30 rounded-xl p-5 space-y-4">
                   <div 
                     className="flex items-center justify-between cursor-pointer select-none"
                     onClick={() => setChecklistOpen(!checklistOpen)}
                   >
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-bold font-serif text-white">
-                        Pre-Publication Quality Checklist (Todd & Noelah Human QA)
+                      <ShieldCheck className="w-4 h-4 text-[#f6b971]" />
+                      <span className="text-xs font-bold font-[family-name:var(--font-display)] text-[#F0EBE0]">
+                        Pre-Publication Quality Checklist (Todd &amp; Noelah Human QA)
                       </span>
-                      <span className="text-[11px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      <span className="text-[11px] font-mono text-[#f6b971] bg-[#f6b971]/12 px-2 py-0.5 rounded-full border border-[#f6b971]/25">
                         {Object.values(checkedItems).filter(Boolean).length} / 10 Reviewed
                       </span>
                     </div>
                     {checklistOpen ? (
-                      <ChevronUp className="w-4 h-4 text-slate-400" />
+                      <ChevronUp className="w-4 h-4 text-[#bac9bf]" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                      <ChevronDown className="w-4 h-4 text-[#bac9bf]" />
                     )}
                   </div>
 
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <p className="text-[11px] text-[#bac9bf] leading-relaxed">
                     Verify each item before publishing. The operator remains responsible for final approval.
                   </p>
 
                   {checklistOpen && (
-                    <div className="pt-2 space-y-2 border-t border-slate-800">
+                    <div className="pt-2 space-y-2 border-t border-[#2c3e33]">
                       {[
                         "Are all factual statements supported by the evidence dossier?",
                         "Did Gemini turn any UNKNOWN into a fact?",
@@ -2578,15 +2584,15 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       ].map((item, idx) => (
                         <label 
                           key={idx} 
-                          className="flex items-start gap-2.5 p-2 rounded hover:bg-slate-900/60 cursor-pointer text-xs text-slate-300"
+                          className="flex items-start gap-2.5 p-2 rounded hover:bg-[#16231c] cursor-pointer text-xs text-[#F0EBE0]"
                         >
                           <input
                             type="checkbox"
                             checked={!!checkedItems[idx]}
                             onChange={(e) => setCheckedItems({ ...checkedItems, [idx]: e.target.checked })}
-                            className="mt-0.5 rounded border-slate-700 text-amber-500 focus:ring-amber-500/30"
+                            className="mt-0.5 rounded border-[#36493d] text-[#7be0b8] focus:ring-[#7be0b8]/30"
                           />
-                          <span className={checkedItems[idx] ? "line-through text-slate-500" : ""}>{item}</span>
+                          <span className={checkedItems[idx] ? "line-through text-[#8fa396]" : ""}>{item}</span>
                         </label>
                       ))}
                     </div>
@@ -2596,8 +2602,8 @@ Client Edge: Higher authentic review rating and direct owner trust."
 
               {/* Save & Action Bar at Bottom of Report Tab */}
               {reportDraft && (
-                <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-xs font-mono text-slate-400">
+                <div className="pt-4 border-t border-[#2c3e33] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-xs text-[#bac9bf]">
                     {reportAudit?.lastReportEditAt ? `Report edited: ${new Date(reportAudit.lastReportEditAt).toLocaleTimeString()}` : "Remember to save your report draft."}
                   </div>
 
@@ -2606,19 +2612,19 @@ Client Edge: Higher authentic review rating and direct owner trust."
                       type="button"
                       onClick={() => handleSave()}
                       disabled={saving}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-[#22342a] hover:bg-[#2b4135] text-[#F0EBE0] border border-[#3d5446] font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      <Save className="w-3.5 h-3.5" />
+                      <Save className="w-3.5 h-3.5 text-[#bac9bf]" />
                       <span>Save Report Draft</span>
                     </button>
                     <button
                       type="button"
                       onClick={handlePublish}
                       disabled={publishing || realityCheckStatus === 'PUBLISHED'}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-md"
+                      className="w-full sm:w-auto px-5 py-2.5 bg-[#7be0b8] hover:bg-[#6bd4aa] text-[#10251a] font-bold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <Send className="w-3.5 h-3.5" />
-                      <span>Publish & Send Email</span>
+                      <span>Publish &amp; Send Email</span>
                     </button>
                   </div>
                 </div>
@@ -2650,51 +2656,51 @@ function FindingPill({
     if (typeof checkKey === "string" && checkKey.startsWith("browser_")) {
       if (state === "FAIL") {
         return (
-          <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 font-mono font-bold text-[10px]">
+          <span className="px-2 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
             ATTENTION
           </span>
         );
       }
       if (state === "UNKNOWN") {
         return (
-          <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono font-bold text-[10px]">
+          <span className="px-2 py-0.5 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
             HUMAN CHECK
           </span>
         );
       }
       return (
-        <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono font-bold text-[10px]">
+        <span className="px-2 py-0.5 rounded-full bg-[#bac9bf]/10 border border-[#bac9bf]/25 text-[#c2d1c7] font-mono font-bold text-[10px]">
           INFO · OBSERVED
         </span>
       );
     }
     const isObserved = state === "PASS" && !/^no\s/i.test((supportingDetail || "").trim());
     return isObserved ? (
-      <span className="px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono font-bold text-[10px]">
+      <span className="px-2 py-0.5 rounded-full bg-[#bac9bf]/10 border border-[#bac9bf]/25 text-[#c2d1c7] font-mono font-bold text-[10px]">
         INFO · OBSERVED
       </span>
     ) : (
-      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 font-mono font-bold text-[10px]">
+      <span className="px-2 py-0.5 rounded-full bg-[#16231c] border border-[#2c3e33] text-[#bac9bf] font-mono font-bold text-[10px]">
         INFO · NOT OBSERVED
       </span>
     );
   }
   if (state === "PASS") {
     return (
-      <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[10px] flex items-center gap-1">
+      <span className="px-2 py-0.5 rounded-full bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] font-mono font-bold text-[10px] flex items-center gap-1">
         ✓ PASS
       </span>
     );
   }
   if (state === "FAIL") {
     return (
-      <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 font-mono font-bold text-[10px] flex items-center gap-1">
+      <span className="px-2 py-0.5 rounded-full bg-[#E05A5A]/12 border border-[#E05A5A]/30 text-[#f28b82] font-mono font-bold text-[10px] flex items-center gap-1">
         ✕ FAIL
       </span>
     );
   }
   return (
-    <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 font-mono font-bold text-[10px]">
+    <span className="px-2 py-0.5 rounded-full bg-[#16231c] border border-[#2c3e33] text-[#bac9bf] font-mono font-bold text-[10px]">
       ? UNKNOWN
     </span>
   );
@@ -2702,10 +2708,10 @@ function FindingPill({
 
 function OwnerQABlock({ q, a }: { q: string; a?: string }) {
   return (
-    <div className="p-3.5 bg-[#080D18] border border-slate-800 rounded-lg space-y-1">
-      <p className="font-semibold text-slate-200 text-xs">{q}</p>
-      <p className="text-slate-300 text-xs leading-relaxed italic">
-        {a && a.trim().length > 0 ? `"${a}"` : <span className="text-slate-500 not-italic">No response entered</span>}
+    <div className="p-3.5 bg-[#131f19] border border-[#2c3e33] rounded-lg space-y-1">
+      <p className="font-semibold text-[#F0EBE0] text-xs">{q}</p>
+      <p className="text-[#bac9bf] text-xs leading-relaxed italic">
+        {a && a.trim().length > 0 ? `"${a}"` : <span className="text-[#8fa396] not-italic">No response entered</span>}
       </p>
     </div>
   );

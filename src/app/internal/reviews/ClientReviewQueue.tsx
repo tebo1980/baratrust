@@ -112,37 +112,37 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
 
       {/* KPI Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#0E1524] border border-slate-800 rounded-xl p-4 space-y-1">
-          <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Review Requests</span>
-          <p className="text-2xl font-bold font-serif text-white">{totalCount}</p>
+        <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl p-4 space-y-1">
+          <span className="text-[11px] font-semibold text-[#bac9bf] uppercase tracking-wider">Review Requests</span>
+          <p className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#F0EBE0]">{totalCount}</p>
         </div>
 
-        <div className="bg-[#0E1524] border border-amber-500/30 rounded-xl p-4 space-y-1">
-          <span className="text-[11px] font-mono text-amber-400 uppercase tracking-wider">Needs Review</span>
-          <p className="text-2xl font-bold font-serif text-amber-400">{needsReviewCount}</p>
+        <div className="bg-[#16231c] border border-[#f6b971]/30 rounded-xl p-4 space-y-1">
+          <span className="text-[11px] font-semibold text-[#f6b971] uppercase tracking-wider">Needs Review</span>
+          <p className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#f6b971]">{needsReviewCount}</p>
         </div>
 
-        <div className="bg-[#0E1524] border border-blue-500/30 rounded-xl p-4 space-y-1">
-          <span className="text-[11px] font-mono text-blue-400 uppercase tracking-wider">In Review</span>
-          <p className="text-2xl font-bold font-serif text-blue-400">{inReviewCount}</p>
+        <div className="bg-[#16231c] border border-[#36493d] rounded-xl p-4 space-y-1">
+          <span className="text-[11px] font-semibold text-[#c2d1c7] uppercase tracking-wider">In Review</span>
+          <p className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#F0EBE0]">{inReviewCount}</p>
         </div>
 
-        <div className="bg-[#0E1524] border border-emerald-500/30 rounded-xl p-4 space-y-1">
-          <span className="text-[11px] font-mono text-emerald-400 uppercase tracking-wider">Ready / Published</span>
-          <p className="text-2xl font-bold font-serif text-emerald-400">{publishedCount}</p>
+        <div className="bg-[#16231c] border border-[#7be0b8]/30 rounded-xl p-4 space-y-1">
+          <span className="text-[11px] font-semibold text-[#7be0b8] uppercase tracking-wider">Ready / Published</span>
+          <p className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#7be0b8]">{publishedCount}</p>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[#0A101D] border border-slate-800 p-3.5 rounded-xl">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[#131f19] border border-[#2c3e33] p-3.5 rounded-xl">
         {/* Status Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
           <button
             onClick={() => setStatusFilter("ALL")}
             className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
               statusFilter === "ALL"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                ? "bg-[#7be0b8]/15 text-[#7be0b8] border border-[#7be0b8]/35"
+                : "text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#1b2821]"
             }`}
           >
             All Requested ({totalCount})
@@ -151,8 +151,8 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
             onClick={() => setStatusFilter("NEEDS_REVIEW")}
             className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
               statusFilter === "NEEDS_REVIEW"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                ? "bg-[#f6b971]/15 text-[#f6b971] border border-[#f6b971]/35"
+                : "text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#1b2821]"
             }`}
           >
             Needs Review ({needsReviewCount})
@@ -161,8 +161,8 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
             onClick={() => setStatusFilter("IN_REVIEW")}
             className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
               statusFilter === "IN_REVIEW"
-                ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                ? "bg-[#bac9bf]/15 text-[#F0EBE0] border border-[#36493d]"
+                : "text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#1b2821]"
             }`}
           >
             In Review ({inReviewCount})
@@ -171,8 +171,8 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
             onClick={() => setStatusFilter("READY_TO_PUBLISH")}
             className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
               statusFilter === "READY_TO_PUBLISH"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                ? "bg-[#7be0b8]/15 text-[#7be0b8] border border-[#7be0b8]/35"
+                : "text-[#bac9bf] hover:text-[#F0EBE0] hover:bg-[#1b2821]"
             }`}
           >
             Ready / Published ({publishedCount})
@@ -181,8 +181,8 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
             onClick={() => setStatusFilter("ANONYMOUS_SCANS")}
             className={`px-3 py-1.5 rounded-lg transition-colors font-semibold ${
               statusFilter === "ANONYMOUS_SCANS"
-                ? "bg-slate-700/60 text-slate-200 border border-slate-600"
-                : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/60"
+                ? "bg-[#1b2821] text-[#F0EBE0] border border-[#36493d]"
+                : "text-[#8fa396] hover:text-[#bac9bf] hover:bg-[#1b2821]"
             }`}
             title="Inspect URL-only scans where the visitor has not yet submitted an email for human review"
           >
@@ -192,26 +192,26 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
 
         {/* Search Input */}
         <div className="relative min-w-[240px]">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[#8fa396] absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search business, city, URL..."
-            className="w-full pl-9 pr-4 py-1.5 bg-[#080D18] border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"
+            className="w-full pl-9 pr-4 py-1.5 bg-[#101914] border border-[#36493d] rounded-lg text-xs text-[#F0EBE0] placeholder-[#8fa396] focus:outline-none focus:border-[#7be0b8]"
           />
         </div>
       </div>
 
       {/* Queue Table */}
-      <div className="bg-[#0E1524] border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+      <div className="bg-[#16231c] border border-[#2c3e33] rounded-xl overflow-hidden shadow-xl">
         {filteredItems.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-800/60 text-slate-400 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-[#1b2821] border border-[#2c3e33] text-[#bac9bf] flex items-center justify-center mx-auto">
               <Inbox className="w-6 h-6" />
             </div>
-            <p className="text-slate-300 font-serif text-lg">No Reality Checks Found</p>
-            <p className="text-slate-500 text-xs">
+            <p className="text-[#F0EBE0] font-[family-name:var(--font-display)] text-lg">No Reality Checks Found</p>
+            <p className="text-[#bac9bf] text-xs">
               {searchTerm ? "Try adjusting your search query." : "Incoming reality check requests will appear here."}
             </p>
           </div>
@@ -219,7 +219,7 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-slate-800 bg-[#0A101D] font-mono text-[11px] text-slate-400 uppercase tracking-wider">
+                <tr className="border-b border-[#2c3e33] bg-[#131f19] text-[11px] text-[#bac9bf] uppercase tracking-wider">
                   <th className="py-3.5 px-4 font-semibold">Business</th>
                   <th className="py-3.5 px-4 font-semibold">Location / Website</th>
                   <th className="py-3.5 px-4 font-semibold">Auto Score</th>
@@ -229,26 +229,26 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                   <th className="py-3.5 px-4 font-semibold text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-[#2c3e33]">
                 {filteredItems.map((item) => (
                   <tr 
                     key={item.id} 
-                    className="hover:bg-slate-800/20 transition-colors group"
+                    className="hover:bg-[#1b2821]/70 transition-colors group"
                   >
                     {/* Business Name and Type */}
                     <td className="py-4 px-4 align-top">
                       <div className="space-y-1">
                         <Link 
                           href={`/internal/reviews/${item.id}`}
-                          className="font-bold text-white text-sm hover:text-amber-400 transition-colors block"
+                          className="font-bold text-[#F0EBE0] text-sm hover:text-[#7be0b8] transition-colors block"
                         >
                           {item.businessName}
                         </Link>
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-[#131f19] text-[#bac9bf] border border-[#2c3e33]">
                             {item.businessType}
                           </span>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-[#8fa396]">
                             by {item.ownerName}
                           </span>
                         </div>
@@ -258,12 +258,12 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                     {/* Location and URL */}
                     <td className="py-4 px-4 align-top">
                       <div className="space-y-1">
-                        <p className="text-slate-200 font-medium">{item.cityState}</p>
+                        <p className="text-[#F0EBE0] font-medium">{item.cityState}</p>
                         <a
                           href={item.website.startsWith("http") ? item.website : `https://${item.website}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-amber-400 transition-colors font-mono truncate max-w-[200px]"
+                          className="inline-flex items-center gap-1 text-[11px] text-[#bac9bf] hover:text-[#7be0b8] transition-colors font-mono truncate max-w-[200px]"
                         >
                           <span>{item.website.replace(/^https?:\/\//, '')}</span>
                           <ExternalLink className="w-3 h-3 flex-shrink-0" />
@@ -276,28 +276,28 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                       {item.overallScore !== null ? (
                         <div className="space-y-1">
                           <div className="flex items-baseline gap-1.5">
-                            <span className="text-base font-bold font-serif text-amber-400">
+                            <span className="text-base font-bold font-[family-name:var(--font-display)] text-[#7be0b8]">
                               {item.overallScore}
                             </span>
-                            <span className="text-[11px] text-slate-500 font-mono">/ 100</span>
+                            <span className="text-[11px] text-[#8fa396] font-mono">/ 100</span>
                           </div>
-                          <div className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
-                            <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-[#bac9bf]">
+                            <span className="px-1.5 py-0.5 rounded bg-[#bac9bf]/10 text-[#c2d1c7] border border-[#bac9bf]/25">
                               {item.scoreBreakdown?.coverage?.overall ? `${item.scoreBreakdown.coverage.overall}% cov` : 'auto'}
                             </span>
                           </div>
                         </div>
                       ) : item.scoreBreakdown?.sourceType === 'hosted_profile' ? (
                         <div className="space-y-1">
-                          <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded font-mono text-[10px] font-semibold inline-block">
+                          <span className="px-2 py-0.5 bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] rounded font-mono text-[10px] font-semibold inline-block">
                             Score Withheld
                           </span>
-                          <div className="font-mono text-[10px] text-slate-400">
+                          <div className="text-[10px] text-[#bac9bf]">
                             {item.scoreBreakdown?.platformLabel || 'Hosted Profile'}
                           </div>
                         </div>
                       ) : (
-                        <span className="px-2 py-0.5 bg-slate-800 text-slate-400 rounded font-mono text-[11px]">
+                        <span className="px-2 py-0.5 bg-[#131f19] border border-[#2c3e33] text-[#bac9bf] rounded font-mono text-[11px]">
                           {item.scanStatus === 'failed' || item.scanStatus === 'blocked' || item.scanStatus === 'timeout'
                             ? 'Scan Deferred'
                             : item.scanStatus === 'completed'
@@ -310,12 +310,12 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                     {/* Owner Provided Questionnaire Status */}
                     <td className="py-4 px-4 align-top">
                       {item.hasQuestionnaire ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-500/10 border border-purple-500/30 text-purple-300 font-mono text-[11px] font-semibold">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F0EBE0]/10 border border-[#F0EBE0]/25 text-[#F0EBE0] font-mono text-[11px] font-semibold">
                           <span>[OWNER PROVIDED]</span>
-                          <span className="text-purple-400">({item.questionnaireCount} ans)</span>
+                          <span className="text-[#bac9bf] font-[family-name:var(--font-body)]">({item.questionnaireCount} ans)</span>
                         </span>
                       ) : (
-                        <span className="text-slate-500 font-mono text-[11px]">
+                        <span className="text-[#8fa396] text-[11px]">
                           Not submitted
                         </span>
                       )}
@@ -327,7 +327,7 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                     </td>
 
                     {/* Submitted Date */}
-                    <td className="py-4 px-4 align-top text-slate-400 font-mono text-[11px]">
+                    <td className="py-4 px-4 align-top text-[#bac9bf] text-[11px]">
                       {new Date(item.createdAt).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -339,7 +339,7 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                     <td className="py-4 px-4 align-top text-right">
                       <Link
                         href={`/internal/reviews/${item.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-semibold transition-colors group-hover:border-amber-400/50"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1b2821] hover:bg-[#22342a] text-[#7be0b8] border border-[#7be0b8]/30 rounded-lg text-xs font-semibold transition-colors group-hover:border-[#7be0b8]/55"
                       >
                         <span>Open Studio</span>
                         <ArrowRight className="w-3.5 h-3.5" />
@@ -361,37 +361,37 @@ function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "PUBLISHED":
       return (
-        <span className="px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-[10px]">
+        <span className="px-2.5 py-1 rounded-full bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] font-mono font-bold text-[10px]">
           ✓ PUBLISHED
         </span>
       );
     case "READY_TO_PUBLISH":
       return (
-        <span className="px-2.5 py-1 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-[10px]">
+        <span className="px-2.5 py-1 rounded-full bg-[#7be0b8]/12 border border-[#7be0b8]/30 text-[#7be0b8] font-mono font-bold text-[10px]">
           READY TO PUBLISH
         </span>
       );
     case "IN_REVIEW":
       return (
-        <span className="px-2.5 py-1 rounded bg-blue-500/10 border border-blue-500/30 text-blue-300 font-mono font-bold text-[10px]">
+        <span className="px-2.5 py-1 rounded-full bg-[#bac9bf]/12 border border-[#bac9bf]/30 text-[#F0EBE0] font-mono font-bold text-[10px]">
           IN REVIEW
         </span>
       );
     case "NEEDS_HUMAN_REVIEW":
       return (
-        <span className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono font-bold text-[10px]">
+        <span className="px-2.5 py-1 rounded-full bg-[#f6b971]/12 border border-[#f6b971]/30 text-[#f6b971] font-mono font-bold text-[10px]">
           NEEDS HUMAN REVIEW
         </span>
       );
     case "AUTO_SCAN_COMPLETE":
       return (
-        <span className="px-2.5 py-1 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-mono font-bold text-[10px]">
+        <span className="px-2.5 py-1 rounded-full bg-[#bac9bf]/10 border border-[#bac9bf]/25 text-[#c2d1c7] font-mono font-bold text-[10px]">
           SCAN COMPLETE
         </span>
       );
     default:
       return (
-        <span className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px]">
+        <span className="px-2.5 py-1 rounded-full bg-[#131f19] border border-[#2c3e33] text-[#bac9bf] font-mono text-[10px]">
           {status}
         </span>
       );

@@ -27,27 +27,27 @@ export default async function OperatorReviewQueuePage() {
   // If not an authorized operator, show clear access denied screen
   if (!operator || !operator.isOperator) {
     return (
-      <div className="min-h-screen bg-[#050810] text-slate-100 flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-[#0E1524] border border-red-500/30 rounded-2xl p-8 text-center space-y-5 shadow-2xl">
-          <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto">
+      <div className="min-h-screen bg-[#0b120e] text-[#F0EBE0] flex items-center justify-center p-6 font-[family-name:var(--font-body)]">
+        <div className="max-w-md w-full bg-[#16231c] border border-[#E05A5A]/30 rounded-2xl p-8 text-center space-y-5 shadow-2xl">
+          <div className="w-14 h-14 rounded-full bg-[#E05A5A]/12 border border-[#E05A5A]/30 text-[#f28b82] flex items-center justify-center mx-auto">
             <ShieldAlert className="w-7 h-7" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold font-serif text-white">Operator Access Required</h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              This internal workspace is reserved for BaraTrust operators (Todd & Noelah). Your account ({operator?.email || "anonymous"}) is not on the review allowlist.
+            <h2 className="text-2xl font-bold font-[family-name:var(--font-display)] text-[#F0EBE0]">Operator Access Required</h2>
+            <p className="text-sm text-[#bac9bf] leading-relaxed">
+              This internal workspace is reserved for BaraTrust operators (Todd &amp; Noelah). Your account ({operator?.email || "anonymous"}) is not on the review allowlist.
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-3">
             <Link
               href="/dashboard"
-              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-lg text-sm transition-colors text-center"
+              className="w-full py-3 bg-[#22342a] hover:bg-[#2b4135] text-[#F0EBE0] border border-[#36493d] font-semibold rounded-lg text-sm transition-colors text-center"
             >
               Return to Partner Dashboard
             </Link>
             <Link
               href="/"
-              className="w-full py-3 text-slate-400 hover:text-slate-200 text-xs transition-colors text-center"
+              className="w-full py-3 text-[#bac9bf] hover:text-[#F0EBE0] text-xs transition-colors text-center"
             >
               Go to Homepage
             </Link>
@@ -134,40 +134,40 @@ export default async function OperatorReviewQueuePage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#050810] text-slate-100 font-sans selection:bg-amber-500/30">
+    <div className="min-h-screen bg-[#0b120e] text-[#F0EBE0] font-[family-name:var(--font-body)] selection:bg-[#7be0b8]/25">
       {/* Operator Studio Header */}
-      <header className="border-b border-slate-800/80 bg-[#080F1A]/95 backdrop-blur-md sticky top-0 z-30">
+      <header className="border-b border-[#2c3e33] bg-[#101914]/95 backdrop-blur-md sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between py-4">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
-                <span className="text-amber-400 font-bold text-base font-serif">B</span>
+              <div className="w-8 h-8 rounded-lg bg-[#16231c] border border-[#36493d] flex items-center justify-center">
+                <span className="text-[#7be0b8] font-bold text-base font-[family-name:var(--font-display)]">B</span>
               </div>
-              <span className="text-lg font-bold text-white font-serif tracking-tight">
-                Bara<span className="text-amber-400">Trust</span>
+              <span className="text-lg font-bold text-[#F0EBE0] font-[family-name:var(--font-display)] tracking-tight">
+                Bara<span className="text-[#7be0b8]">Trust</span>
               </span>
             </Link>
-            <span className="text-slate-600 font-mono text-xs">/</span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold tracking-wider text-amber-400 uppercase bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded">
+            <span className="text-[#8fa396] text-xs">/</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[11px] font-bold tracking-wider text-[#7be0b8] uppercase bg-[#7be0b8]/12 border border-[#7be0b8]/30 px-2.5 py-0.5 rounded-full">
                 Review Studio
               </span>
-              <span className="text-xs text-slate-400 hidden sm:inline font-mono">
+              <span className="text-xs text-[#bac9bf] hidden sm:inline">
                 Operator Workspace
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#0E1524] border border-slate-800">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="text-slate-400">Operator:</span>
-              <span className="text-white font-bold">{operator.name}</span>
-              <span className="text-slate-500">({operator.email})</span>
+          <div className="flex items-center gap-4 text-xs">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#16231c] border border-[#2c3e33]">
+              <span className="w-2 h-2 rounded-full bg-[#7be0b8] animate-pulse"></span>
+              <span className="text-[#bac9bf]">Operator:</span>
+              <span className="text-[#F0EBE0] font-semibold">{operator.name}</span>
+              <span className="text-[#8fa396] font-mono text-[11px]">({operator.email})</span>
             </div>
             <Link
               href="/dashboard"
-              className="text-slate-400 hover:text-slate-200 transition-colors"
+              className="text-[#bac9bf] hover:text-[#F0EBE0] transition-colors font-medium"
             >
               Dashboard
             </Link>

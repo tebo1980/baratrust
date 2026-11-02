@@ -18,6 +18,8 @@ export interface PublicFinding {
   scoreContribution: number;
   maxPoints: number;
   supportingDetail: string;
+  observedValue?: any;
+  evidenceSource?: string | null;
 }
 
 export interface ScanSnapshot {
@@ -365,11 +367,11 @@ export default function RealityCheckFunnel({
         aria-describedby="intake-note form-availability"
       >
         <p className="eyebrow" style={{ marginBottom: "8px" }}>
-          Step 1 — Instant Automated Check
+          Free Reality Check — Instant Snapshot
         </p>
-        <h3 id="intake-title">Start With Your Business</h3>
+        <h3 id="intake-title">See What BaraTrust Can Spot Right Now</h3>
         <p id="intake-note" style={{ marginTop: "8px", marginBottom: "20px" }}>
-          Paste your website, Google Business page, or Facebook business page. We’ll run the first scan right away.
+          Paste your website, Google Business page, or Facebook business page for a free automated outside-looking-in snapshot.
         </p>
 
         <label htmlFor="rc-website-input">
@@ -390,17 +392,17 @@ export default function RealityCheckFunnel({
         </label>
 
         <button className="btn primary full" type="submit" disabled={scanning}>
-          {scanning ? "Scanning Your Business Link..." : "Run My Free Reality Check"}
+          {scanning ? "Scanning Your Business Link..." : "Run Free Reality Check"}
         </button>
 
         <p id="form-availability" className="form-note" style={{ marginTop: "12px" }}>
-          <strong>No email required to see your first results.</strong> Free. No credit card. No obligation.
+          <strong>No email required to see your initial snapshot.</strong> Free. No credit card. No obligation.
         </p>
 
         <div className="starter-note" style={{ marginTop: "18px", padding: "14px 16px" }}>
-          <strong style={{ fontSize: "0.9rem" }}>Want the full Reality Check?</strong>
+          <strong style={{ fontSize: "0.9rem" }}>See what we spot now. Keep us watching when ready.</strong>
           <span style={{ fontSize: "0.86rem" }}>
-            After your instant scan finishes, you can add your email if you want Todd &amp; Noelah to review the parts software can’t.
+            Your free scan checks publicly visible signals right away. Ongoing monitoring and deeper research across Protect, Improve, Grow, and Save live inside Business Pulse ($99/month).
           </span>
         </div>
 
@@ -683,7 +685,7 @@ export default function RealityCheckFunnel({
         style={{ marginTop: "14px", marginBottom: "22px", padding: "14px 16px" }}
       >
         <strong style={{ fontSize: "0.9rem", display: "block" }}>
-          What software can see vs. what requires Todd &amp; Noelah:
+          What this free automated scan can and cannot determine:
         </strong>
         <p
           style={{
@@ -693,10 +695,10 @@ export default function RealityCheckFunnel({
             color: "var(--muted)",
           }}
         >
-          <strong style={{ display: "inline", color: "var(--text)" }}>Checked automatically:</strong>{" "}
+          <strong style={{ display: "inline", color: "var(--text)" }}>Spotted automatically:</strong>{" "}
           {isHostedProfile
             ? "Public business name, location signals, category or offerings summary, public page activity, and any direct contact or website links exposed in static HTML."
-            : "HTTPS security, mobile setup, search title & descriptions, tap-to-call links, contact forms, and local schema markup."}
+            : "Public HTTPS security, mobile setup, search title & metadata, tap-to-call links, contact paths, and structured schema markup."}
         </p>
         <p
           style={{
@@ -706,8 +708,8 @@ export default function RealityCheckFunnel({
             color: "var(--muted)",
           }}
         >
-          <strong style={{ display: "inline", color: "var(--text)" }}>Requires human review:</strong>{" "}
-          Whether local buyers actually find you over competitors, whether your offer and reputation build real trust, where calls or quotes slip through the cracks, and what you should <em>not</em> waste money on.
+          <strong style={{ display: "inline", color: "var(--text)" }}>Requires Business Pulse ($99/month):</strong>{" "}
+          Ongoing monitoring, human verification of flagged items, local competitor shifts, outside growth opportunities (events, partnerships, emerging demand), supplier or vendor value comparisons, and knowing when no action is needed.
         </p>
         {snapshot.scoreBreakdown?.browserEvidence?.status === "UNAVAILABLE" && (
           <p
@@ -718,12 +720,12 @@ export default function RealityCheckFunnel({
               color: "var(--muted)",
             }}
           >
-            Note: This snapshot was evaluated from static HTML only; live browser-rendered layout checks were unavailable during this scan and are deferred to human review without affecting your score.
+            Note: This snapshot was evaluated from static HTML only; live browser-rendered layout checks were unavailable during this scan and are marked for human verification without affecting your score.
           </p>
         )}
       </div>
 
-      {/* STEP 3: ASK FOR EMAIL AFTER VALUE */}
+      {/* STEP 3: SAVE SNAPSHOT / BUSINESS PULSE NEXT STEPS */}
       {!humanReviewRequested ? (
         <form
           onSubmit={handleRequestHumanReview}
@@ -737,13 +739,14 @@ export default function RealityCheckFunnel({
         >
           <div>
             <p className="eyebrow" style={{ marginBottom: "6px" }}>
-              NEXT STEP — HUMAN REVIEW
+              KEEP BARATRUST WATCHING — BUSINESS PULSE ($99/MONTH)
             </p>
             <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
-              Want us to take a closer look?
+              Save your snapshot or keep BaraTrust watching
             </h3>
             <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: 0 }}>
-              Add your email and Todd &amp; Noelah will review the parts that need human judgment, verify the important findings, and send you the finished Reality Check.
+              Add your email to save a private link to this snapshot and get clear next steps on{" "}
+              <strong>Business Pulse ($99/month)</strong> — where BaraTrust keeps watching your business and surrounding market across Protect, Improve, Grow, and Save.
             </p>
           </div>
 
@@ -764,7 +767,7 @@ export default function RealityCheckFunnel({
               />
             </label>
             <p id="rc-email-privacy-note" className="form-note" style={{ marginTop: "6px" }}>
-              We’ll only use your email to send your report and follow up about this review.
+              No spam and no obligation. We’ll only use your email to share your snapshot link and follow up clearly.
             </p>
           </div>
 
@@ -799,7 +802,7 @@ export default function RealityCheckFunnel({
           </label>
 
           <button className="btn primary full" type="submit" disabled={submittingEmail}>
-            {submittingEmail ? "Requesting Human Review..." : "Get My Full Reality Check"}
+            {submittingEmail ? "Saving Your Snapshot..." : "Save Snapshot & See Business Pulse Next Steps"}
           </button>
 
           {emailError && (
@@ -822,34 +825,35 @@ export default function RealityCheckFunnel({
           }}
         >
           <p className="eyebrow" style={{ marginBottom: "6px" }}>
-            ✓ Human Review Requested
+            ✓ Snapshot Saved
           </p>
           <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
-            Todd &amp; Noelah have your Reality Check in the review queue.
+            Your Reality Check snapshot is saved.
           </h3>
           <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: "16px" }}>
-            We’ll send your finished human-reviewed Reality Check report when it’s ready (typically within one business day).
+            Todd &amp; Noelah have your snapshot and will follow up with your saved link and straightforward next steps if you’d like BaraTrust to keep watching your business through{" "}
+            <strong>Business Pulse ($99/month)</strong>.
           </p>
 
           {!skippedQuestionnaire && !snapshot.questionnaireCompleted ? (
             <div className="starter-note" style={{ marginTop: "14px" }}>
-              <strong>Want us to make the human review more useful? (Optional)</strong>
+              <strong>Want to share what matters most to your business? (Optional)</strong>
               <span style={{ marginTop: "6px", marginBottom: "14px" }}>
-                Answer a few quick questions so Todd &amp; Noelah understand what matters most to your business — like where customers come from, whether calls get missed, or what busywork wastes your time.
+                Answer a few quick questions about where customers come from, growth opportunities you care about, or recurring expenses worth questioning so we have real context.
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Link
                   className="btn primary full"
                   href={`/reality-check/${snapshot.shareToken}/questionnaire`}
                 >
-                  Answer a Few Quick Questions (~2 min)
+                  Share Optional Business Context (~2 min)
                 </Link>
                 <button
                   type="button"
                   className="btn secondary full"
                   onClick={() => setSkippedQuestionnaire(true)}
                 >
-                  Skip for Now — Just Send My Report
+                  Skip for Now
                 </button>
               </div>
             </div>
@@ -862,9 +866,9 @@ export default function RealityCheckFunnel({
                   href={`/reality-check/${snapshot.shareToken}/questionnaire`}
                   style={{ textDecoration: "underline", fontWeight: 700 }}
                 >
-                  add optional owner context anytime
-                </Link>{" "}
-                while Todd &amp; Noelah prepare your report.
+                  add optional business context anytime
+                </Link>
+                .
               </span>
             </div>
           )}

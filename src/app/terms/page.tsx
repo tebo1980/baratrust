@@ -36,7 +36,7 @@ export default function TermsPage() {
             BaraTrust Terms of Service
           </h1>
           <p className="text-slate-300 text-base leading-relaxed">
-            We believe in plain English, no surprises, and no fine print designed to confuse you. These terms govern the free BaraTrust Business Reality Check and any scoped project or ongoing operations work you choose to do with us.
+            We believe in plain English, no surprises, and no fine print designed to confuse you. These terms govern the free automated BaraTrust Business Reality Check and any Business Pulse recurring intelligence, scoped project, or ongoing support work you choose to do with us.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs font-mono text-slate-400">
             <div>
@@ -61,23 +61,23 @@ export default function TermsPage() {
         <div className="space-y-8 text-sm text-slate-300 leading-relaxed">
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">01</span>
-            <h2 className="text-xl font-bold text-white font-serif">The Free Business Reality Check</h2>
+            <h2 className="text-xl font-bold text-white font-serif">The Free Automated Reality Check</h2>
             <p>
-              The BaraTrust Business Reality Check is provided free of charge, with no credit card required and no obligation to purchase any follow-on service. It combines automated checks of your public web presence with a hands-on human review by Todd and Noelah.
+              The automated BaraTrust Reality Check snapshot is provided free of charge, with no credit card required and no obligation to purchase any follow-on service. It provides an automated outside-looking-in look at publicly visible signals on your business link.
             </p>
             <p>
-              Every report is delivered via a private, unguessable share link so you can read or share it with your team without creating an account.
+              Snapshots can be accessed via a private, unguessable share link so you can review or share findings with your team without creating an account.
             </p>
           </section>
 
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">02</span>
-            <h2 className="text-xl font-bold text-white font-serif">Scoped Projects & Ongoing Help</h2>
+            <h2 className="text-xl font-bold text-white font-serif">Business Pulse ($99/Month), Optional Execution &amp; Managed Support</h2>
             <p>
-              If you ask BaraTrust for help implementing fixes, building assets, or handling ongoing growth and operations work after reviewing your Reality Check, we will provide a clear, written scope and price before any paid work begins.
+              Ongoing monitoring, human verification, opportunity discovery, and cost comparisons across Protect, Improve, Grow, and Save are offered through Business Pulse ($99/month). Optional execution projects, specialist coordination, or broader managed support are always scoped clearly in writing before any project work begins. Referral or partner compensation never drives our recommendations and is disclosed when relevant.
             </p>
             <p>
-              You will never be billed for any service without your explicit written approval of the scope and pricing.
+              You will never be billed for any service without your explicit approval of the scope and pricing.
             </p>
           </section>
 
@@ -97,15 +97,15 @@ export default function TermsPage() {
 
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">04</span>
-            <h2 className="text-xl font-bold text-white font-serif">Privacy & Respect for Your Information</h2>
+            <h2 className="text-xl font-bold text-white font-serif">Privacy &amp; Respect for Your Information</h2>
             <p>
-              Information you submit through the Reality Check intake form or optional owner questionnaire is used solely to prepare your diagnostic review and communicate with you about your business. We do not sell, rent, or trade your contact details or operational notes to third parties.
+              Information you submit through the Reality Check intake form or optional owner questionnaire is used solely to review your business context and communicate with you about your business. We do not sell, rent, or trade your contact details or operational notes to third parties.
             </p>
           </section>
 
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">05</span>
-            <h2 className="text-xl font-bold text-white font-serif">Governing Law & Direct Resolution</h2>
+            <h2 className="text-xl font-bold text-white font-serif">Governing Law &amp; Direct Resolution</h2>
             <p>
               We believe any questions or disagreements should be resolved through an honest, direct conversation. You can reach Todd and Noelah directly at <PhoneLink />, <SmsLink />, or <EmailLink />. These terms are governed by the laws of the State of Indiana.
             </p>
@@ -115,7 +115,7 @@ export default function TermsPage() {
 
       <footer className="border-t border-slate-800/80 py-10 bg-[#04070D]">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-mono">
-          <p>© 2026 BaraTrust · New Albany, Indiana · Practical small-business growth and operations partner.</p>
+          <p>© 2026 BaraTrust · New Albany, Indiana · BaraTrust watches your business so you don&apos;t have to.</p>
           <Link href="/" className="hover:text-amber-400 transition-colors">&#8592; Back to BaraTrust.com</Link>
         </div>
       </footer>

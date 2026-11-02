@@ -170,10 +170,10 @@ export default function OwnerQuestionnairePage() {
               lineHeight: 1.08,
             }}
           >
-            Want Us to Make the Human Review More Useful?
+            Share What Matters Most to Your Business
           </h1>
           <p className="section-intro" style={{ fontSize: "1.08rem", marginTop: 0 }}>
-            Answer a few quick questions so Todd and Noelah understand what matters most to your business.
+            Answer any questions below that are helpful so Todd and Noelah understand your business context across Protect, Improve, Grow, and Save.
           </p>
 
           <div
@@ -192,10 +192,10 @@ export default function OwnerQuestionnairePage() {
             />
             <div>
               <strong style={{ fontSize: "0.94rem", color: "var(--ink)" }}>
-                Your Reality Check request is already in our review queue
+                Your Reality Check snapshot is already saved
               </strong>
               <span style={{ fontSize: "0.86rem", lineHeight: 1.55, marginTop: "4px" }}>
-                Completing this page is completely optional. You can answer whichever questions are helpful, leave any blank, or skip this step altogether.
+                Completing this page is completely optional. You can answer whichever questions are relevant, leave any blank, or skip this step altogether.
               </span>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function OwnerQuestionnairePage() {
         {business && !business.humanReviewRequested ? (
           <div className="lead-form" style={{ textAlign: "center", padding: "36px 28px" }}>
             <h2 style={{ fontSize: "1.65rem", marginBottom: "10px" }}>
-              Request Your Full Human Review First
+              Save Your Snapshot With Your Email First
             </h2>
             <p
               style={{
@@ -214,7 +214,7 @@ export default function OwnerQuestionnairePage() {
                 color: "var(--muted)",
               }}
             >
-              Before answering the optional owner-context questions, please add your email on your scan snapshot so Todd &amp; Noelah know where to send your finished Reality Check report.
+              Before adding optional owner context, please save your email on your scan snapshot so we can connect your notes to your business link.
             </p>
             <Link
               href={`/reality-check?scan=${encodeURIComponent(shareToken)}`}
@@ -244,7 +244,7 @@ export default function OwnerQuestionnairePage() {
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <h2 style={{ fontSize: "1.8rem", marginBottom: "10px" }}>
-              Context Saved for Your Review
+              Business Context Saved
             </h2>
             <p
               style={{
@@ -254,7 +254,7 @@ export default function OwnerQuestionnairePage() {
                 color: "var(--muted)",
               }}
             >
-              Thank you. Todd and Noelah now have both your automated scan snapshot and your notes as they prepare your finished Reality Check.
+              Thank you. Todd and Noelah have your automated snapshot and your notes, and will follow up clearly with your saved link and Business Pulse ($99/month) options.
             </p>
 
             <div
@@ -273,13 +273,13 @@ export default function OwnerQuestionnairePage() {
                 </strong>
               </div>
               <div className="finding-card-header" style={{ marginBottom: "8px" }}>
-                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Status</span>
-                <span className="finding-badge finding-badge--pass">In Review Queue</span>
+                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Snapshot</span>
+                <span className="finding-badge finding-badge--pass">Context Saved</span>
               </div>
               <div className="finding-card-header" style={{ marginBottom: 0 }}>
-                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Typical turnaround</span>
+                <span style={{ color: "var(--muted)", fontSize: "0.84rem" }}>Ongoing watch</span>
                 <strong style={{ fontSize: "0.86rem", color: "var(--mint)" }}>
-                  Within 1 business day
+                  Business Pulse — $99/month
                 </strong>
               </div>
             </div>

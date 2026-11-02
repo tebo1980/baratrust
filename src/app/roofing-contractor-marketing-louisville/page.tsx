@@ -1,7 +1,6 @@
 'use client'
 
 import SeoTradePage from '@/components/SeoTradePage'
-import { AGENT_COUNT, PRICING } from '@/lib/constants'
 
 export default function RoofingContractorMarketingLouisville() {
   return (
@@ -9,29 +8,29 @@ export default function RoofingContractorMarketingLouisville() {
       trade="Roofing"
       location="Louisville"
       state="KY"
-      headline="Roofing contractor marketing"
-      headlineEm="that fills your schedule."
-      subtext="BaraTrust puts an AI staff in your roofing business — capturing every lead, managing your reviews, and running your back office while you're on the roof. Guaranteed results in 90 days."
+      headline="Roofing growth & market watch"
+      headlineEm="built on real trust."
+      subtext="You inspect roofs, run crews, and take care of homeowners. BaraTrust watches your roofing business and the Louisville market across Protect, Improve, Grow, and Save — telling you what deserves attention and helping you act when it makes sense."
       painPoints={[
-        { title: "Storm season comes and you can't answer every call", text: "After a big storm your phone blows up. You're on a roof doing inspections. Half those calls go to voicemail — and those homeowners call the next roofer." },
-        { title: "You've got 4-star reviews and your competitor has 200", text: "Quality of work doesn't matter if nobody can find you. The roofer with 200 Google reviews gets the call even if his work is worse than yours." },
-        { title: "Marketing companies promise leads but deliver clicks", text: "They show you impressions and click-through rates. You ask how many actual phone calls. Silence." },
+        { title: "Storm surges overwhelm phones and inspection follow-up", text: "When hail or wind hits and you're on roofs all day, missed calls and stalled inspection quotes quickly turn into jobs for whoever answers next." },
+        { title: "Homeowners compare trust before they ever call", text: "Out-of-date websites, thin local proof, or unanswered reviews make even top-quality roofers look indistinguishable from storm chasers." },
+        { title: "Nobody has time to watch local opportunities and vendor creep", text: "HOA relationships, commercial properties, neighborhood demand, and rising material or software costs go unexamined while you're running production." },
       ]}
       features={[
-        { icon: '\uD83D\uDCDE', title: 'Capture Every Storm Call', text: 'Missed call text-back ensures every homeowner gets an instant response. CallRail tracks every single call so you know exactly where leads come from.' },
-        { icon: '\u2B50', title: 'Build a 5-Star Reputation', text: 'Rex sends review requests after every completed job. Responds to every review professionally. Your Google profile becomes your best salesperson.' },
-        { icon: '\uD83C\uDFAF', title: 'Own Local Search', text: 'When Louisville homeowners search "roof repair near me" or "storm damage roofer" — you show up. Website, Google Maps, directories, everywhere.' },
-        { icon: '\uD83D\uDCCA', title: 'Know Your Numbers', text: 'Cost per lead, which ads convert, which neighborhoods produce the best jobs. Real data, not vanity metrics.' },
-        { icon: '\uD83E\uDD16', title: `${AGENT_COUNT} AI Agents`, text: 'Lead capture, review management, follow-up sequences, social posts from completed jobs, appointment reminders, bidding, cost intelligence — all automated.' },
-        { icon: '\uD83D\uDCB0', title: '90-Day Guarantee', text: '10 tracked calls in 90 days or your fourth month is free. Storm season or slow season — we stand behind it.' },
+        { icon: '\uD83D\uDEE1\uFE0F', title: 'Protect Local Credibility', text: 'Monitor reviews, public business accuracy, competitor activity, and website trust signals so homeowners see a legitimate local company.' },
+        { icon: '\uD83D\uDCDE', title: 'Improve Storm & Estimate Follow-Up', text: 'Tighten mobile inquiry paths, inspection scheduling, quote follow-up, and crew/admin checklists without forcing you into bloated software.' },
+        { icon: '\uD83C\uDFAF', title: 'Stand Out in Local Search', text: 'Clear service-area visibility, stronger project presentation, and straightforward contact paths across Louisville and surrounding counties.' },
+        { icon: '\uD83D\uDCC8', title: 'Grow Beyond Paid Lead Lists', text: 'Actively search for HOA, property-manager, real-estate, insurance-adjacent, and commercial opportunities plus worthwhile local campaigns.' },
+        { icon: '\uD83D\uDCB0', title: 'Save With Smart Vendor Comparisons', text: 'Review recurring software, marketing spend, and supplier options while weighing delivery reliability, contracts, and switching costs.' },
+        { icon: '\uD83E\uDD1D', title: 'Business Pulse ($99/mo) + Execution', text: 'See what we spot right now with a Free Reality Check, keep BaraTrust watching your market for $99/month, and execute projects only when warranted.' },
       ]}
       stats={[
-        { num: '90', label: 'Day Prove It Guarantee' },
-        { num: String(AGENT_COUNT), label: 'AI agents working for your roofing business' },
-        { num: '7', label: 'Day launch — full presence live in one week' },
-        { num: `$${PRICING.foundation.monthly}`, label: 'Per month starting — no setup fee' },
+        { num: '01', label: 'Protect local trust & reputation' },
+        { num: '02', label: 'Improve inspection & quote follow-up' },
+        { num: '03', label: 'Grow residential & commercial channels' },
+        { num: '04', label: 'Save on software, ads & vendor spend' },
       ]}
-      closingHeadline="Ready to be the roofer Louisville trusts?"
+      closingHeadline="Want someone credible watching your market while you run your roofing crews?"
     />
   )
 }

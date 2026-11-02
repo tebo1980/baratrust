@@ -6,7 +6,7 @@
 .landing-wrapper .offer-details li { margin: 8px 0; }
 .landing-wrapper .btn:disabled { opacity: .55; cursor: not-allowed; }
 .landing-wrapper .form-note a { text-decoration: underline; text-underline-offset: 3px; }
-.landing-wrapper #start, .landing-wrapper #reality-check-form { scroll-margin-top: 110px; }
+.landing-wrapper #services, .landing-wrapper #pulse, .landing-wrapper #how, .landing-wrapper #who, .landing-wrapper #start, .landing-wrapper #reality-check-form { scroll-margin-top: 96px; }
 .landing-wrapper { color-scheme: light; }
 .landing-wrapper .theme-toggle { font: inherit; font-weight: 600; min-height: 44px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); background: var(--surface); cursor: pointer; }
 .landing-wrapper .theme-toggle:hover { border-color: var(--mint-dark); }
@@ -55,8 +55,11 @@
 .landing-wrapper[data-theme="dark"] nav a.nav-cta { color: #10251a !important; }
 
 /* Fix #how section background hijacked by globals.css */
-.landing-wrapper #how { background: var(--warm) !important; }
+.landing-wrapper #how { background: var(--bg) !important; }
+.landing-wrapper #how.alt { background: var(--warm) !important; }
 .landing-wrapper .step p { color: var(--muted) !important; }
+.landing-wrapper .reality-card .card-kicker { color: var(--mint) !important; }
+.landing-wrapper .reality-card .card-bottom { color: #fff !important; }
 
 /* Fix text colors inside .section.dark that were broken by global h2 overrides */
 .landing-wrapper .section.dark h2, .landing-wrapper .section.dark h3 { color: #fff !important; }

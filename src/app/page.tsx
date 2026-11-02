@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import RealityCheckFunnel from "@/components/RealityCheckFunnel";
 import "./landing.css";
@@ -45,11 +46,12 @@ export default function LandingPage() {
             <span>BaraTrust</span>
           </a>
           <nav>
-            <a href="#services">What we help with</a>
+            <a href="#services">What we watch</a>
+            <a href="#pulse">Business Pulse · $99/mo</a>
             <a href="#how">How it works</a>
             <a href="#who">Who it’s for</a>
             <a className="nav-cta" href="#start">
-              Get your free Reality Check
+              Free Reality Check
             </a>
             <button
               id="theme-toggle"
@@ -65,249 +67,321 @@ export default function LandingPage() {
       </header>
 
       <main id="top">
-        {/* 1. HERO + 2. PROBLEM SECTION */}
+        {/* 1. HERO + FIELD WATCH CARD */}
         <section className="hero">
           <div className="wrap hero-grid">
             <div>
-              <p className="eyebrow">Human judgment. AI leverage. Real execution.</p>
-              <h1>Run your business. We’ll help with the rest.</h1>
+              <p className="eyebrow">PROTECT • IMPROVE • GROW • SAVE</p>
+              <h1>BaraTrust watches your business so you don’t have to.</h1>
               <p className="hero-copy">
-                Get more customers. Lose fewer opportunities. Cut unnecessary costs. Automate the busywork.
+                You run your business. BaraTrust keeps looking around the corner.
               </p>
               <p className="section-intro" style={{ marginTop: "14px" }}>
-                BaraTrust helps small businesses find what’s leaking time, money, or customers — and fix the problems that actually matter, with Todd and Noelah reviewing the work.
+                We continuously look for ways to protect your business, improve what’s already working, uncover new growth opportunities, and identify places you may be spending more than necessary. Then we tell you what actually deserves your attention — and help you act when it makes sense.
               </p>
               <div className="cta-row">
                 <a className="btn primary" href="#start">
-                  Run My Free Reality Check
+                  Run Free Reality Check
                 </a>
-                <a className="btn secondary" href="#services">
-                  See What We Can Help With
+                <a className="btn secondary" href="#pulse">
+                  Business Pulse — $99/month
                 </a>
               </div>
-              <p className="micro">Paste your business link and see what we find. No email required to see your first results.</p>
+              <p className="micro">
+                Free Reality Check: see what BaraTrust can spot right now. Business Pulse ($99/month): keep BaraTrust watching.
+              </p>
             </div>
 
             <aside className="reality-card">
               <p className="card-kicker">
-                Small businesses usually don’t have one big problem. They have ten little ones quietly costing time and money:
+                Even well-run businesses miss things when the owner is busy running day-to-day operations:
               </p>
               <ul>
-                <li>Customers can’t easily find or trust you online</li>
-                <li>Calls, messages, or quote requests fall through the cracks</li>
-                <li>Past leads and old quotes never get followed up</li>
-                <li>Websites or social pages look outdated or unclear</li>
-                <li>Repeat work gets done the hard way every week</li>
-                <li>Suppliers, tools, or monthly services cost more than they should</li>
-                <li>Good growth opportunities sit untouched because nobody has time</li>
+                <li>A worthwhile local event, booth, or partnership deadline passes by unnoticed</li>
+                <li>A nearby competitor changes offers, positioning, or customer appeal</li>
+                <li>Public business details, links, or mobile pages drift out of date</li>
+                <li>Warm inquiries, catering requests, or past quotes don’t get followed up</li>
+                <li>Suppliers, software, or monthly services quietly creep up in cost</li>
+                <li>Reviews or customer-experience friction start building before anyone flags them</li>
               </ul>
-              <p className="card-bottom">We start with the leaks that matter most.</p>
+              <p className="card-bottom">
+                You don’t need something broken to benefit from someone watching the field for you.
+              </p>
             </aside>
           </div>
         </section>
 
-        {/* 3. WHY BARATRUST */}
+        {/* 2. TRUST & RESTRAINT STRIP */}
         <section className="proof-strip">
           <div className="wrap proof-grid">
             <div>
-              <strong>Built for small businesses</strong>
-              <span>No enterprise jargon. No agency smoke. No software you have to learn on nights and weekends.</span>
-            </div>
-            <div>
-              <strong>Keep what already works</strong>
-              <span>If something is already working, we don’t tear it up just to sell you a new package.</span>
-            </div>
-            <div>
-              <strong>Human judgment. AI leverage.</strong>
-              <span>We use modern tools to research, create, organize, and automate faster — with Todd and Noelah reviewing what goes out.</span>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. FOUR CORE OUTCOME AREAS + 5. CAPABILITIES */}
-        <section id="services" className="section">
-          <div className="wrap">
-            <p className="eyebrow">What we can help with</p>
-            <h2>Four core outcome areas.</h2>
-            <p className="section-intro">
-              If it doesn’t help make money, save money, save time, or make the business easier to run, it probably isn’t the priority.
-            </p>
-
-            <div className="service-grid">
-              <article className="service-card">
-                <span className="number">01</span>
-                <h3>Get More Customers</h3>
-                <p>Help local buyers find you, trust you, and choose you.</p>
-                <ul>
-                  <li>Local visibility and search presence</li>
-                  <li>Cleaner websites, landing pages, or online stores</li>
-                  <li>Better offers and promotional campaigns</li>
-                  <li>Social content that looks alive and credible</li>
-                  <li>Short-form video, commercials, graphics, and product visuals</li>
-                  <li>Local lead or account research</li>
-                  <li>Catering, wholesale, B2B, or neighborhood opportunities</li>
-                </ul>
-              </article>
-
-              <article className="service-card">
-                <span className="number">02</span>
-                <h3>Lose Fewer Opportunities</h3>
-                <p>Stop letting warm inquiries and past quotes slip away.</p>
-                <ul>
-                  <li>Missed-call and inquiry follow-up</li>
-                  <li>Quote and estimate follow-up</li>
-                  <li>Simpler contact and lead-capture paths</li>
-                  <li>Online ordering or booking improvements</li>
-                  <li>Catering, special-order, and large-job inquiry capture</li>
-                  <li>Dormant-customer reactivation</li>
-                  <li>Customer journey improvements</li>
-                </ul>
-              </article>
-
-              <article className="service-card">
-                <span className="number">03</span>
-                <h3>Cut Unnecessary Costs</h3>
-                <p>Spot recurring waste and trim expenses that aren’t earning their keep.</p>
-                <ul>
-                  <li>Supplier and vendor research</li>
-                  <li>Software and subscription cleanup</li>
-                  <li>Fee and service comparisons</li>
-                  <li>Process waste</li>
-                  <li>Unnecessary marketing spend</li>
-                  <li>Tools you pay for but barely use</li>
-                </ul>
-              </article>
-
-              <article className="service-card">
-                <span className="number">04</span>
-                <h3>Automate the Busywork</h3>
-                <p>Turn repeat headaches into simple, reliable systems.</p>
-                <ul>
-                  <li>SOPs from videos, photos, or rough notes</li>
-                  <li>Onboarding and training materials</li>
-                  <li>Checklists and repeatable internal processes</li>
-                  <li>Follow-up workflows</li>
-                  <li>Recurring reporting and reminders</li>
-                  <li>Customer-data and spreadsheet cleanup</li>
-                  <li>Repetitive admin task automation</li>
-                </ul>
-              </article>
-            </div>
-
-            <div className="starter-note" style={{ marginTop: "32px" }}>
-              <strong>We find the problem first. Then we decide whether anything actually needs to be built.</strong>
+              <strong>Built for real small businesses</strong>
               <span>
-                When execution is needed, we can help with websites and ecommerce pages, commercials and promotional videos, short-form social video, social media graphics and campaigns, virtual product photography, audio ads and jingles, SOPs and training materials, lead research and outreach lists, and workflow automation.
+                Plain English, transparent pricing, and practical business sense — no consultant jargon, no agency smoke, and no dashboards to learn.
+              </span>
+            </div>
+            <div>
+              <strong>Restraint is part of the product</strong>
+              <span>
+                We never manufacture problems just to sell a project. When something is working fine or a switch isn’t worth the risk, we say so.
+              </span>
+            </div>
+            <div>
+              <strong>Intelligence + optional execution</strong>
+              <span>
+                Technology helps us cover ground behind the scenes while Todd and Noelah determine what deserves your attention — and help execute when it makes sense.
               </span>
             </div>
           </div>
         </section>
 
-        {/* 6. HOW IT WORKS */}
-        <section id="how" className="section alt">
+        {/* 3. FOUR PILLARS + EXECUTION CAPABILITIES */}
+        <section id="services" className="section">
+          <div className="wrap">
+            <p className="eyebrow">PROTECT • IMPROVE • GROW • SAVE</p>
+            <h2>Four ways we look out for your business.</h2>
+            <p className="section-intro">
+              We look inside and outside your business for things worth knowing, problems worth addressing, opportunities worth pursuing, and costs worth questioning.
+            </p>
+
+            <div className="service-grid">
+              <article className="service-card">
+                <span className="number">01</span>
+                <h3>Protect</h3>
+                <p>Spot risks and issues that could hurt your business before they turn into expensive surprises.</p>
+                <ul>
+                  <li>Customer-experience problems and broken inquiry paths</li>
+                  <li>Reputation changes and customer review patterns</li>
+                  <li>Incorrect or inconsistent public business information</li>
+                  <li>Competitive threats and local market shifts worth watching</li>
+                  <li>Website trust and digital-safety concerns (coordinating qualified specialists when dedicated security work is needed)</li>
+                  <li>Vendor, platform, or technology risks</li>
+                </ul>
+              </article>
+
+              <article className="service-card">
+                <span className="number">02</span>
+                <h3>Improve</h3>
+                <p>Find practical ways to make what is already working perform even better.</p>
+                <ul>
+                  <li>Customer journey, checkout, booking, and conversion clarity</li>
+                  <li>Stronger retention and follow-up on calls, quotes, and repeat customers</li>
+                  <li>Online visibility, websites, menus, and merchandising presentation</li>
+                  <li>Day-to-day operational and process improvements</li>
+                  <li>Practical checklists, SOPs, training guides, and workflow automation</li>
+                </ul>
+              </article>
+
+              <article className="service-card">
+                <span className="number">03</span>
+                <h3>Grow</h3>
+                <p>
+                  Actively search outside and inside your business for revenue opportunities you may never have known existed.
+                </p>
+                <ul>
+                  <li>Local events, festivals, and vendor or booth opportunities</li>
+                  <li>Partnerships and corporate, catering, wholesale, or B2B opportunities</li>
+                  <li>New customer groups, geographic opportunities, and local developments</li>
+                  <li>Competitor gaps, emerging demand, and new sales channels</li>
+                  <li>Products or services worth evaluating and cross-selling angles</li>
+                  <li>Worthwhile advertising and promotional opportunities</li>
+                </ul>
+              </article>
+
+              <article className="service-card">
+                <span className="number">04</span>
+                <h3>Save</h3>
+                <p>
+                  Look for legitimate ways to reduce expenses or get more value from existing spending — weighing total value, not just the lowest price.
+                </p>
+                <ul>
+                  <li>Alternative suppliers, manufacturers, or purchasing opportunities</li>
+                  <li>Side-by-side vendor and service-provider comparisons</li>
+                  <li>Software overlap, better-value alternatives, and unnecessary expenses</li>
+                  <li>Operational efficiencies that protect quality and staff workflow</li>
+                  <li>Careful review of quality, reliability, contracts, shipping, minimum orders, and switching costs</li>
+                  <li>Honest calls when the right answer is: “No change recommended — your current provider remains competitive”</li>
+                </ul>
+              </article>
+            </div>
+
+            <div className="starter-note" style={{ marginTop: "32px" }}>
+              <strong>Intelligence comes first. Execution is ready when it makes sense.</strong>
+              <span>
+                When BaraTrust identifies something worth acting on, we can{" "}
+                <strong>(1) handle the work directly</strong> — including websites and online stores, commercials and short-form video, social campaigns and graphics, virtual product photography, audio ads and jingles, event or booth applications and promo materials, supplier research and quote comparisons, SOPs and training materials, outreach lists, and workflow setup;{" "}
+                <strong>(2) coordinate or recommend a qualified specialist</strong> when a job calls for dedicated outside expertise; or{" "}
+                <strong>(3) tell you that no action is warranted</strong>. Partner or referral compensation never determines our recommendations and is always disclosed when relevant.
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* 4. BUSINESS PULSE — $99/MONTH */}
+        <section id="pulse" className="section alt">
+          <div className="wrap who-grid">
+            <div>
+              <p className="eyebrow">Business Pulse — $99/month</p>
+              <h2>Keep BaraTrust watching.</h2>
+              <p className="section-intro">
+                <strong>Business Pulse ($99/month)</strong> is BaraTrust’s ongoing intelligence service. BaraTrust keeps watching your business and surrounding market for ways to{" "}
+                <strong>Protect, Improve, Grow, and Save</strong> — and tells you what actually deserves your attention.
+              </p>
+              <p>
+                It isn’t software you have to learn, and it isn’t filler generated just to look busy. A healthy, well-run business may get most of its value from{" "}
+                <strong>Grow</strong> and <strong>Save</strong> — spotting events, partnerships, competitor gaps, emerging demand, or better supplier options while you stay focused on running the shop.
+              </p>
+              <div className="cta-row" style={{ marginTop: "24px" }}>
+                <a
+                  className="btn primary"
+                  href="mailto:todd@baratrust.com?subject=Start%20Business%20Pulse%20(%2499%2Fmonth)"
+                >
+                  Start Business Pulse — $99/month
+                </a>
+                <a className="btn secondary" href="#start">
+                  Try Free Reality Check First
+                </a>
+              </div>
+              <p className="micro">
+                $99/month · Straightforward pricing — no “book a meeting just to learn the price.”
+              </p>
+            </div>
+
+            <aside className="reality-card" style={{ marginTop: 0 }}>
+              <p className="card-kicker">
+                What honest judgment looks like inside Business Pulse:
+              </p>
+              <ul>
+                <li>
+                  <strong>PROTECT —</strong> No meaningful concerns identified.
+                </li>
+                <li>
+                  <strong>IMPROVE —</strong> Mobile inquiry path is working well; one outdated seasonal hours listing worth updating.
+                </li>
+                <li>
+                  <strong>GROW —</strong> Two upcoming regional events match your customer base; vendor booth applications close next month.
+                </li>
+                <li>
+                  <strong>SAVE —</strong> No change recommended. Your current provider remains competitive once shipping, minimums, and reliability are weighed.
+                </li>
+              </ul>
+              <p className="card-bottom">
+                Not every category needs a finding every cycle. “No action recommended” is a legitimate outcome — we never manufacture problems.
+              </p>
+            </aside>
+          </div>
+        </section>
+
+        {/* 5. HOW THE PRODUCT LADDER WORKS */}
+        <section id="how" className="section">
           <div className="wrap">
             <p className="eyebrow">How it works</p>
-            <h2>We look first. Then we fix what matters.</h2>
+            <h2>See what we can spot. Keep us watching. Act when it makes sense.</h2>
             <div className="steps">
               <div className="step">
                 <span>1</span>
-                <h3>Paste Your Link</h3>
+                <h3>Free Reality Check</h3>
                 <p>
-                  Paste your website, Google Business page, or Facebook page. Our system runs an instant automated scan so you can see your initial snapshot right away — no email required.
+                  <strong>See what BaraTrust can spot right now.</strong> Paste your link for a free automated outside-looking-in snapshot of publicly visible signals, potential concerns, and areas worth investigating.
                 </p>
               </div>
               <div className="step">
                 <span>2</span>
-                <h3>Request Human Review</h3>
+                <h3>Business Pulse — $99/mo</h3>
                 <p>
-                  Want the full Reality Check? Add your email and optionally answer a few quick questions so Todd and Noelah can review the parts software can’t.
+                  <strong>Keep BaraTrust watching.</strong> Ongoing human-led monitoring, verification, opportunity discovery, and cost vigilance across Protect, Improve, Grow, and Save.
                 </p>
               </div>
               <div className="step">
                 <span>3</span>
-                <h3>You Get the Priorities</h3>
+                <h3>Optional Execution</h3>
                 <p>
-                  You receive a clear BaraTrust Reality Check showing what’s working, what’s getting in the way, the top 3 things we’d fix first, opportunities we found, and what we would NOT spend money on.
+                  <strong>Act when something is worth doing.</strong> Ask BaraTrust to handle the project, have us coordinate a specialist, or take the recommendation and run with it yourself.
                 </p>
               </div>
               <div className="step">
                 <span>4</span>
-                <h3>You Decide What Happens Next</h3>
+                <h3>Broader Managed Support</h3>
                 <p>
-                  Take the report and fix things yourself. Hire somebody else. Or ask BaraTrust to help. No obligation.
+                  <strong>Go deeper when appropriate.</strong> Businesses wanting a fuller ongoing hands-on partner across growth, marketing, and operations can expand when it makes sense.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 7. WHO IT'S FOR */}
-        <section id="who" className="section">
+        {/* 6. WHO IT'S FOR */}
+        <section id="who" className="section alt">
           <div className="wrap who-grid">
             <div>
               <p className="eyebrow">Who it’s for</p>
-              <h2>Small businesses that are too busy to become tech companies.</h2>
+              <h2>For owners busy running a real business — whether things feel hectic or healthy.</h2>
               <p className="section-intro">
-                Contractors, restaurants, retailers, local service businesses, makers, trades, independent operators, and small teams wearing ten hats.
+                Restaurants, boutiques and retailers, contractors, trades, local service businesses, makers, and independent teams wearing ten hats — including strong, well-run businesses that want someone credible watching for new revenue opportunities, market changes, and smarter spending.
               </p>
             </div>
             <div className="quote-box">
               <p>
-                “I know some of this probably needs fixed. I just don’t have time to figure out what matters.”
+                “I’m busy running the business every day. I just don’t have time to watch every competitor, hunt down opportunities I don’t even know exist, or check whether we’re overpaying vendors.”
               </p>
-              <span>That’s the customer we built BaraTrust for.</span>
+              <span>That’s who we built BaraTrust for.</span>
             </div>
           </div>
         </section>
 
-        {/* 8. NO AI HOMEWORK */}
+        {/* 7. HUMAN JUDGMENT FIRST */}
         <section className="section dark">
           <div className="wrap">
-            <p className="eyebrow">No AI homework</p>
-            <h2>We use modern tools. You don’t have to.</h2>
+            <p className="eyebrow">Human-led judgment</p>
+            <h2>Real monitoring and judgment — not another tool on your to-do list.</h2>
             <p className="section-intro light-copy">
-              AI helps BaraTrust research faster, organize information, create content, analyze patterns, and automate repetitive work. But BaraTrust is human-led. Todd and Noelah review the work, make the judgment calls, and stay accountable for what is recommended.
+              Small-business owners don’t need software homework, enterprise buzzwords, or generic checklists. Behind the scenes, technology helps us scan and research faster — while Todd and Noelah apply real human judgment, weigh switching costs and operational risk, and stand behind what actually deserves your attention.
             </p>
             <p className="light-copy">
-              <strong>You run the business. We use the tools.</strong> No giant software migration. No complicated dashboards. No forcing you to learn AI.
+              <strong>You run your business. BaraTrust keeps watch.</strong> And when the smartest move is to leave things alone, that’s exactly what we’ll tell you.
             </p>
           </div>
         </section>
 
-        {/* 9. FREE REALITY CHECK + 10. STAGED INTAKE SECTION */}
+        {/* 8. FREE REALITY CHECK INTAKE */}
         <section id="start" className="section start-section">
           <div className="wrap start-grid">
             <div>
-              <p className="eyebrow">Start simple</p>
-              <h2 className="offer-title">Start With Your Business</h2>
+              <p className="eyebrow">Free Reality Check</p>
+              <h2 className="offer-title">See What BaraTrust Can Spot Right Now</h2>
               <p className="section-intro">
-                <strong>Paste your business link and see what we find.</strong>
+                <strong>Paste your business link for a free automated outside-looking-in snapshot.</strong>
               </p>
-              <p>What the full Reality Check includes:</p>
+              <p>
+                The Free Reality Check demonstrates what BaraTrust can spot immediately from public information — while being upfront about what automated scanning can and cannot see on its own:
+              </p>
               <ul className="offer-details">
-                <li>Instant automated website and digital-presence snapshot</li>
-                <li>Human review by Todd and Noelah</li>
-                <li>Optional owner context questionnaire</li>
-                <li>Competitor and findability look</li>
-                <li>Clear priorities in plain English</li>
-                <li>What we would NOT recommend spending money on</li>
+                <li>Public website setup, HTTPS security, and mobile readiness</li>
+                <li>Visible customer contact paths, action callouts, and inquiry friction</li>
+                <li>Public trust signals, location clarity, and business details</li>
+                <li>Local search findability and structured business metadata</li>
+                <li>Honest separation between confirmed public signals and items requiring human verification</li>
               </ul>
               <p>
-                <strong>100% free. No email required to see your first results. No credit card. No obligation.</strong>
+                <strong>100% free automated snapshot. No email required to see your initial results. No credit card. No obligation.</strong>
               </p>
               <div className="starter-note">
-                <strong>How follow-up work is scoped</strong>
+                <strong>Want BaraTrust to keep watching?</strong>
                 <span>
-                  If you want help after the report, we scope the work clearly based on what your business actually needs — whether that’s a focused fix, a build project, or ongoing help.
+                  Your Free Reality Check is an instant public snapshot. Deeper ongoing research, human verification, local opportunity discovery, and supplier/cost vigilance live inside{" "}
+                  <strong>Business Pulse ($99/month)</strong> — with optional execution whenever something is worth acting on.
                 </span>
               </div>
               <div className="cta-row">
                 <a className="btn primary" href="#reality-check-form">
-                  Run My Free Reality Check
+                  Run Free Reality Check
                 </a>
+                <Link className="btn secondary" href="/pricing">
+                  See Business Pulse ($99/mo)
+                </Link>
               </div>
               <p className="micro">
-                No payment. No obligation.
+                Free automated scan · Business Pulse $99/month when you want ongoing watch.
               </p>
             </div>
 
@@ -320,9 +394,14 @@ export default function LandingPage() {
         <div className="wrap footer-wrap">
           <div>
             <strong>BaraTrust</strong>
-            <p>Practical small-business growth and operations partner.</p>
+            <p>BaraTrust watches your business so you don’t have to. Protect • Improve • Grow • Save.</p>
           </div>
           <div className="footer-links">
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+              <Link href="/pricing">Business Pulse ($99/mo)</Link>
+              <Link href="/reality-check">Free Reality Check</Link>
+              <Link href="/terms">Terms</Link>
+            </div>
             <a href="mailto:todd@baratrust.com">todd@baratrust.com</a>
             <span>© 2026 BaraTrust</span>
           </div>

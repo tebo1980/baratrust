@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Roofing Contractor Marketing Louisville KY — BaraTrust',
-  description: 'BaraTrust puts an AI staff in your roofing business — capturing every storm lead, managing reviews, and running your back office. 90-Day Prove It Guarantee. Serving Louisville KY.',
-  keywords: 'roofing marketing Louisville, roofing contractor marketing, roof repair advertising Louisville KY, roofer leads, storm damage roofing marketing',
+  title: 'Roofing Contractor Growth & Business Watch — Louisville KY | BaraTrust',
+  description: 'BaraTrust watches your roofing business so you don’t have to — across Protect, Improve, Grow, and Save. Serving Louisville KY and Southern Indiana.',
+  keywords: 'roofing marketing Louisville, roofing contractor growth Louisville KY, local roofer visibility, Business Pulse Louisville',
   openGraph: {
-    title: 'Roofing Contractor Marketing Louisville KY — BaraTrust',
-    description: 'AI staff for your roofing business. 10 agents. 90-Day Guarantee.',
+    title: 'Roofing Contractor Growth & Business Watch — Louisville KY | BaraTrust',
+    description: 'Protect • Improve • Grow • Save. Ongoing business and local market watch plus practical execution for Louisville roofing contractors.',
     url: 'https://baratrust.com/roofing-contractor-marketing-louisville',
   },
 }

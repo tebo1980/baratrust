@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, ArrowRight, ShieldCheck, Mail, Sparkles } from 'lucide-react';
+import { CheckCircle2, ArrowRight, ShieldCheck, Mail } from 'lucide-react';
 
 export default function PricingPage() {
   return (
@@ -20,7 +20,7 @@ export default function PricingPage() {
           </Link>
           <div className="flex items-center gap-6">
             <Link href="/" className="text-sm text-slate-400 hover:text-slate-200 transition-colors hidden sm:block">
-              ← Back to Overview
+              ← Back to Homepage
             </Link>
             <Link
               href="/reality-check"
@@ -32,65 +32,59 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-16 space-y-16">
+      <main className="max-w-6xl mx-auto px-6 py-16 space-y-14">
 
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider rounded-md">
-            <ShieldCheck className="w-3.5 h-3.5" /> Honest Pricing · No Software Lock-In
+            <ShieldCheck className="w-3.5 h-3.5" /> Protect • Improve • Grow • Save
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white font-serif">
-            Free diagnosis. <span className="text-amber-400">Transparent execution.</span>
+            See what we spot for free. <span className="text-amber-400">Keep us watching for $99/month.</span>
           </h1>
           <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-            We start by diagnosing where your business is losing money or wasting time—completely free. Then, if you want us to do the heavy lifting, we give you a plain-English price for real execution.
+            No “book a meeting just to hear the price.” Start with a Free Reality Check to see what BaraTrust can spot from public signals right now — or start Business Pulse for $99/month so BaraTrust keeps watching your business and surrounding market.
           </p>
         </div>
 
-        {/* Pricing Cards */}
+        {/* Primary Product Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
 
           {/* Card 1: Free Reality Check */}
-          <div className="bg-[#0E1524] border-2 border-amber-500/40 rounded-2xl p-8 md:p-10 shadow-2xl flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 px-4 py-1.5 bg-amber-500 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-bl-xl">
-              START HERE
-            </div>
-
+          <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-8 md:p-10 shadow-xl flex flex-col justify-between">
             <div className="space-y-6">
               <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">Step 01</span>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
+                  See What BaraTrust Can Spot Right Now
+                </span>
                 <h2 className="text-2xl md:text-3xl font-bold text-white font-serif mt-1">
-                  Business Reality Check
+                  Free Reality Check
                 </h2>
                 <p className="text-slate-400 text-sm mt-2">
-                  Our comprehensive 5-area diagnosis to uncover hidden leaks and high-impact growth opportunities.
+                  An instant automated outside-looking-in snapshot of your public digital presence — with clear transparency on what automation can and cannot see.
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2 pt-2 pb-4 border-b border-slate-800">
                 <span className="text-5xl font-bold text-white font-serif">$0</span>
-                <span className="text-slate-400 font-mono text-sm">/ 100% Free</span>
+                <span className="text-slate-400 font-mono text-sm">/ Free Automated Snapshot</span>
               </div>
 
               <ul className="space-y-3.5 text-sm text-slate-300">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>0 to 100 Score across Digital Presence, Customer Journey, Trust, Local Discovery, and Opportunity Capture</span>
+                  <span>Checks publicly visible signals across Digital Presence, Customer Journey, Trust &amp; Reputation, Local Discovery, and Opportunity Capture</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>Objective automated checks combined with human review by Todd and Noelah</span>
+                  <span>Highlights potential concerns, visible strengths, and areas worth deeper human verification</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>Clear evidence tags on every finding: [AUTO DETECTED], [BARATRUST REVIEW], [OPPORTUNITY FOUND]</span>
+                  <span>Never invents fake penalties when public or browser evidence is incomplete</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>Delivered to your inbox within one business day</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>100% free. No credit card required. No obligation.</span>
+                  <span>No email or credit card required to see your initial snapshot</span>
                 </li>
               </ul>
             </div>
@@ -98,65 +92,92 @@ export default function PricingPage() {
             <div className="pt-8">
               <Link
                 href="/reality-check"
-                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 shadow-lg"
+                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 border border-slate-700"
               >
-                Get My Free Reality Check <ArrowRight className="w-5 h-5" />
+                Run Free Reality Check <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
           </div>
 
-          {/* Card 2: Partner Execution & Retainers */}
-          <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-8 md:p-10 shadow-xl flex flex-col justify-between">
+          {/* Card 2: Business Pulse — $99/month */}
+          <div className="bg-[#0E1524] border-2 border-amber-500/40 rounded-2xl p-8 md:p-10 shadow-2xl flex flex-col justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 px-4 py-1.5 bg-amber-500 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-bl-xl">
+              PRIMARY SERVICE
+            </div>
+
             <div className="space-y-6">
               <div>
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">Step 02</span>
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+                  Keep BaraTrust Watching
+                </span>
                 <h2 className="text-2xl md:text-3xl font-bold text-white font-serif mt-1">
-                  Scoped Execution & Ongoing Help
+                  Business Pulse
                 </h2>
                 <p className="text-slate-400 text-sm mt-2">
-                  If you want help after the report, we scope the work clearly based on what your business actually needs — whether that&apos;s a focused fix, a build project, or ongoing help.
+                  BaraTrust keeps watching your business and surrounding market for ways to Protect, Improve, Grow, and Save — and tells you what actually deserves attention.
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2 pt-2 pb-4 border-b border-slate-800">
-                <span className="text-3xl md:text-4xl font-bold text-white font-serif">Scoped to Need</span>
-                <span className="text-slate-400 font-mono text-xs">/ Focused Fix, Build, or Ongoing</span>
+                <span className="text-5xl font-bold text-white font-serif">$99</span>
+                <span className="text-slate-400 font-mono text-sm">/ month</span>
               </div>
 
               <ul className="space-y-3.5 text-sm text-slate-300">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Get More Customers:</strong> Local visibility, websites, ecommerce pages, campaigns, video, audio, and lead research</span>
+                  <span><strong>Protect &amp; Improve:</strong> Ongoing watch for reputation shifts, public-info issues, competitor threats, customer-experience friction, and practical performance gains</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Lose Fewer Opportunities:</strong> Missed-call follow-up, quote follow-up, booking paths, and dormant-customer reactivation</span>
+                  <span><strong>Grow:</strong> Active search outside and inside your business for events, booths, partnerships, corporate/B2B angles, competitor gaps, local developments, and emerging demand</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Cut Unnecessary Costs:</strong> Supplier and vendor research, software cleanup, and cutting wasted spend</span>
+                  <span><strong>Save:</strong> Supplier alternatives, vendor comparisons, software overlap, and expense checks weighed against quality, reliability, contracts, and switching risk</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Automate the Busywork:</strong> SOPs, training materials, checklists, customer-data cleanup, and repetitive admin automation</span>
+                  <span><strong>Built for healthy businesses too:</strong> You don&apos;t need something broken to benefit — and “No action recommended” is always a legitimate finding</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span>Human judgment and AI leverage — with Todd and Noelah reviewing the work.</span>
+                  <span><strong>Human judgment, not another dashboard:</strong> Todd and Noelah review what matters so you don&apos;t get stuck learning software</span>
                 </li>
               </ul>
             </div>
 
             <div className="pt-8">
               <a
-                href="mailto:todd@baratrust.com"
-                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 border border-slate-700"
+                href="mailto:todd@baratrust.com?subject=Start%20Business%20Pulse%20(%2499%2Fmonth)"
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 shadow-lg"
               >
-                <Mail className="w-4 h-4 text-amber-400" /> Talk with Todd (todd@baratrust.com)
+                <Mail className="w-4 h-4" /> Start Business Pulse — $99/month
               </a>
             </div>
           </div>
 
+        </div>
+
+        {/* Optional Execution & Broader Support Note */}
+        <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-3xl">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+              Optional Execution &amp; Broader Managed Support
+            </span>
+            <h3 className="text-xl font-bold text-white font-serif">
+              Act only when something is worth doing.
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              When Business Pulse identifies an opportunity or fix worth acting on, you can handle it in-house, ask BaraTrust to scope and execute it directly (websites, online stores, video, campaigns, booth prep, supplier quotes, SOPs, workflows), have us coordinate a qualified specialist, or explore broader managed support when appropriate — always with clear scope approved before any project work begins.
+            </p>
+          </div>
+          <a
+            href="mailto:todd@baratrust.com"
+            className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg text-sm transition-colors border border-slate-700 whitespace-nowrap"
+          >
+            Questions? Email Todd
+          </a>
         </div>
 
       </main>
@@ -164,7 +185,7 @@ export default function PricingPage() {
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-10 bg-[#04070D]">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-mono">
-          <p>© 2026 BaraTrust. Practical operations & growth partner for small businesses.</p>
+          <p>© 2026 BaraTrust. BaraTrust watches your business so you don&apos;t have to.</p>
           <div className="flex gap-6">
             <a href="mailto:todd@baratrust.com" className="hover:text-amber-400 transition-colors">todd@baratrust.com</a>
             <Link href="/terms" className="hover:text-slate-200 transition-colors">Terms of Service</Link>

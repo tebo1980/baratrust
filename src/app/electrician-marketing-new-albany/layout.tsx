@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Electrician Marketing New Albany IN — BaraTrust',
-  description: 'BaraTrust puts an AI staff in your electrical business — capturing every lead, managing reviews, and running your back office. 90-Day Prove It Guarantee. Serving New Albany IN.',
-  keywords: 'electrician marketing New Albany, electrician advertising Indiana, electrical contractor leads, electrician marketing Southern Indiana',
+  title: 'Electrician Growth & Business Watch — New Albany IN | BaraTrust',
+  description: 'BaraTrust watches your electrical business so you don’t have to — across Protect, Improve, Grow, and Save. Serving New Albany and Southern Indiana.',
+  keywords: 'electrician marketing New Albany, electrical contractor growth Southern Indiana, local electrician visibility, Business Pulse New Albany IN',
   openGraph: {
-    title: 'Electrician Marketing New Albany IN — BaraTrust',
-    description: 'AI staff for your electrical business. 10 agents. 90-Day Guarantee.',
+    title: 'Electrician Growth & Business Watch — New Albany IN | BaraTrust',
+    description: 'Protect • Improve • Grow • Save. Ongoing business and local market watch plus practical execution for New Albany electrical contractors.',
     url: 'https://baratrust.com/electrician-marketing-new-albany',
   },
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import SeoTradePage from '@/components/SeoTradePage'
-import { AGENT_COUNT, PRICING } from '@/lib/constants'
 
 export default function ElectricianMarketingNewAlbany() {
   return (
@@ -9,29 +8,29 @@ export default function ElectricianMarketingNewAlbany() {
       trade="Electrician"
       location="New Albany"
       state="IN"
-      headline="Electrician marketing that"
-      headlineEm="brings real jobs."
-      subtext="BaraTrust puts an AI staff in your electrical business — capturing every lead, managing your reviews, and running your back office while you're pulling wire and upgrading panels. Guaranteed results in 90 days."
+      headline="Electrician growth & market watch"
+      headlineEm="while you run the jobs."
+      subtext="You run the crews and handle the work. BaraTrust watches your electrical business and surrounding Southern Indiana market across Protect, Improve, Grow, and Save — telling you what deserves attention and helping execute when it makes sense."
       painPoints={[
-        { title: "Emergency calls go to voicemail", text: "A homeowner's power is out at 9pm. They call you. You're finishing another job. They call the next electrician. That's a $400 job — gone." },
-        { title: "Your website doesn't generate calls", text: "Someone built you a website two years ago. It looks fine. But when people in New Albany search for an electrician — you're nowhere." },
-        { title: "You're invisible on Google Maps", text: "The three-pack on Google Maps is where homeowners pick their electrician. If you're not in it, you're not getting calls." },
+        { title: "Calls and quote requests slip by on busy days", text: "When you're finishing a panel upgrade or troubleshooting on site, missed inquiries and unfollowed estimates quietly turn into jobs for the next contractor." },
+        { title: "Local visibility and public info drift out of date", text: "Outdated service pages, inconsistent directory details, or unanswered reviews make it harder for New Albany homeowners and commercial accounts to choose you with confidence." },
+        { title: "No time to hunt commercial opportunities or compare vendors", text: "Builders, property managers, local developments, and better supplier or software terms are out there — nobody on a busy crew has spare evenings to research them." },
       ]}
       features={[
-        { icon: '\uD83D\uDCDE', title: 'Instant Lead Capture', text: 'Every call tracked. Every missed call gets an automatic text-back. The homeowner knows you got their message — they wait for you instead of calling someone else.' },
-        { icon: '\u2B50', title: 'Reputation Builder', text: 'After every job Rex sends a review request. When reviews come in — good or bad — professional responses go out in your voice automatically.' },
-        { icon: '\uD83C\uDFAF', title: 'Dominate Local Search', text: 'Website, Google Business Profile, Bing, Apple Maps, directories — every place a New Albany homeowner looks for an electrician, you\'re there.' },
-        { icon: '\uD83D\uDCCA', title: 'Real-Time Dashboard', text: 'Which ads are working. Which calls converted. Your cost per lead. All visible in real time from your phone.' },
-        { icon: '\uD83E\uDD16', title: `${AGENT_COUNT} AI Agents`, text: 'A full AI staff handling leads, reviews, follow-ups, social media, invoices, bidding, and appointments — all running while you\'re on the job site.' },
-        { icon: '\uD83D\uDCB0', title: '90-Day Guarantee', text: '10 tracked calls in 90 days or your fourth month is free. Every call is tracked in your live dashboard.' },
+        { icon: '\uD83D\uDEE1\uFE0F', title: 'Protect Reputation & Trust', text: 'Watch customer reviews, public listings, competitor moves, and website trust signals so small issues get caught before they cost you calls.' },
+        { icon: '\uD83D\uDCDE', title: 'Improve Inquiry & Quote Follow-Up', text: 'Tighten tap-to-call paths, online estimate requests, missed-call follow-up, and simple internal checklists without complicated software.' },
+        { icon: '\uD83C\uDFAF', title: 'Strengthen Local Findability', text: 'Clear service pages, Google Business visibility, and local search presence built for how New Albany and Southern Indiana customers actually hire.' },
+        { icon: '\uD83D\uDCC8', title: 'Grow Commercial & Local Demand', text: 'Actively look for builder partnerships, property-management accounts, neighborhood developments, and high-intent local campaigns.' },
+        { icon: '\uD83D\uDCB0', title: 'Save Without Cutting Corners', text: 'Compare software, vendors, and recurring expenses while weighing reliability, contracts, and switching risk — recommending no change when your current setup is solid.' },
+        { icon: '\uD83E\uDD1D', title: 'Business Pulse ($99/mo) + Execution', text: 'See what we spot right now with a Free Reality Check, keep BaraTrust watching your business and market for $99/month, and execute projects only when action is warranted.' },
       ]}
       stats={[
-        { num: '90', label: 'Day Prove It Guarantee' },
-        { num: String(AGENT_COUNT), label: 'AI agents working for your electrical business' },
-        { num: '7', label: 'Day launch — full presence live in one week' },
-        { num: `$${PRICING.foundation.monthly}`, label: 'Per month starting — no setup fee' },
+        { num: '01', label: 'Protect reputation & public trust' },
+        { num: '02', label: 'Improve inquiry & quote conversion' },
+        { num: '03', label: 'Grow local & commercial opportunities' },
+        { num: '04', label: 'Save on vendors & recurring spend' },
       ]}
-      closingHeadline="Ready to be the electrician New Albany calls first?"
+      closingHeadline="Want someone credible watching the field while you run your electrical business?"
     />
   )
 }

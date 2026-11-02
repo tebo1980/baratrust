@@ -22,16 +22,16 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://baratrust.com'),
-  title: 'BaraTrust — Small Business Growth & Operations Partner',
-  description: 'Run your business. We\'ll help with the rest. BaraTrust helps small businesses get more customers, lose fewer opportunities, cut unnecessary costs, and automate the busywork.',
-  keywords: 'small business growth partner, local business operations, digital presence audit, business reality check, local SEO, process automation, Louisville Kentucky, New Albany Indiana',
+  title: 'BaraTrust — Watches Your Business So You Don’t Have To',
+  description: 'You run your business. BaraTrust keeps looking around the corner — watching your business and surrounding market across Protect, Improve, Grow, and Save with Business Pulse ($99/month) and a free automated Reality Check.',
+  keywords: 'small business intelligence, Business Pulse, local business growth opportunities, vendor and supplier comparison, customer experience, business reality check, Louisville Kentucky, New Albany Indiana',
   alternates: {
     canonical: 'https://baratrust.com',
   },
   openGraph: {
     type: 'website',
-    title: 'BaraTrust — Small Business Growth & Operations Partner',
-    description: 'Run your business. We\'ll help with the rest. BaraTrust helps small businesses get more customers, lose fewer opportunities, cut unnecessary costs, and automate the busywork.',
+    title: 'BaraTrust — Watches Your Business So You Don’t Have To',
+    description: 'Protect • Improve • Grow • Save. Start with a Free Reality Check, then keep BaraTrust watching your business and market with Business Pulse ($99/month).',
     url: 'https://baratrust.com',
     siteName: 'BaraTrust',
     images: [
@@ -39,14 +39,14 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BaraTrust — Run your business. We\'ll help with the rest.',
+        alt: 'BaraTrust — Watches your business so you don’t have to.',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BaraTrust — Small Business Growth & Operations Partner',
-    description: 'Run your business. We\'ll help with the rest. BaraTrust helps small businesses get more customers, lose fewer opportunities, cut unnecessary costs, and automate the busywork.',
+    title: 'BaraTrust — Watches Your Business So You Don’t Have To',
+    description: 'Protect • Improve • Grow • Save. You run your business. BaraTrust keeps looking around the corner.',
     images: ['/og-image.png'],
   },
   robots: {

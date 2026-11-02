@@ -2686,6 +2686,13 @@ function FindingPill({
       );
     }
     const detail = (supportingDetail || "").trim();
+    if (observedValue?.observationState === "NOT_OBSERVED") {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-[#16231c] border border-[#2c3e33] text-[#bac9bf] font-mono font-bold text-[10px]">
+          INFO · NOT OBSERVED
+        </span>
+      );
+    }
     const isDeferredUnknown =
       state === "UNKNOWN" &&
       (observedValue?.observationState === "UNKNOWN" ||

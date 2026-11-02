@@ -884,6 +884,176 @@ test('Browser Evidence 13 — applyBrowserDomFallback resolves SPA checks (phone
   const discrepantCta = discrepancyFindings.find((f) => f.checkKey === 'cta_keywords_found')!;
   assert.equal(discrepantCta.state, 'UNKNOWN', 'Desktop/mobile CTA disagreement must remain UNKNOWN');
   assert.equal(discrepantCta.observedValue?.viewportDiscrepancy, true);
+
+  // 13d. Passive rendered DOM absence semantics on an SPA vs. non-SPA:
+  // - On a client-rendered SPA, positive browser evidence resolves informational checks to OBSERVED (`PASS`),
+  //   while passive desktop/mobile non-observation for ALL SPA informational checks (including `social_links`, `online_booking_observed`, `reviews_testimonials`, `map_embed_present`, `public_pricing_observed`) remains `UNKNOWN` (`HUMAN CHECK`).
+  const resolvedBooking = fallbackFindings.find((f) => f.checkKey === 'online_booking_observed')!;
+  assert.equal(resolvedBooking.state, 'UNKNOWN');
+  assert.equal(resolvedBooking.observedValue?.observationState, 'UNKNOWN');
+  assert.equal(
+    resolvePublicFindingBadge(resolvedBooking, false).badgeText,
+    'HUMAN CHECK',
+    'Booking check on SPA must remain HUMAN CHECK when not observed in passive render'
+  );
+  const resolvedReviews = fallbackFindings.find((f) => f.checkKey === 'reviews_testimonials')!;
+  assert.equal(resolvedReviews.state, 'UNKNOWN');
+  assert.equal(resolvedReviews.observedValue?.observationState, 'UNKNOWN');
+  assert.equal(
+    resolvePublicFindingBadge(resolvedReviews, false).badgeText,
+    'HUMAN CHECK',
+    'Reviews check on SPA must remain HUMAN CHECK when not observed in passive render'
+  );
+
+  const noSocialViewportDesktop = makeRenderedViewport('desktop', {
+    renderedSignals: { ...sharedSignals, socialLinks: [], pricingSnippets: [], detectedPricingSignals: false, hasMapEmbed: false },
+  });
+  const noSocialViewportMobile = makeRenderedViewport('mobile', {
+    renderedSignals: { ...sharedSignals, socialLinks: [], pricingSnippets: [], detectedPricingSignals: false, hasMapEmbed: false },
+  });
+  const noSocialEvidence = {
+    status: 'COMPLETED' as const,
+    capturedAt: new Date().toISOString(),
+    desktop: noSocialViewportDesktop,
+    mobile: noSocialViewportMobile,
+    ...compareDesktopAndMobileEvidence(noSocialViewportDesktop, noSocialViewportMobile),
+  };
+  const noSocialFindings = applyBrowserDomFallback(staticFindings, noSocialEvidence, {
+    cityState: 'New Albany, IN',
+  });
+  for (const key of [
+    'social_links',
+    'online_booking_observed',
+    'reviews_testimonials',
+    'public_pricing_observed',
+    'map_embed_present',
+  ]) {
+    const absentInfo = noSocialFindings.find((f) => f.checkKey === key)!;
+    assert.equal(absentInfo.state, 'UNKNOWN');
+    assert.equal(
+      absentInfo.observedValue?.observationState,
+      'UNKNOWN',
+      `${key} on SPA must remain observationState = UNKNOWN when not observed in passive render`
+    );
+    assert.equal(
+      resolvePublicFindingBadge(absentInfo, false).badgeText,
+      'HUMAN CHECK',
+      `${key} on SPA must display HUMAN CHECK when not observed in passive render`
+    );
+  }
+
+  // 13e. Non-SPA static site where static HTML missed phone number in a client widget (FAIL), desktop rendered it (found=true), and mobile hid it (found=false) -> calculateScores must NOT count the desktop/mobile discrepancy as an evaluated static FAIL (0/35)
+  const nonSpaHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>River City Plumbing | Louisville KY</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="Licensed residential and commercial plumbing contractor serving Louisville, KY." />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+      <body>
+        <h1>River City Plumbing</h1>
+        <p>Serving Louisville, KY and Southern Indiana for over 25 years. Locally owned and operated.</p>
+        <p>Our services include drain cleaning, water heaters, and sewer line repair.</p>
+        <p>Visit us at 123 Main Street, Louisville, KY 40202.</p>
+        <form><input type="email" name="email" /><textarea name="message"></textarea><button type="submit">Request a Quote</button></form>
+        <a href="/privacy-policy">Privacy Policy</a>
+      </body>
+    </html>
+  `;
+  const nonSpaParsed = parseHtmlForBusinessSignals(nonSpaHtml, 'Louisville, KY');
+  assert.equal(nonSpaParsed.isClientRenderedSpa, false);
+  const nonSpaRaw: RawPageData = {
+    requestedUrl: 'https://rivercityplumbing.com',
+    finalUrl: 'https://rivercityplumbing.com/',
+    normalizedUrl: 'https://rivercityplumbing.com/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 110,
+    headers: { 'content-type': 'text/html' },
+    html: nonSpaHtml,
+  };
+  const nonSpaStaticFindings = runDeterministicChecks({
+    rawData: nonSpaRaw,
+    parsed: nonSpaParsed,
+    businessName: 'River City Plumbing',
+    cityState: 'Louisville, KY',
+  });
+  const staticPhoneFail = nonSpaStaticFindings.find((f) => f.checkKey === 'phone_number_visible')!;
+  assert.equal(staticPhoneFail.state, 'FAIL', 'Static check without phone in HTML starts as FAIL');
+  const nonSpaNoSocialFallback = applyBrowserDomFallback(nonSpaStaticFindings, noSocialEvidence, {
+    cityState: 'Louisville, KY',
+  });
+  const nonSpaSocial = nonSpaNoSocialFallback.find((f) => f.checkKey === 'social_links')!;
+  assert.equal(
+    nonSpaSocial.observedValue?.observationState,
+    'NOT_OBSERVED',
+    'Non-SPA static page with sufficient coverage preserves NOT_OBSERVED for social_links'
+  );
+  assert.equal(resolvePublicFindingBadge(nonSpaSocial, false).badgeText, 'INFO · NOT OBSERVED');
+
+  const nonSpaDiscrepantFindings = applyBrowserDomFallback(nonSpaStaticFindings, discrepancyEvidence, {
+    cityState: 'Louisville, KY',
+  });
+  const postFallbackPhone = nonSpaDiscrepantFindings.find((f) => f.checkKey === 'phone_number_visible')!;
+  assert.equal(postFallbackPhone.state, 'UNKNOWN');
+  assert.equal(postFallbackPhone.evidenceSource, 'BROWSER_RENDER');
+
+  const staticScoresNonSpa = calculateScores(nonSpaStaticFindings);
+  const postDiscrepancyScoresNonSpa = calculateScores(nonSpaDiscrepantFindings);
+  assert.equal(
+    postDiscrepancyScoresNonSpa.overallScore,
+    staticScoresNonSpa.overallScore,
+    'calculateScores must remain invariant even when applyBrowserDomFallback runs on a non-SPA site'
+  );
+  assert.equal(
+    postDiscrepancyScoresNonSpa.overallCoverage,
+    staticScoresNonSpa.overallCoverage,
+    'overallCoverage must remain invariant even when applyBrowserDomFallback runs on a non-SPA site'
+  );
+
+  // 13f. partitionFunnelFindings + buildFunnelScoreSummary must also preserve static PASS/FAIL/UNKNOWN counts when scored checks are resolved via BROWSER_RENDER (so "Score reflects performance on the X% of scored checks observable from static HTML (N passing, M flagged)" never conflates browser-rendered checks with static HTML checks)
+  const staticPartitionNonSpa = partitionFunnelFindings(nonSpaStaticFindings, false);
+  const postFallbackPartitionNonSpa = partitionFunnelFindings(nonSpaDiscrepantFindings, false);
+  assert.equal(
+    postFallbackPartitionNonSpa.passingFindings.length,
+    staticPartitionNonSpa.passingFindings.length,
+    'Static passing count in funnel summary must not be altered by BROWSER_RENDER fallback'
+  );
+  assert.equal(
+    postFallbackPartitionNonSpa.failingFindings.length,
+    staticPartitionNonSpa.failingFindings.length,
+    'Static failing count in funnel summary must not be altered by BROWSER_RENDER fallback'
+  );
+  assert.equal(
+    postFallbackPartitionNonSpa.unknownFindings.length,
+    staticPartitionNonSpa.unknownFindings.length,
+    'Static unknown count in funnel summary must not be altered by BROWSER_RENDER fallback'
+  );
+
+  // 13g. applyBrowserDomFallback idempotency: calling applyBrowserDomFallback() twice must NOT overwrite original staticState / staticScoreContribution with browser-modified values
+  const twiceDiscrepantFindings = applyBrowserDomFallback(nonSpaDiscrepantFindings, discrepancyEvidence, {
+    cityState: 'Louisville, KY',
+  });
+  const twicePhone = twiceDiscrepantFindings.find((f) => f.checkKey === 'phone_number_visible')!;
+  assert.equal(
+    twicePhone.observedValue?.staticState,
+    'FAIL',
+    'Second call to applyBrowserDomFallback must preserve original staticState = FAIL instead of overwriting with UNKNOWN'
+  );
+  assert.equal(twicePhone.observedValue?.staticScoreContribution, 0);
+  const twiceScoresNonSpa = calculateScores(twiceDiscrepantFindings);
+  assert.equal(
+    twiceScoresNonSpa.overallScore,
+    staticScoresNonSpa.overallScore,
+    'calculateScores must remain invariant after calling applyBrowserDomFallback twice'
+  );
+  assert.equal(
+    twiceScoresNonSpa.overallCoverage,
+    staticScoresNonSpa.overallCoverage,
+    'overallCoverage must remain invariant after calling applyBrowserDomFallback twice'
+  );
 /* end test 13 */
 
 });

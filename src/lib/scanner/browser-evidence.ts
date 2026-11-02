@@ -373,9 +373,19 @@ async function captureSingleViewportWithPlaywright(params: {
         };
 
         const headings = Array.from(document.querySelectorAll('h1, h2, h3'))
-          .filter(isVisible)
+          .filter((el) => {
+            if (!isVisible(el)) return false;
+            const cls = `${el.getAttribute('id') || ''} ${el.getAttribute('class') || ''}`.toLowerCase();
+            if (/(?:visually-hidden|sr-only|screen-reader|footercountry|footerlanguage|headercountry)/.test(cls)) {
+              return false;
+            }
+            if (el.closest('form[action*="/localization"], [id*="FooterCountry"], [id*="HeaderCountry"], [class*="localization"]')) {
+              return false;
+            }
+            return true;
+          })
           .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
-          .filter((t) => t.length > 0);
+          .filter((t) => t.length > 0 && !/^(?:country\/region|language|your cart)$/i.test(t));
 
         const uniqueHeadings = Array.from(new Set(headings)).slice(0, 10);
 
@@ -575,8 +585,10 @@ async function captureSingleViewportWithPlaywright(params: {
         ).slice(0, 10);
 
         const streetRegex =
-          /\b\d{1,5}\s+[A-Za-z0-9.\s]{2,35}\s+(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Ln\.?|Way|Court|Ct\.?|Circle|Cir\.?|Parkway|Pkwy\.?|Highway|Hwy\.?|Pike|Pke\.?|Suite|Ste\.?)\b/gi;
-        const rawAddresses = bodyText.match(streetRegex) || [];
+          /(?<![$#.,\d])\b[1-9]\d{0,4}\s+(?:[A-Za-z0-9.#-]+\s+){1,5}(?:Street|St\.?|Avenue|Ave\.?|Road|Rd\.?|Boulevard|Blvd\.?|Drive|Dr\.?|Lane|Ln\.?|Way|Court|Ct\.?|Circle|Cir\.?|Parkway|Pkwy\.?|Highway|Hwy\.?|Plaza|Plz\.?|Trail|Trl\.?|Pike|Pke\.?|Suite|Ste\.?)\b/gi;
+        const rawAddresses = (bodyText.match(streetRegex) || []).filter(
+          (candidate) => !/\b(?:add to cart|quickshop|sold out|unavailable)\b/i.test(candidate)
+        );
         const mapQueryLinks = visibleLinks
           .map((a) => ({
             href: (a.getAttribute('href') || '').trim(),
@@ -650,10 +662,28 @@ async function captureSingleViewportWithPlaywright(params: {
             /google\.com\/maps|maps\.apple\.com|maps\.app\.goo\.gl/i.test(a.getAttribute('href') || '')
           );
 
-        const visibleForms = Array.from(document.querySelectorAll('form')).filter(isVisible);
+        const isUtilityForm = (f: Element): boolean => {
+          const role = (f.getAttribute('role') || '').toLowerCase();
+          const action = (f.getAttribute('action') || '').toLowerCase();
+          const idClass = `${f.getAttribute('id') || ''} ${f.getAttribute('class') || ''}`.toLowerCase();
+          return (
+            role === 'search' ||
+            /(?:\/search|\/cart|\/localization|\/currency)/.test(action) ||
+            /(?:search|localization|country|currency|cart-drawer|product-form)/.test(idClass)
+          );
+        };
+
+        const visibleForms = Array.from(document.querySelectorAll('form')).filter(
+          (f) => isVisible(f) && !isUtilityForm(f)
+        );
         const visibleInputs = Array.from(
-          document.querySelectorAll('input:not([type="hidden"]), textarea, select')
-        ).filter(isVisible);
+          document.querySelectorAll('input:not([type="hidden"]):not([type="search"]), textarea, select')
+        ).filter((inp) => {
+          if (!isVisible(inp)) return false;
+          const parentForm = inp.closest('form');
+          if (parentForm && isUtilityForm(parentForm)) return false;
+          return true;
+        });
         const hasForms = visibleForms.length > 0 || visibleInputs.length >= 2;
         const hasLeadCaptureForm =
           visibleForms.length > 0 ||
@@ -662,6 +692,14 @@ async function captureSingleViewportWithPlaywright(params: {
               `${inp.getAttribute('type') || ''} ${inp.getAttribute('name') || ''} ${inp.getAttribute('placeholder') || ''}`
             )
           );
+        const hasContactLink = visibleLinks.some((a) => {
+          const href = (a.getAttribute('href') || '').trim();
+          const txt = (a.textContent || '').replace(/\s+/g, ' ').trim();
+          return (
+            /(?:^|\/)(?:contact|contact-us|inquire|get-in-touch)(?:\/|$|\?|#)/i.test(href) ||
+            /^(?:contact|contact us)$/i.test(txt)
+          );
+        });
 
         const detectedQuoteOrCateringKeywords =
           /\b(?:request a quote|get a quote|free estimate|catering|private event|inquire|book an event|schedule a consultation|contact us)\b/i.test(
@@ -697,6 +735,7 @@ async function captureSingleViewportWithPlaywright(params: {
           hasMapEmbed,
           hasForms,
           hasLeadCaptureForm,
+          hasContactLink,
           detectedQuoteOrCateringKeywords,
           detectedBookingSignals,
           detectedReviewOrTestimonialKeywords,
@@ -1066,12 +1105,21 @@ export function compareDesktopAndMobileEvidence(
   const maxTextLen = Math.max(desktop.visibleTextLength || 0, mobile.visibleTextLength || 0, 1);
   const significantTextDisparity = maxTextLen > 200 && textLenDelta / maxTextLen > 0.35;
 
+  const navDisparityWithoutMobileControls =
+    desktop.navigationObserved !== mobile.navigationObserved &&
+    !(
+      desktop.navigationObserved &&
+      !mobile.navigationObserved &&
+      (mobile.visibleControlsCount || 0) >= 2 &&
+      missingMobileElements.length === 0
+    );
+
   const materiallyDifferent =
     missingDesktopElements.length > 0 ||
     missingMobileElements.length > 0 ||
     hasViewportSpecificOverlap ||
     significantTextDisparity ||
-    desktop.navigationObserved !== mobile.navigationObserved ||
+    navDisparityWithoutMobileControls ||
     desktop.primaryCtaObserved !== mobile.primaryCtaObserved;
 
   if (desktopOverlapsCount > 0 || mobileOverlapsCount > 0) {
@@ -1261,6 +1309,11 @@ export function buildBrowserEvidenceFindings(
         `Desktop view omits elements visible on mobile (${comparison.missingDesktopElements.slice(0, 2).join('; ')}).`
       );
     }
+    if (detailParts.length === 0) {
+      detailParts.push(
+        `Visible rendered text volume differs substantially between desktop (${desktop.visibleTextLength ?? 0} chars) and mobile (${mobile.visibleTextLength ?? 0} chars).`
+      );
+    }
 
     findings.push({
       category: 'customer_journey',
@@ -1418,11 +1471,13 @@ export function applyBrowserDomFallback(
         const hasMail = (sig.mailtoLinks || []).length > 0;
         const hasTel = (sig.telLinks || []).length > 0;
         const hasForm = Boolean(sig.hasForms);
-        const found = hasForm || hasMail || hasTel;
+        const hasContact = Boolean(sig.hasContactLink);
+        const found = hasForm || hasMail || hasTel || hasContact;
         const methods = [
           hasForm ? 'form' : null,
           hasMail ? 'email link' : null,
           hasTel ? 'phone link' : null,
+          hasContact ? 'contact page link' : null,
         ].filter(Boolean);
         return {
           supported: true,
@@ -1432,6 +1487,7 @@ export function applyBrowserDomFallback(
             hasForms: hasForm,
             mailtoLinks: sig.mailtoLinks || [],
             telLinks: sig.telLinks || [],
+            hasContactLink: hasContact,
           },
         };
       }
@@ -1455,7 +1511,22 @@ export function applyBrowserDomFallback(
           observedValue: { hasPrivacyOrTermsLink: found },
         };
       }
-      case 'city_state_match':
+      case 'city_state_match': {
+        if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
+        const rawTarget = (options?.cityState || '').trim();
+        const cityPart = rawTarget.split(',')[0]?.trim().toLowerCase() || '';
+        if (cityPart.length < 3) {
+          return { supported: false, found: false, passDetail: '', observedValue: {} };
+        }
+        const text = (sig.searchableText || '').toLowerCase();
+        const found = text.includes(cityPart);
+        return {
+          supported: true,
+          found,
+          passDetail: `Observed target city reference (${rawTarget}) in rendered browser view.`,
+          observedValue: { matchedCityState: rawTarget },
+        };
+      }
       case 'service_area_language': {
         if (!sig) return { supported: false, found: false, passDetail: '', observedValue: {} };
         const text = (sig.searchableText || '').toLowerCase();
@@ -1554,6 +1625,11 @@ export function applyBrowserDomFallback(
     }
   };
 
+  // Client-rendered SPA informational checks:
+  // Positive browser evidence resolves to OBSERVED (Case 2), and desktop/mobile disagreement remains UNKNOWN (Case 1).
+  // Passive desktop/mobile non-observation is never converted to NOT_OBSERVED on an SPA (`isClientRenderedSpa === true`);
+  // absence in a passive render remains UNKNOWN / HUMAN CHECK.
+
   return findings.map((finding) => {
     const dObs = evaluateViewportCheck(desktop, finding.checkKey);
     const mObs = evaluateViewportCheck(mobile, finding.checkKey);
@@ -1561,6 +1637,21 @@ export function applyBrowserDomFallback(
     if (!dObs.supported || !mObs.supported) {
       return finding;
     }
+
+    const existingObs =
+      typeof finding.observedValue === 'object' && finding.observedValue !== null
+        ? finding.observedValue
+        : {};
+    const preservedStaticState =
+      existingObs.staticState === 'PASS' ||
+      existingObs.staticState === 'FAIL' ||
+      existingObs.staticState === 'UNKNOWN'
+        ? existingObs.staticState
+        : finding.state;
+    const preservedStaticScoreContribution =
+      typeof existingObs.staticScoreContribution === 'number'
+        ? existingObs.staticScoreContribution
+        : finding.scoreContribution;
 
     // Case 1: Desktop and mobile disagree on an objective signal -> preserve discrepancy as UNKNOWN (HUMAN CHECK)
     if (dObs.found !== mObs.found) {
@@ -1572,7 +1663,9 @@ export function applyBrowserDomFallback(
         scoreContribution: 0,
         evidenceSource: 'BROWSER_RENDER',
         observedValue: {
-          ...(typeof finding.observedValue === 'object' && finding.observedValue ? finding.observedValue : {}),
+          ...existingObs,
+          staticState: preservedStaticState,
+          staticScoreContribution: preservedStaticScoreContribution,
           viewportDiscrepancy: true,
           desktopObserved: dObs.found,
           mobileObserved: mObs.found,
@@ -1590,8 +1683,10 @@ export function applyBrowserDomFallback(
         scoreContribution: 0, // Static numeric score remains invariant
         evidenceSource: 'BROWSER_RENDER',
         observedValue: {
-          ...(typeof finding.observedValue === 'object' && finding.observedValue ? finding.observedValue : {}),
+          ...existingObs,
           ...dObs.observedValue,
+          staticState: preservedStaticState,
+          staticScoreContribution: preservedStaticScoreContribution,
           resolvedViaBrowserDom: true,
           evidenceSource: 'BROWSER_RENDER',
           ...(finding.isInformational ? { observationState: 'OBSERVED' } : {}),

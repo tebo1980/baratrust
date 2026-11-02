@@ -269,6 +269,13 @@ export function resolvePublicFindingBadge(
     }
     const detail = (finding.supportingDetail || '').trim();
     const obsState = finding.observedValue?.observationState;
+    if (obsState === 'NOT_OBSERVED') {
+      return {
+        badgeText: 'INFO · NOT OBSERVED',
+        badgeModifier: 'finding-badge--human',
+        isInformational: true,
+      };
+    }
     const isDeferredUnknown =
       finding.state === 'UNKNOWN' &&
       (obsState === 'UNKNOWN' ||
@@ -312,14 +319,84 @@ export function resolvePublicFindingBadge(
   };
 }
 
+export type FindingDisplayPriority = 'HIGH' | 'NORMAL' | 'LOW';
+
+const HIGH_PRIORITY_CHECK_KEYS = new Set<string>([
+  'inquiry_or_contact_path',
+  'lead_capture_form',
+  'quote_or_action_path',
+  'cta_keywords_found',
+  'phone_number_visible',
+  'has_tel_link',
+  'https_enabled',
+  'page_responds',
+  'mobile_viewport',
+  'declared_domain_mismatch',
+  'terms_privacy',
+  'menu_or_services',
+  'address_signals',
+  'browser_horizontal_overflow',
+  'browser_sparse_render',
+  'browser_viewport_comparison',
+  'profile_phone_or_contact',
+  'profile_action_cta',
+  'profile_hours_visible',
+]);
+
+const LOW_PRIORITY_CHECK_KEYS = new Set<string>([
+  'has_favicon',
+  'about_team_signals',
+  'opengraph_presence',
+  'meta_description',
+  'social_links',
+  'public_pricing_observed',
+  'online_booking_observed',
+  'reviews_testimonials',
+  'map_embed_present',
+  'email_list_capture',
+  'lead_magnet_observed',
+  'after_hours_messaging',
+]);
+
+/**
+ * Deterministic display priority map separating detection state (PASS / ATTENTION / HUMAN CHECK / INFO)
+ * from headline prominence (HIGH / NORMAL / LOW). Presentation-only; never alters numeric scores.
+ */
+export function getFindingDisplayPriority(finding: {
+  checkKey?: string;
+  maxPoints?: number;
+  state?: 'PASS' | 'FAIL' | 'UNKNOWN';
+}): FindingDisplayPriority {
+  const key = finding.checkKey || '';
+  if (HIGH_PRIORITY_CHECK_KEYS.has(key)) return 'HIGH';
+  if (LOW_PRIORITY_CHECK_KEYS.has(key)) return 'LOW';
+  return 'NORMAL';
+}
+
+function displayPriorityRank(priority: FindingDisplayPriority): number {
+  if (priority === 'HIGH') return 2;
+  if (priority === 'NORMAL') return 1;
+  return 0;
+}
+
+function sortByDisplayRelevance<T extends PublicFunnelFinding>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const rankDiff =
+      displayPriorityRank(getFindingDisplayPriority(b)) -
+      displayPriorityRank(getFindingDisplayPriority(a));
+    if (rankDiff !== 0) return rankDiff;
+    return (b.maxPoints || 0) - (a.maxPoints || 0);
+  });
+}
+
 /**
  * Partitions scan findings for the public Reality Check funnel:
  * - Exclusively counts scored checks (maxPoints > 0) in passingFindings, failingFindings,
  *   and unknownFindings so zero-point informational or browser checks never inflate passing or
  *   human-verification counts or alter the automated numeric score.
- * - Surfaces up to 1 actionable browser-rendered warning (overflow, desktop/mobile disparity,
- *   or sparse render) in highlightedFindings while keeping static informational checks out of
- *   the initial 6-card highlight list.
+ * - Uses deterministic display priority (HIGH / NORMAL / LOW) so customer-impacting and
+ *   credibility-impacting findings appear in the top 6 highlights while low-impact housekeeping
+ *   checks (such as missing favicon) remain accessible in the expanded list.
  */
 export function partitionFunnelFindings<T extends PublicFunnelFinding>(
   findings: T[],
@@ -342,47 +419,123 @@ export function partitionFunnelFindings<T extends PublicFunnelFinding>(
     ? []
     : findings.filter((f) => (f.maxPoints ?? 0) === 0);
 
-  // Order browser-rendered observations before static informational checks
+  // Order actionable advisory & browser-rendered observations before passive static informational checks
   const informationalFindings = [
-    ...rawInformational.filter((f) => f.state === 'FAIL' || (typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_'))),
-    ...rawInformational.filter((f) => !(f.state === 'FAIL' || (typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_')))),
+    ...sortByDisplayRelevance(
+      rawInformational.filter(
+        (f) => f.state === 'FAIL' || (typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_'))
+      )
+    ),
+    ...rawInformational.filter(
+      (f) => !(f.state === 'FAIL' || (typeof f.checkKey === 'string' && f.checkKey.startsWith('browser_')))
+    ),
   ];
 
-  const actionableBrowserFindings = isHostedProfile
+  const actionableAdvisoryFindings = isHostedProfile
     ? []
-    : informationalFindings.filter(
-        (f) =>
-          f.state === 'FAIL' ||
-          (typeof f.checkKey === 'string' &&
-            f.checkKey.startsWith('browser_') &&
-            f.state === 'UNKNOWN' &&
-            f.checkKey !== 'browser_render_experience')
+    : sortByDisplayRelevance(
+        informationalFindings.filter(
+          (f) =>
+            f.state === 'FAIL' ||
+            (typeof f.checkKey === 'string' &&
+              f.checkKey.startsWith('browser_') &&
+              f.state === 'UNKNOWN' &&
+              f.checkKey !== 'browser_render_experience')
+        )
       );
 
-  const passingFindings = scoredPool.filter((f) => f.state === 'PASS');
-  const failingFindings = [...scoredPool.filter((f) => f.state === 'FAIL')].sort(
-    (a, b) => (b.maxPoints || 0) - (a.maxPoints || 0)
+  const getStaticPoolState = (f: T): 'PASS' | 'FAIL' | 'UNKNOWN' => {
+    if (f.evidenceSource === 'BROWSER_RENDER') {
+      const prior = f.observedValue?.staticState;
+      return prior === 'PASS' || prior === 'FAIL' ? prior : 'UNKNOWN';
+    }
+    return f.state;
+  };
+  const passingFindings = scoredPool.filter((f) => getStaticPoolState(f) === 'PASS');
+  const failingFindings = sortByDisplayRelevance(
+    scoredPool.filter((f) => getStaticPoolState(f) === 'FAIL')
   );
-  const unknownFindings = scoredPool.filter((f) => f.state === 'UNKNOWN');
+  const unknownFindings = scoredPool.filter((f) => getStaticPoolState(f) === 'UNKNOWN');
 
-  const highlightedFindings = isHostedProfile
-    ? [...passingFindings.slice(0, 4), ...unknownFindings.slice(0, 3)].slice(0, 6)
-    : [
-        ...failingFindings.slice(0, 3),
-        ...passingFindings.slice(0, 3),
-        ...unknownFindings.slice(0, actionableBrowserFindings.length > 0 ? 1 : 2),
-        ...actionableBrowserFindings.slice(0, 1),
-      ].slice(0, 6);
+  const displayPassingFindings = sortByDisplayRelevance(
+    scoredPool.filter((f) => f.state === 'PASS')
+  );
+  const displayFailingFindings = sortByDisplayRelevance(
+    scoredPool.filter((f) => f.state === 'FAIL')
+  );
+  const displayUnknownFindings = sortByDisplayRelevance(
+    scoredPool.filter((f) => f.state === 'UNKNOWN')
+  );
+
+  let highlightedFindings: T[];
+  if (isHostedProfile) {
+    highlightedFindings = [
+      ...displayPassingFindings.slice(0, 4),
+      ...displayUnknownFindings.slice(0, 3),
+    ].slice(0, 6);
+  } else {
+    const primaryFailing = displayFailingFindings.filter(
+      (f) => getFindingDisplayPriority(f) !== 'LOW'
+    );
+    const lowPriorityFailing = displayFailingFindings.filter(
+      (f) => getFindingDisplayPriority(f) === 'LOW'
+    );
+    const primaryPassing = displayPassingFindings.filter(
+      (f) => getFindingDisplayPriority(f) !== 'LOW'
+    );
+    const lowPriorityPassing = displayPassingFindings.filter(
+      (f) => getFindingDisplayPriority(f) === 'LOW'
+    );
+    const primaryUnknown = displayUnknownFindings.filter(
+      (f) => getFindingDisplayPriority(f) !== 'LOW'
+    );
+    const lowPriorityUnknown = displayUnknownFindings.filter(
+      (f) => getFindingDisplayPriority(f) === 'LOW'
+    );
+
+    const topFailing = primaryFailing.slice(0, 3);
+    const advisoryQuota = Math.min(
+      actionableAdvisoryFindings.length,
+      Math.max(1, 3 - topFailing.length)
+    );
+    const topAdvisory = actionableAdvisoryFindings.slice(0, advisoryQuota);
+    const topPassing = primaryPassing.slice(0, 3);
+
+    const candidateOrder: T[] = [
+      ...topFailing,
+      ...topAdvisory,
+      ...topPassing,
+      ...primaryUnknown,
+      ...primaryFailing.slice(3),
+      ...actionableAdvisoryFindings.slice(advisoryQuota),
+      ...primaryPassing.slice(3),
+      ...lowPriorityFailing,
+      ...lowPriorityUnknown,
+      ...lowPriorityPassing,
+    ];
+
+    highlightedFindings = [];
+    const seenKeys = new Set<string>();
+    for (const item of candidateOrder) {
+      if (highlightedFindings.length >= 6) break;
+      const key = item.checkKey || item.title;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        highlightedFindings.push(item);
+      }
+    }
+  }
 
   const allScoredFindingsOrdered = isHostedProfile
-    ? [...passingFindings, ...unknownFindings]
-    : [...failingFindings, ...unknownFindings, ...passingFindings];
+    ? [...displayPassingFindings, ...displayUnknownFindings]
+    : [...displayFailingFindings, ...displayUnknownFindings, ...displayPassingFindings];
 
   const allFindingsOrdered = [...allScoredFindingsOrdered, ...informationalFindings];
 
   const hiddenFailingCount = Math.max(
     0,
-    failingFindings.length - highlightedFindings.filter((f) => f.state === 'FAIL').length
+    displayFailingFindings.length -
+      highlightedFindings.filter((f) => (f.maxPoints ?? 0) > 0 && f.state === 'FAIL').length
   );
 
   return {
@@ -399,7 +552,10 @@ export function partitionFunnelFindings<T extends PublicFunnelFinding>(
 }
 
 /**
- * Formats the public Reality Check score headline and coverage explanation.
+ * Formats the public Reality Check score headline and point-weighted coverage explanation.
+ * Ensures internal consistency between weighted static HTML coverage %, evaluated checks,
+ * unknown checks, passing checks, and flagged checks — never emitting contradictory copy
+ * such as "remaining X% (0 checks)".
  */
 export function buildFunnelScoreSummary(params: {
   overallScore: number;
@@ -412,21 +568,33 @@ export function buildFunnelScoreSummary(params: {
   explanation: string;
 } {
   const { overallScore, overallCoverage, passingCount, failingCount, unknownCount } = params;
+  const evaluatedCount = passingCount + failingCount;
+  const totalCount = evaluatedCount + unknownCount;
+  const remainingCoverage = Math.max(0, 100 - overallCoverage);
+
   const headline =
-    overallCoverage < 100
+    overallCoverage < 100 || unknownCount > 0
       ? `Automated Score: ${overallScore} / 100 on Evaluated Signals`
       : `Automated Score: ${overallScore} / 100`;
 
-  const explanation =
-    overallCoverage < 100
-      ? `Score reflects performance on the ${overallCoverage}% of scored checks observable from static HTML (${passingCount} passing, ${failingCount} flagged). The remaining ${
-          100 - overallCoverage
-        }% (${unknownCount} ${
-          unknownCount === 1 ? 'check' : 'checks'
-        }) was not evaluated automatically and is deferred to human review.`
-      : `Our scanner verified 100% of scored checks (${passingCount} passing, ${failingCount} ${
-          failingCount === 1 ? 'area' : 'areas'
-        } flagged).`;
+  let explanation: string;
+  if (overallCoverage >= 100 && unknownCount === 0) {
+    explanation = `Score reflects 100% of point-weighted static HTML scoring signals across all ${evaluatedCount} scored checks (${passingCount} passing, ${failingCount} ${
+      failingCount === 1 ? 'area' : 'areas'
+    } flagged).`;
+  } else if (overallCoverage < 100 && unknownCount === 0) {
+    explanation = `Score reflects ${overallCoverage}% of point-weighted static HTML scoring signals (${passingCount} passing, ${failingCount} flagged across all ${evaluatedCount} applicable scored ${
+      evaluatedCount === 1 ? 'check' : 'checks'
+    }; categories carry different scoring weights).`;
+  } else if (overallCoverage >= 100 && unknownCount > 0) {
+    explanation = `Score reflects ${overallCoverage}% of point-weighted static HTML scoring signals (${passingCount} passing, ${failingCount} flagged across ${evaluatedCount} of ${totalCount} scored checks), with ${unknownCount} ${
+      unknownCount === 1 ? 'check' : 'checks'
+    } deferred to human review.`;
+  } else {
+    explanation = `Score reflects ${overallCoverage}% of point-weighted static HTML scoring signals (${passingCount} passing, ${failingCount} flagged across ${evaluatedCount} of ${totalCount} scored checks). The remaining ${remainingCoverage}% of weighted points (${unknownCount} ${
+      unknownCount === 1 ? 'check' : 'checks'
+    }) is deferred to human review.`;
+  }
 
   return { headline, explanation };
 }

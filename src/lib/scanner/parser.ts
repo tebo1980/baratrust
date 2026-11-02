@@ -49,6 +49,9 @@ export interface ParsedHtmlData {
   detectedLocationSignals?: boolean;
   hasMultiLocationSignals?: boolean;
   detectedLocalBusinessCues?: boolean;
+  hasEcommerceSignals?: boolean;
+  hasContactPageLink?: boolean;
+  hasInspectableNavigationOrFooter?: boolean;
   searchableText?: string;
   detectedProfileCategory: string | null;
   detectedProfileDescription: string | null;
@@ -270,12 +273,43 @@ const US_STATE_CODES = new Set([
   'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC',
 ]);
 
+const US_STATE_NAMES_TO_CODES: Record<string, string> = {
+  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA',
+  colorado: 'CO', connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA',
+  hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN', iowa: 'IA',
+  kansas: 'KS', kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD',
+  massachusetts: 'MA', michigan: 'MI', minnesota: 'MN', mississippi: 'MS', missouri: 'MO',
+  montana: 'MT', nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH',
+  oklahoma: 'OK', oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+  'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT',
+  virginia: 'VA', washington: 'WA', 'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY',
+  'district of columbia': 'DC',
+};
+
 function extractCityStateFromTitleParts(parts: string[]): string | null {
+  const nonCitySoleTokens =
+    /^(?:north|south|east|west|central|southern|northern|eastern|western|greater|metro|downtown|midwest|upstate|tri-state|shop|buy|order|call|visit|best|top|official|welcome|online)$/i;
+
   for (let i = 1; i < parts.length; i++) {
-    const part = parts[i].trim();
-    const m = part.match(/^([A-Z][A-Za-z .'-]{1,35}?)(?:,\s*|\s+)([A-Z]{2})$/);
-    if (m && US_STATE_CODES.has(m[2])) {
-      return `${m[1].trim()}, ${m[2]}`;
+    const stripped = parts[i]
+      .trim()
+      .replace(/^(?:located in|located at|based in|proudly serving|serving|in)\s+/i, '')
+      .trim();
+    const mCode = stripped.match(/^([A-Z][A-Za-z .'-]{1,35}?)(?:,\s*|\s+)([A-Z]{2})$/);
+    if (mCode && US_STATE_CODES.has(mCode[2]) && !nonCitySoleTokens.test(mCode[1].trim())) {
+      return `${mCode[1].trim()}, ${mCode[2]}`;
+    }
+
+    const mFull = stripped.match(
+      /^([A-Z][A-Za-z .'-]{1,35}?)(?:,\s*|\s+)(New\s+(?:Hampshire|Jersey|Mexico|York)|North\s+(?:Carolina|Dakota)|South\s+(?:Carolina|Dakota)|Rhode\s+Island|West\s+Virginia|District\s+of\s+Columbia|[A-Z][a-z]{3,14})$/
+    );
+    if (mFull) {
+      const code = US_STATE_NAMES_TO_CODES[mFull[2].replace(/\s+/g, ' ').trim().toLowerCase()];
+      const candidateCity = mFull[1].trim();
+      if (code && !nonCitySoleTokens.test(candidateCity)) {
+        return `${candidateCity}, ${code}`;
+      }
     }
   }
   return null;
@@ -352,7 +386,7 @@ function isActionableCtaControl(
 
   // High-intent standalone conversion phrases in a button/link
   if (
-    /\b(?:free demo|get a demo|get a free demo|book a demo|request a demo|schedule a demo|see demo|watch demo|call now|call us|call today|book now|book online|order online|order now|get a quote|request a quote|request quote|free quote|request free quote|free estimate|schedule service|schedule online|contact us|get started|start now|start free|make an appointment|book appointment|schedule appointment|reserve a table|make a reservation|inquire now|talk to sales|speak to an expert|request consultation|free consultation)\b/i.test(
+    /\b(?:free demo|get a demo|get a free demo|book a demo|request a demo|schedule a demo|see demo|watch demo|call now|call us|call today|book now|book online|order online|order now|shop now|shop all|shop our store|shop collection|shop new arrivals|add to cart|buy now|get a quote|request a quote|request quote|free quote|request free quote|free estimate|schedule service|schedule online|contact us|get started|start now|start free|make an appointment|book appointment|schedule appointment|reserve a table|make a reservation|inquire now|talk to sales|speak to an expert|request consultation|free consultation)\b/i.test(
       lower
     )
   ) {
@@ -361,11 +395,11 @@ function isActionableCtaControl(
 
   // Action verb + conversion intent object/modifier inside an interactive element
   const hasActionVerb =
-    /^(?:get|run|start|request|book|schedule|order|call|contact|claim|try|join|reserve|inquire|apply|calculate|check|scan|talk|speak|hire|find|view|see|send|submit)\b/i.test(
+    /^(?:get|run|start|request|book|schedule|order|shop|buy|call|contact|claim|try|join|reserve|inquire|apply|calculate|check|scan|talk|speak|hire|find|view|see|send|submit)\b/i.test(
       lower
     );
   const hasConversionIntent =
-    /\b(?:free|demo|quote|estimate|consultation|audit|assessment|reality check|check|scan|trial|appointment|service|call|online|now|today|us|sales|team|expert|table|reservation|order|pricing|plans|help|started|message|inquiry|report|custom|project|offer|menu)\b/i.test(
+    /\b(?:free|demo|quote|estimate|consultation|audit|assessment|reality check|check|scan|trial|appointment|service|call|online|now|today|us|sales|team|expert|table|reservation|order|store|collection|collections|arrivals|catalog|products|cart|pricing|plans|help|started|message|inquiry|report|custom|project|offer|menu)\b/i.test(
       lower
     );
 
@@ -562,6 +596,10 @@ export function parseHtmlForBusinessSignals(
   const interactiveCtaSignals: string[] = [];
   let hasPrivacyOrTermsLink = false;
   let hasAboutLink = false;
+  let hasContactPageLink = false;
+  let hasCartOrCheckoutLink = false;
+  let hasCatalogCollectionOrProductLink = false;
+  let totalAnchorCount = 0;
 
   const anchorRegex = /<a\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/a>/gi;
   let anchorMatch: RegExpExecArray | null;
@@ -576,12 +614,28 @@ export function parseHtmlForBusinessSignals(
   ];
 
   while ((anchorMatch = anchorRegex.exec(html)) !== null) {
+    totalAnchorCount++;
     const attrs = anchorMatch[1] || '';
     const href = (extractHtmlAttribute(attrs, 'href') || '').trim();
+    const hrefLower = href.toLowerCase();
     const rawAnchorText = decodeHtmlEntities(anchorMatch[2].replace(/<[^>]+>/g, ' '))
       .replace(/\s+/g, ' ')
       .trim();
     const anchorText = rawAnchorText.toLowerCase();
+
+    if (/(?:^|\/)(?:cart|checkout)(?:\/|$|\?|#)/.test(hrefLower)) {
+      hasCartOrCheckoutLink = true;
+    }
+    if (/(?:^|\/)(?:collections|products|product-category|shop-all)(?:\/|$|\?|#)/.test(hrefLower)) {
+      hasCatalogCollectionOrProductLink = true;
+    }
+    if (
+      /(?:^|\/)(?:contact|contact-us|inquire|get-in-touch)(?:\/|$|\?|#)/.test(hrefLower) ||
+      anchorText === 'contact' ||
+      anchorText === 'contact us'
+    ) {
+      hasContactPageLink = true;
+    }
 
     if (href.toLowerCase().startsWith('tel:')) {
       const cleanPhone = href.substring(4).trim();
@@ -748,6 +802,7 @@ export function parseHtmlForBusinessSignals(
   // 12. CTA Keywords & Actionable Controls
   const ctaCandidates = [
     'call now', 'call us', 'call today', 'book now', 'book online', 'order online', 'order now',
+    'shop now', 'shop all', 'shop our store', 'add to cart', 'buy now',
     'get a quote', 'request a quote', 'request quote', 'free quote', 'request free quote',
     'free estimate', 'schedule service', 'schedule online', 'contact us', 'get started',
     'make an appointment', 'call (', 'free demo', 'get a free demo', 'get a demo',
@@ -766,12 +821,25 @@ export function parseHtmlForBusinessSignals(
     }
   }
 
-  // 13. Service & Menu Language
-  const detectedMenuOrServices = 
-    lowerText.includes('our services') || 
-    lowerText.includes('services') || 
-    lowerText.includes('our menu') || 
-    lowerText.includes('menu') || 
+  const rawEcommerceSignals = Boolean(
+    hasCartOrCheckoutLink ||
+      (hasCatalogCollectionOrProductLink &&
+        /\b(?:add to cart|shopping cart|your cart|view cart|shopping bag|quickshop|sold out|checkout)\b/i.test(
+          lowerText
+        ))
+  );
+
+  // 13. Service, Menu, or Product Catalog Language
+  const detectedMenuOrServices =
+    rawEcommerceSignals ||
+    hasCatalogCollectionOrProductLink ||
+    lowerText.includes('our services') ||
+    lowerText.includes('services') ||
+    lowerText.includes('our menu') ||
+    lowerText.includes('menu') ||
+    lowerText.includes('our products') ||
+    lowerText.includes('shop all') ||
+    lowerText.includes('new arrivals') ||
     lowerText.includes('what we do') ||
     lowerText.includes('what we can help with') ||
     lowerText.includes('capabilities');
@@ -861,6 +929,14 @@ export function parseHtmlForBusinessSignals(
     visibleText.length < 180 && (hasSpaMount || /<script\b[^>]+src=/i.test(html))
   );
 
+  const hasEcommerceSignals = !isClientRenderedSpa && rawEcommerceSignals;
+  const hasInspectableNavigationOrFooter = Boolean(
+    !isClientRenderedSpa &&
+      (/<footer\b/i.test(html) ||
+        (/<nav\b/i.test(html) && totalAnchorCount >= 3) ||
+        (totalAnchorCount >= 5 && visibleText.length >= 250))
+  );
+
   // 22. Reliable Business Name & Location Derivation (do not invent names from weak evidence)
   const genericTitles = new Set([
     'home', 'welcome', 'index', 'untitled', 'website', 'official site', 'official website',
@@ -899,6 +975,15 @@ export function parseHtmlForBusinessSignals(
 
   if (!derivedCityState && titleParts.length > 1) {
     derivedCityState = extractCityStateFromTitleParts(titleParts);
+  }
+  if (!derivedCityState && title && title !== rawTitle) {
+    const htmlTitleParts = title
+      .split(/\s*(?:\||—|–|-|:)\s*/)
+      .map(p => p.trim())
+      .filter(Boolean);
+    if (htmlTitleParts.length > 1) {
+      derivedCityState = extractCityStateFromTitleParts(htmlTitleParts);
+    }
   }
 
   // Full searchable text (title + meta description + og description + full visible body text + addresses)
@@ -1067,6 +1152,9 @@ export function parseHtmlForBusinessSignals(
     detectedLocationSignals,
     hasMultiLocationSignals,
     detectedLocalBusinessCues,
+    hasEcommerceSignals,
+    hasContactPageLink,
+    hasInspectableNavigationOrFooter,
     searchableText,
     detectedProfileCategory,
     detectedProfileDescription,

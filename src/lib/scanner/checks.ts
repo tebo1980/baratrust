@@ -461,13 +461,34 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       parsed.detectedServiceAreaSignals
   );
   const hasInquiryPath =
-    parsed.hasLeadCaptureForm || parsed.hasForms || parsed.mailtoLinks.length > 0;
+    parsed.hasLeadCaptureForm ||
+    parsed.hasForms ||
+    parsed.mailtoLinks.length > 0 ||
+    Boolean(parsed.hasContactPageLink);
   const hasCtas = parsed.detectedCtaKeywords.length > 0;
+  const hasExplicitStorefrontLocationCue =
+    /\b(?:located in|located at|visit us at|visit our store|visit our shop|visit our boutique|in-store|storefront|brick and mortar|brick-and-mortar|curbside pickup|in-store pickup|local pickup|store hours)\b/i.test(
+      `${parsed.title || ''} ${parsed.searchableText || parsed.textSnippet || ''}`
+    );
+  const hasPhysicalStorefrontSignals = Boolean(
+    parsed.visibleAddressSignals.length > 0 ||
+      parsed.hasLocalBusinessSchema ||
+      parsed.hasMapEmbed ||
+      parsed.detectedLocalBusinessCues ||
+      hasExplicitStorefrontLocationCue
+  );
   const isLikelyLocalOrStorefrontBusiness = Boolean(
     hasLocalOrStorefrontContext || parsed.detectedLocalBusinessCues
   );
   const isDigitalFirstWithoutStorefront =
     !isSpa && !isLikelyLocalOrStorefrontBusiness;
+  const isEcommerceOrInquiryFirstWithoutPhoneCues =
+    !isSpa &&
+    Boolean(parsed.hasEcommerceSignals) &&
+    !parsed.detectedLocalBusinessCues &&
+    (hasInquiryPath || Boolean(parsed.hasEcommerceSignals));
+  const isOnlineRetailWithoutStorefront =
+    !isSpa && Boolean(parsed.hasEcommerceSignals) && !hasPhysicalStorefrontSignals;
 
   // ==========================================
   // 1. DIGITAL PRESENCE (20% Weight) - 100 Scored Points
@@ -485,9 +506,9 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     observedValue: { isHttps, url: rawData.finalUrl },
     evidenceSource: 'HTTP_PROBE',
     evidenceLabel: 'AUTO_DETECTED',
-    supportingDetail: isHttps 
-      ? 'Website is securely delivered over HTTPS with active SSL encryption.' 
-      : 'Website is delivered over unencrypted HTTP, triggering browser security warnings.',
+    supportingDetail: isHttps
+      ? 'Website is securely delivered over HTTPS with active SSL encryption.'
+      : 'Website was served over unencrypted HTTP rather than HTTPS; modern browsers may display a security warning.',
   });
 
   // Check 2: Page Response (20 pts)
@@ -587,8 +608,8 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     supportingDetail: hasDesc
       ? `Meta description detected (${trimmedDesc.length} characters).`
       : trimmedDesc.length > 0
-      ? `Meta description is too short (${trimmedDesc.length} characters) to serve as an effective search snippet.`
-      : 'Missing meta description for search engine result snippets.',
+      ? `Meta description is brief (${trimmedDesc.length} characters); search platforms may generate their own result snippet.`
+      : 'No HTML meta description tag was detected; search platforms may generate snippets from page text.',
   });
 
   // Check 6: Favicon (5 pts — proportional polish signal; browsers also fall back to /favicon.ico)
@@ -638,7 +659,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       ? ogUrlMismatch
         ? `OpenGraph social preview tags are present, though og:url declares "${ogUrlMismatch.url}" rather than "${domainCheck.scannedDomain}".`
         : 'OpenGraph social preview metadata is configured for link sharing.'
-      : 'Missing OpenGraph tags; links shared in text messages or social media will lack custom previews.',
+      : 'No OpenGraph social preview tags were detected; shared links may rely on default browser or platform previews.',
   });
 
   if (domainCheck.status === 'MISMATCH' && domainCheck.mismatches.length > 0) {
@@ -690,7 +711,11 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
 
   // Check 1: Tap-to-Call Link (30 pts)
   const hasTel = parsed.telLinks.length > 0;
-  if (!hasTel && parsed.visiblePhoneNumbers.length === 0 && isDigitalFirstWithoutStorefront) {
+  if (
+    !hasTel &&
+    parsed.visiblePhoneNumbers.length === 0 &&
+    (isDigitalFirstWithoutStorefront || isEcommerceOrInquiryFirstWithoutPhoneCues)
+  ) {
     findings.push({
       category: 'customer_journey',
       checkKey: 'has_tel_link',
@@ -698,11 +723,17 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       state: 'UNKNOWN',
       scoreContribution: 0,
       maxPoints: 30,
-      observedValue: { telLinks: [], reason: 'NO_PHONE_ON_DIGITAL_INQUIRY_PAGE' },
+      observedValue: {
+        telLinks: [],
+        reason: isEcommerceOrInquiryFirstWithoutPhoneCues
+          ? 'NO_PHONE_ON_ECOMMERCE_OR_INQUIRY_PAGE'
+          : 'NO_PHONE_ON_DIGITAL_INQUIRY_PAGE',
+      },
       evidenceSource: 'HTML_PARSER',
       evidenceLabel: 'AUTO_DETECTED',
-      supportingDetail:
-        'No phone number published on page (online inquiry path is active); deferred to Todd & Noelah review to confirm whether tap-to-call intake applies to this business model.',
+      supportingDetail: isEcommerceOrInquiryFirstWithoutPhoneCues
+        ? 'No phone number was detected on the scanned page (online checkout or inquiry path is active); deferred to Todd & Noelah review to confirm whether tap-to-call intake applies to this business.'
+        : 'No phone number published on page (online inquiry path is active); deferred to Todd & Noelah review to confirm whether tap-to-call intake applies to this business model.',
     });
   } else {
     findings.push(evaluateContentCheck({
@@ -717,7 +748,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       failDetail:
         parsed.visiblePhoneNumbers.length > 0
           ? `Phone number (${parsed.visiblePhoneNumbers[0]}) is visible in text but not wrapped in a tap-to-call (tel:) link.`
-          : 'No click-to-call (tel:) links found; mobile users must copy-paste or manually dial.',
+          : 'No tap-to-call (tel:) link was detected on the scanned page.',
     }));
   }
 
@@ -729,9 +760,14 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     category: 'customer_journey',
     checkKey: 'inquiry_or_contact_path',
     title: 'Online Inquiry / Contact Path',
-    observedValue: { hasForms: parsed.hasForms, hasLeadCaptureForm: parsed.hasLeadCaptureForm, mailtoLinks: parsed.mailtoLinks },
-    passDetail: 'Direct inquiry path active (interactive contact form or direct mailto link).',
-    failDetail: 'No online contact form or direct inquiry link detected on page.',
+    observedValue: {
+      hasForms: parsed.hasForms,
+      hasLeadCaptureForm: parsed.hasLeadCaptureForm,
+      mailtoLinks: parsed.mailtoLinks,
+      hasContactPageLink: Boolean(parsed.hasContactPageLink),
+    },
+    passDetail: 'Online contact or inquiry path detected on the scanned page.',
+    failDetail: 'No online contact form, direct email link, or contact page link was detected on the scanned page.',
   }));
 
   // Check 3: Clear Action Callouts (CTAs) (20 pts)
@@ -744,7 +780,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     title: 'Clear Action Callouts (CTAs)',
     observedValue: { ctaKeywords: parsed.detectedCtaKeywords },
     passDetail: `Action callouts detected: ${parsed.detectedCtaKeywords.slice(0, 4).join(', ')}.`,
-    failDetail: 'No obvious conversion call-to-actions ("Call Now", "Get a Quote", "Book", "Contact") detected.',
+    failDetail: 'No obvious conversion call-to-actions ("Shop Now", "Contact Us", "Get a Quote", "Book") detected.',
   }));
 
   // Check 4: Service Offerings / Menu Visibility (20 pts)
@@ -757,8 +793,8 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     checkKey: 'menu_or_services',
     title: 'Service Offerings / Capabilities Breakdown',
     observedValue: { detectedMenuOrServices: hasMenuOrServices },
-    passDetail: 'Visible services or capabilities breakdown found for prospective customers.',
-    failDetail: 'No clear service list or capabilities headings identified on page.',
+    passDetail: 'Visible services, menu, or product offerings detected on the scanned page.',
+    failDetail: 'No clear service list, menu, or product offerings were detected on the scanned page.',
   }));
 
   // Check 5: Public Pricing (Informational - 0 pts)
@@ -798,7 +834,10 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
 
   // Check 1: Visible Business Phone Number (35 pts)
   const hasPhoneText = parsed.visiblePhoneNumbers.length > 0;
-  if (!hasPhoneText && isDigitalFirstWithoutStorefront) {
+  if (
+    !hasPhoneText &&
+    (isDigitalFirstWithoutStorefront || isEcommerceOrInquiryFirstWithoutPhoneCues)
+  ) {
     findings.push({
       category: 'trust_reputation',
       checkKey: 'phone_number_visible',
@@ -806,11 +845,17 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       state: 'UNKNOWN',
       scoreContribution: 0,
       maxPoints: 35,
-      observedValue: { visiblePhoneNumbers: [], reason: 'NO_PHONE_ON_DIGITAL_INQUIRY_PAGE' },
+      observedValue: {
+        visiblePhoneNumbers: [],
+        reason: isEcommerceOrInquiryFirstWithoutPhoneCues
+          ? 'NO_PHONE_ON_ECOMMERCE_OR_INQUIRY_PAGE'
+          : 'NO_PHONE_ON_DIGITAL_INQUIRY_PAGE',
+      },
       evidenceSource: 'HTML_PARSER',
       evidenceLabel: 'AUTO_DETECTED',
-      supportingDetail:
-        'No public phone number listed on page (online inquiry path is active); deferred to Todd & Noelah review to confirm whether phone intake applies to this business model.',
+      supportingDetail: isEcommerceOrInquiryFirstWithoutPhoneCues
+        ? 'No public phone number was detected on the scanned page (online checkout or inquiry path is active); deferred to Todd & Noelah review to confirm whether phone intake applies to this business.'
+        : 'No public phone number listed on page (online inquiry path is active); deferred to Todd & Noelah review to confirm whether phone intake applies to this business model.',
     });
   } else {
     findings.push(evaluateContentCheck({
@@ -822,13 +867,13 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       title: 'Visible Business Phone Number',
       observedValue: { visiblePhoneNumbers: parsed.visiblePhoneNumbers },
       passDetail: `Readable phone number found on page: ${parsed.visiblePhoneNumbers[0]}.`,
-      failDetail: 'No standard 10-digit phone number found in page text.',
+      failDetail: 'No standard 10-digit phone number was detected in the scanned page text.',
     }));
   }
 
   // Check 2: Physical Address & Location Signals (35 pts)
   const hasAddress = parsed.visibleAddressSignals.length > 0;
-  if (!hasAddress && isDigitalFirstWithoutStorefront) {
+  if (!hasAddress && (isDigitalFirstWithoutStorefront || isOnlineRetailWithoutStorefront)) {
     findings.push({
       category: 'trust_reputation',
       checkKey: 'address_signals',
@@ -836,11 +881,17 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       state: 'UNKNOWN',
       scoreContribution: 0,
       maxPoints: 35,
-      observedValue: { visibleAddressSignals: [], reason: 'NO_STOREFRONT_ON_DIGITAL_INQUIRY_PAGE' },
+      observedValue: {
+        visibleAddressSignals: [],
+        reason: isOnlineRetailWithoutStorefront
+          ? 'NO_STOREFRONT_ON_ONLINE_RETAIL_PAGE'
+          : 'NO_STOREFRONT_ON_DIGITAL_INQUIRY_PAGE',
+      },
       evidenceSource: 'HTML_PARSER',
       evidenceLabel: 'AUTO_DETECTED',
-      supportingDetail:
-        'No physical street address listed on page; deferred to Todd & Noelah review to confirm whether a public storefront or office address applies.',
+      supportingDetail: isOnlineRetailWithoutStorefront
+        ? 'No physical street address was detected on the scanned page; deferred to Todd & Noelah review to confirm whether this retailer operates a public storefront or sells primarily online.'
+        : 'No physical street address listed on page; deferred to Todd & Noelah review to confirm whether a public storefront or office address applies.',
     });
   } else {
     findings.push(evaluateContentCheck({
@@ -856,33 +907,105 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     }));
   }
 
-  // Check 3: About Us & Ownership Background (15 pts)
+  // Check 3: About Us & Ownership Background (15 pts — PASS when detected; HUMAN CHECK when absent so absence never implies missing credibility)
   const hasAbout = parsed.detectedAboutOrTeamKeywords;
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasAbout,
-    passPoints: 15,
-    category: 'trust_reputation',
-    checkKey: 'about_team_signals',
-    title: 'About Us & Ownership Background',
-    observedValue: { detectedAboutOrTeamKeywords: hasAbout },
-    passDetail: 'Owner, founder, or company story background detected.',
-    failDetail: 'Missing personal story or team background establishing local credibility.',
-  }));
+  if (hasAbout) {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'about_team_signals',
+      title: 'About Us & Ownership Background',
+      state: 'PASS',
+      scoreContribution: 15,
+      maxPoints: 15,
+      observedValue: { detectedAboutOrTeamKeywords: true },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: 'About, founder, or team background language was detected on the scanned page.',
+    });
+  } else {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'about_team_signals',
+      title: 'About Us & Ownership Background',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 15,
+      observedValue: isSpa
+        ? { detectedAboutOrTeamKeywords: false, isClientRenderedSpa: true }
+        : { detectedAboutOrTeamKeywords: false, reason: 'HUMAN_RELEVANCE_REVIEW' },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: isSpa
+        ? 'Client-rendered SPA shell detected; About, ownership, or team background could not be verified from static HTML alone. Deferred to human review.'
+        : 'No About, ownership, or team background was detected in the scanned content. Deferred to Todd & Noelah review to assess whether this matters for this business.',
+    });
+  }
 
-  // Check 4: Privacy Policy & Terms Links (15 pts)
+  // Check 4: Privacy Policy & Terms Links (15 pts — requires inspectable static navigation/footer to mark FAIL)
   const hasLegal = parsed.hasPrivacyOrTermsLink;
-  findings.push(evaluateContentCheck({
-    isSpa,
-    found: hasLegal,
-    passPoints: 15,
-    category: 'trust_reputation',
-    checkKey: 'terms_privacy',
-    title: 'Privacy Policy & Terms of Service',
-    observedValue: { hasPrivacyOrTermsLink: hasLegal },
-    passDetail: 'Privacy policy or terms of service link detected on the scanned page.',
-    failDetail: 'No privacy policy or terms link detected on the scanned page (commonly expected by visitors and often required on paid ad landing pages).',
-  }));
+  if (hasLegal) {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'terms_privacy',
+      title: 'Privacy Policy & Terms of Service',
+      state: 'PASS',
+      scoreContribution: 15,
+      maxPoints: 15,
+      observedValue: { hasPrivacyOrTermsLink: true },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail: 'Privacy policy or terms of service link detected on the scanned page.',
+    });
+  } else if (isSpa) {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'terms_privacy',
+      title: 'Privacy Policy & Terms of Service',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 15,
+      observedValue: { hasPrivacyOrTermsLink: false, isClientRenderedSpa: true },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'Client-rendered SPA shell detected; privacy policy and terms links could not be reliably verified from static HTML alone. Deferred to human review.',
+    });
+  } else if (parsed.hasInspectableNavigationOrFooter === false) {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'terms_privacy',
+      title: 'Privacy Policy & Terms of Service',
+      state: 'UNKNOWN',
+      scoreContribution: 0,
+      maxPoints: 15,
+      observedValue: {
+        hasPrivacyOrTermsLink: false,
+        hasInspectableNavigationOrFooter: false,
+        reason: 'INSUFFICIENT_NAVIGATION_EVIDENCE',
+      },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'Page navigation and footer were not fully inspectable from static HTML; privacy policy and terms verification is deferred to human review.',
+    });
+  } else {
+    findings.push({
+      category: 'trust_reputation',
+      checkKey: 'terms_privacy',
+      title: 'Privacy Policy & Terms of Service',
+      state: 'FAIL',
+      scoreContribution: 0,
+      maxPoints: 15,
+      observedValue: {
+        hasPrivacyOrTermsLink: false,
+        hasInspectableNavigationOrFooter: true,
+      },
+      evidenceSource: 'HTML_PARSER',
+      evidenceLabel: 'AUTO_DETECTED',
+      supportingDetail:
+        'No privacy policy or terms link was detected in the scanned page navigation or footer.',
+    });
+  }
 
   // Check 5: Customer Reviews & Testimonials (Informational - 0 pts)
   const hasReviews = parsed.detectedReviewOrTestimonialKeywords;
@@ -965,7 +1088,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
       parsed.hasMapEmbed
   );
 
-  if (!hasServiceArea && isDigitalFirstWithoutStorefront) {
+  if (!hasServiceArea && (isDigitalFirstWithoutStorefront || isOnlineRetailWithoutStorefront)) {
     findings.push({
       category: 'local_discovery',
       checkKey: 'service_area_language',
@@ -996,7 +1119,7 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
   // Check 3: Schema.org LocalBusiness / Entity Markup (30 pts)
   const hasLbSchema = parsed.hasLocalBusinessSchema;
 
-  if (!hasLbSchema && isDigitalFirstWithoutStorefront) {
+  if (!hasLbSchema && (isDigitalFirstWithoutStorefront || isOnlineRetailWithoutStorefront)) {
     findings.push({
       category: 'local_discovery',
       checkKey: 'local_business_schema',
@@ -1027,9 +1150,9 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
         hasOrganizationSchema: parsed.hasOrganizationSchema,
       },
       passDetail:
-        'Schema.org LocalBusiness structured data present; search engines and AI can machine-read location.',
+        'Schema.org LocalBusiness structured data was detected on the scanned page.',
       failDetail:
-        'Missing LocalBusiness structured data; AI search engines must guess business category and location.',
+        'No LocalBusiness structured data was detected. Search and AI platforms may rely on other website and listing signals to understand business details.',
     }));
   }
 
@@ -1063,8 +1186,10 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     checkKey: 'lead_capture_form',
     title: 'Direct Lead Capture Mechanism',
     observedValue: { hasLeadCaptureForm: parsed.hasLeadCaptureForm, hasForms: parsed.hasForms },
-    passDetail: 'Interactive form detected allowing 24/7 lead intake.',
-    failDetail: 'Missing direct lead capture form; prospects cannot submit contact details online.',
+    passDetail: parsed.hasLeadCaptureForm
+      ? 'Interactive inquiry or lead capture form detected on the scanned page.'
+      : 'Interactive on-page form detected on the scanned URL.',
+    failDetail: 'No on-page inquiry or lead capture form was detected on the scanned URL.',
   }));
 
   // Check 2: Quote, Estimate, or High-Ticket Path (50 pts)
@@ -1077,7 +1202,9 @@ export function runDeterministicChecks(input: EvaluateInput): EvaluatedFinding[]
     checkKey: 'quote_or_action_path',
     title: 'Quote, Estimate, or Action Path',
     observedValue: { detectedQuoteOrCateringKeywords: parsed.detectedQuoteOrCateringKeywords },
-    passDetail: 'Dedicated quote, estimate, consultation, or commercial inquiry path identified.',
+    passDetail: parsed.detectedQuoteOrCateringKeywords
+      ? 'Dedicated quote, estimate, consultation, or commercial inquiry path identified.'
+      : 'Primary customer action, ordering, or inquiry callout detected on the scanned page.',
     failDetail: 'No dedicated path found for quote or high-ticket estimate requests.',
   }));
 

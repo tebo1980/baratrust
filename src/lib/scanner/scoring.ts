@@ -48,12 +48,27 @@ export function calculateScores(
     const scoredFindings = catFindings.filter(f => !f.isInformational && f.maxPoints > 0);
     const totalMax = scoredFindings.reduce((sum, f) => sum + f.maxPoints, 0) || 100;
 
-    const evaluatedFindings = scoredFindings.filter(
-      f => f.state !== 'UNKNOWN' && f.evidenceSource !== 'BROWSER_RENDER'
-    );
+    const getEffectiveStaticState = (f: EvaluatedFinding): 'PASS' | 'FAIL' | 'UNKNOWN' => {
+      if (f.evidenceSource === 'BROWSER_RENDER') {
+        const prior = f.observedValue?.staticState;
+        return prior === 'PASS' || prior === 'FAIL' ? prior : 'UNKNOWN';
+      }
+      return f.state;
+    };
+
+    const getEffectiveStaticPoints = (f: EvaluatedFinding): number => {
+      if (f.evidenceSource === 'BROWSER_RENDER') {
+        return typeof f.observedValue?.staticScoreContribution === 'number'
+          ? f.observedValue.staticScoreContribution
+          : 0;
+      }
+      return f.scoreContribution;
+    };
+
+    const evaluatedFindings = scoredFindings.filter(f => getEffectiveStaticState(f) !== 'UNKNOWN');
     const evaluatedMax = evaluatedFindings.reduce((sum, f) => sum + f.maxPoints, 0);
     const earned = evaluatedFindings.reduce(
-      (sum, f) => sum + (f.state === 'PASS' ? f.scoreContribution : 0),
+      (sum, f) => sum + (getEffectiveStaticState(f) === 'PASS' ? getEffectiveStaticPoints(f) : 0),
       0
     );
 
@@ -80,7 +95,7 @@ export function calculateScores(
       maxPoints: totalMax,
       evaluableCheckCount: evaluatedFindings.length,
       totalCheckCount: scoredFindings.length,
-      unknownCheckCount: scoredFindings.filter(f => f.state === 'UNKNOWN').length,
+      unknownCheckCount: scoredFindings.filter(f => getEffectiveStaticState(f) === 'UNKNOWN').length,
     };
   });
 

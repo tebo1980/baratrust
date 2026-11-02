@@ -1376,6 +1376,7 @@ import {
   buildFunnelScoreSummary,
   resolvePublicFindingBadge,
   resolveFunnelSnapshotHeader,
+  getFindingDisplayPriority,
 } from '../src/lib/reality-check/funnel';
 
 test('Production Calibration Regression — BaraTrust self-scan (86/100 at 59% coverage) partitions 12 PASS / 2 FAIL / 6 scored UNKNOWN, renders INFO · NOT OBSERVED on 0-point checks, and uses evidence-safe terms_privacy wording', () => {
@@ -1441,7 +1442,7 @@ test('Production Calibration Regression — BaraTrust self-scan (86/100 at 59% c
   assert.equal(termsFinding.state, 'FAIL');
   assert.equal(
     termsFinding.supportingDetail,
-    'No privacy policy or terms link detected on the scanned page (commonly expected by visitors and often required on paid ad landing pages).'
+    'No privacy policy or terms link was detected in the scanned page navigation or footer.'
   );
   assert.equal(
     termsFinding.supportingDetail.includes('critical for compliance and digital ad channels'),
@@ -1472,7 +1473,7 @@ test('Production Calibration Regression — BaraTrust self-scan (86/100 at 59% c
   assert.equal(summary.headline, 'Automated Score: 86 / 100 on Evaluated Signals');
   assert.equal(
     summary.explanation,
-    'Score reflects performance on the 59% of scored checks observable from static HTML (12 passing, 2 flagged). The remaining 41% (6 checks) was not evaluated automatically and is deferred to human review.'
+    'Score reflects 59% of point-weighted static HTML scoring signals (12 passing, 2 flagged across 14 of 20 scored checks). The remaining 41% of weighted points (6 checks) is deferred to human review.'
   );
 
   // Verify initial 6 highlighted cards never include 0-point informational checks (like social_links)
@@ -1742,4 +1743,207 @@ test('Correctness Pass C — Viewport directives separate responsive width PASS 
   assert.match(zoomFinding.supportingDetail, /pinch-to-zoom/i);
   const zoomBadge = resolvePublicFindingBadge(zoomFinding, false);
   assert.equal(zoomBadge.badgeText, 'ATTENTION');
+});
+
+// ==========================================
+// 12. Final Scanner Closure Pass — Boutique Calibration & Credibility Safeguards
+// ==========================================
+test('Scanner Closure Pass — Weighted coverage consistency, display prioritization, retail applicability, evidence sufficiency, and factual wording', () => {
+  // 1. Weighted coverage with 0 unknown checks never produces contradictory "remaining X% (0 checks)" text
+  const dressAndDwellStyleSummary = buildFunnelScoreSummary({
+    overallScore: 84,
+    overallCoverage: 92,
+    passingCount: 16,
+    failingCount: 4,
+    unknownCount: 0,
+  });
+  assert.equal(dressAndDwellStyleSummary.headline, 'Automated Score: 84 / 100 on Evaluated Signals');
+  assert.equal(
+    /0 checks/i.test(dressAndDwellStyleSummary.explanation),
+    false,
+    `Must never emit contradictory "0 checks" unevaluated copy: ${dressAndDwellStyleSummary.explanation}`
+  );
+  assert.match(dressAndDwellStyleSummary.explanation, /92% of point-weighted static HTML scoring signals/);
+  assert.match(dressAndDwellStyleSummary.explanation, /16 passing, 4 flagged across all 20 applicable scored checks/);
+
+  // Boutique ecommerce HTML: online checkout + contact link, no phone published, no owner bio, no explicit favicon, inspectable footer WITHOUT privacy/terms
+  const boutiqueHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Hazel &amp; Dwell Boutique | Located in New Albany Indiana</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Women's clothing, dresses, and accessories boutique in downtown New Albany, Indiana." />
+        <meta property="og:title" content="Hazel &amp; Dwell Boutique" />
+      </head>
+      <body>
+        <header>
+          <nav>
+            <a href="/collections/new-arrivals">New Arrivals</a>
+            <a href="/collections/dresses">Dresses</a>
+            <a href="/pages/contact">Contact Us</a>
+            <a href="/cart">Cart (0)</a>
+          </nav>
+        </header>
+        <main>
+          <h1>Summer Collection</h1>
+          <p>Shop our curated women's apparel and accessories online or visit us at 138 East Market Street, New Albany, IN 47150.</p>
+          <a href="/collections/all" class="btn">Shop Now</a>
+          <button type="button">Add to Cart</button>
+        </main>
+        <footer>
+          <a href="/search">Search</a>
+          <a href="/collections/all">Shop All</a>
+          <a href="/pages/contact">Contact Us</a>
+          <a href="https://instagram.com/hazelanddwell">Instagram</a>
+        </footer>
+      </body>
+    </html>
+  `;
+
+  const parsedBoutique = parseHtmlForBusinessSignals(boutiqueHtml);
+  assert.equal(parsedBoutique.derivedCityState, 'New Albany, IN', 'Must extract city and full state name from "Located in New Albany Indiana"');
+  assert.equal(parsedBoutique.hasEcommerceSignals, true, 'Must recognize ecommerce checkout/collection signals');
+  assert.equal(parsedBoutique.hasInspectableNavigationOrFooter, true, 'Must recognize inspectable navigation and footer');
+
+  const boutiqueRaw: RawPageData = {
+    requestedUrl: 'https://hazelanddwell.example',
+    finalUrl: 'https://hazelanddwell.example/',
+    normalizedUrl: 'https://hazelanddwell.example/',
+    isHttps: true,
+    httpStatus: 200,
+    responseTimeMs: 95,
+    headers: { 'content-type': 'text/html' },
+    html: boutiqueHtml,
+  };
+  const boutiqueFindings = runDeterministicChecks({ rawData: boutiqueRaw, parsed: parsedBoutique });
+  const byKey = new Map(boutiqueFindings.map((f) => [f.checkKey, f]));
+
+  // 2 & 9. Favicon remains detected (FAIL / ATTENTION) in expanded list, but is deprioritized (LOW) out of headline highlights
+  const faviconFinding = byKey.get('has_favicon')!;
+  assert.equal(faviconFinding.state, 'FAIL', 'Missing explicit favicon link must still be detected');
+  assert.equal(getFindingDisplayPriority(faviconFinding), 'LOW');
+
+  const scoresBeforePartition = calculateScores(boutiqueFindings);
+  const partitionedBoutique = partitionFunnelFindings(boutiqueFindings, false);
+  const scoresAfterPartition = calculateScores(boutiqueFindings);
+
+  // 8. Highlight ranking / partitioning never changes numeric score or coverage
+  assert.equal(scoresAfterPartition.overallScore, scoresBeforePartition.overallScore);
+  assert.equal(scoresAfterPartition.overallCoverage, scoresBeforePartition.overallCoverage);
+
+  assert.equal(
+    partitionedBoutique.highlightedFindings.some((f) => f.checkKey === 'has_favicon'),
+    false,
+    'Low-priority favicon check must not occupy top 6 highlight slots when higher-priority findings exist'
+  );
+  assert.equal(
+    partitionedBoutique.highlightedFindings.some((f) => f.checkKey === 'terms_privacy'),
+    true,
+    'High-priority inspectable privacy/terms absence must appear in top 6 highlights'
+  );
+  assert.equal(
+    partitionedBoutique.allScoredFindingsOrdered.some((f) => f.checkKey === 'has_favicon'),
+    true,
+    'Public expanded scored list must still contain low-priority favicon check'
+  );
+  assert.equal(
+    partitionedBoutique.allFindingsOrdered.some((f) => f.checkKey === 'has_favicon'),
+    true,
+    'Public expanded full list must still contain low-priority checks'
+  );
+  assert.ok(partitionedBoutique.hiddenFailingCount >= 1, 'Hidden failing count must account for deprioritized favicon check');
+
+  // 3. Owner/About absence does not automatically imply missing credibility
+  const aboutFinding = byKey.get('about_team_signals')!;
+  assert.equal(aboutFinding.state, 'UNKNOWN', 'Absent owner/about story must be HUMAN CHECK (UNKNOWN), not ATTENTION (FAIL)');
+  assert.equal(resolvePublicFindingBadge(aboutFinding, false).badgeText, 'HUMAN CHECK');
+  assert.equal(getFindingDisplayPriority(aboutFinding), 'LOW');
+  assert.equal(
+    /credibility/i.test(aboutFinding.supportingDetail),
+    false,
+    `About/ownership detail must not infer missing credibility: ${aboutFinding.supportingDetail}`
+  );
+  assert.match(aboutFinding.supportingDetail, /No About, ownership, or team background was detected/i);
+  assert.match(aboutFinding.supportingDetail, /assess whether this matters for this business/i);
+
+  // 4 & 5. Privacy/terms respects evidence sufficiency:
+  // - Sufficiently inspectable static footer lacking links -> FAIL (ATTENTION)
+  const boutiqueTerms = byKey.get('terms_privacy')!;
+  assert.equal(boutiqueTerms.state, 'FAIL', 'Inspectable static footer without privacy/terms links can remain FAIL (ATTENTION)');
+  assert.equal(resolvePublicFindingBadge(boutiqueTerms, false).badgeText, 'ATTENTION');
+  assert.equal(
+    /commonly expected|required on paid ad/i.test(boutiqueTerms.supportingDetail),
+    false,
+    'Privacy/terms wording must state observed fact without unsupported visitor/ad claims'
+  );
+
+  // - Incomplete SPA shell OR sparse static page without inspectable navigation/footer -> UNKNOWN (HUMAN CHECK)
+  const sparseSplashHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>The Mercantile New Albany</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body>
+        <h1>The Mercantile</h1>
+        <p>Curated goods and local provisions coming this season to historic downtown. Stay tuned for opening announcements and seasonal pop-up dates as we finish preparing the space for guests.</p>
+      </body>
+    </html>
+  `;
+  const parsedSparse = parseHtmlForBusinessSignals(sparseSplashHtml);
+  assert.equal(parsedSparse.isClientRenderedSpa, false);
+  assert.equal(parsedSparse.hasInspectableNavigationOrFooter, false);
+  const sparseFindings = runDeterministicChecks({
+    rawData: { ...boutiqueRaw, html: sparseSplashHtml },
+    parsed: parsedSparse,
+  });
+  const sparseTerms = sparseFindings.find((f) => f.checkKey === 'terms_privacy')!;
+  assert.equal(
+    sparseTerms.state,
+    'UNKNOWN',
+    'Sparse page without inspectable navigation or footer must mark terms_privacy UNKNOWN, not FAIL'
+  );
+  assert.equal(resolvePublicFindingBadge(sparseTerms, false).badgeText, 'HUMAN CHECK');
+
+  const spaTermsHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head><title>App Shell</title><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+      <body><div id="root"></div><script src="/bundle.js"></script></body>
+    </html>
+  `;
+  const parsedSpaTerms = parseHtmlForBusinessSignals(spaTermsHtml);
+  assert.equal(parsedSpaTerms.isClientRenderedSpa, true);
+  const spaTermsFindings = runDeterministicChecks({
+    rawData: { ...boutiqueRaw, html: spaTermsHtml },
+    parsed: parsedSpaTerms,
+  });
+  assert.equal(
+    spaTermsFindings.find((f) => f.checkKey === 'terms_privacy')?.state,
+    'UNKNOWN',
+    'Privacy/terms on incomplete SPA evidence must be UNKNOWN'
+  );
+
+  // 6. Tap-to-call and visible phone applicability do not falsely penalize ecommerce/inquiry-first business without phone
+  const telFinding = byKey.get('has_tel_link')!;
+  const phoneFinding = byKey.get('phone_number_visible')!;
+  assert.equal(telFinding.state, 'UNKNOWN', 'Ecommerce boutique with online checkout/contact and no phone must get HUMAN CHECK for tap-to-call');
+  assert.equal(phoneFinding.state, 'UNKNOWN', 'Ecommerce boutique with online checkout/contact and no phone must get HUMAN CHECK for visible phone');
+  assert.equal(resolvePublicFindingBadge(telFinding, false).badgeText, 'HUMAN CHECK');
+  assert.equal(resolvePublicFindingBadge(phoneFinding, false).badgeText, 'HUMAN CHECK');
+
+  // 7. LocalBusiness schema wording contains no unsupported "AI search engines must guess" certainty
+  const schemaFinding = byKey.get('local_business_schema')!;
+  assert.equal(schemaFinding.state, 'FAIL', 'Boutique with explicit street address but no LocalBusiness schema flags schema check');
+  assert.equal(
+    /must guess|ai search engines must/i.test(schemaFinding.supportingDetail),
+    false,
+    `Schema wording must not contain unsupported "AI must guess" claim: ${schemaFinding.supportingDetail}`
+  );
+  assert.match(
+    schemaFinding.supportingDetail,
+    /No LocalBusiness structured data was detected\. Search and AI platforms may rely on other website and listing signals/
+  );
 });

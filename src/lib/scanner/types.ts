@@ -70,6 +70,7 @@ export interface BrowserRenderedSignals {
   hasMapEmbed?: boolean;
   hasForms?: boolean;
   hasLeadCaptureForm?: boolean;
+  hasContactLink?: boolean;
   detectedQuoteOrCateringKeywords?: boolean;
   detectedBookingSignals?: boolean;
   detectedReviewOrTestimonialKeywords?: boolean;

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import RealityCheckFunnel from "@/components/RealityCheckFunnel";
+import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
 import "../landing.css";
 
 export default function RealityCheckPage() {
@@ -108,7 +109,15 @@ export default function RealityCheckPage() {
                   <Link href="/pricing" style={{ textDecoration: "underline", fontWeight: 700 }}>
                     Business Pulse ($99/month)
                   </Link>
-                  .
+                  {" — "}
+                  <a
+                    href={BUSINESS_PULSE_STRIPE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: "underline", fontWeight: 700 }}
+                  >
+                    start Business Pulse now →
+                  </a>
                 </span>
               </div>
 

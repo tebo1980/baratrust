@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { CheckCircle2, ArrowRight, ShieldCheck, Mail } from 'lucide-react';
+import { CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { BUSINESS_PULSE_STRIPE_URL } from '@/components/ContactLinks';
 
 export default function PricingPage() {
   return (
@@ -149,10 +150,12 @@ export default function PricingPage() {
 
             <div className="pt-8">
               <a
-                href="mailto:todd@baratrust.com?subject=Start%20Business%20Pulse%20(%2499%2Fmonth)"
+                href={BUSINESS_PULSE_STRIPE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 shadow-lg"
               >
-                <Mail className="w-4 h-4" /> Start Business Pulse — $99/month
+                Start Business Pulse — $99/month <ArrowRight className="w-5 h-5" />
               </a>
             </div>
           </div>

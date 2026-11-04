@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
 import "../landing.css";
 
 export default function ThankYouPage() {
@@ -38,7 +39,7 @@ export default function ThankYouPage() {
         <h1>We received your request.</h1>
         <p className="section-intro">Thank you for sharing your business details with BaraTrust.</p>
         <p className="section-intro">Todd and Noelah have your information and will follow up with your saved snapshot link and straightforward next steps if you want BaraTrust to keep watching your business through Business Pulse ($99/month).</p>
-        <div className="cta-row"><a className="btn primary" href="/">Back to BaraTrust</a></div>
+        <div className="cta-row"><a className="btn primary" href={BUSINESS_PULSE_STRIPE_URL} target="_blank" rel="noopener noreferrer">Start Business Pulse — $99/month</a><a className="btn secondary" href="/">Back to BaraTrust</a></div>
       </div></section></main>
       <footer><div className="wrap footer-wrap"><div><strong>BaraTrust</strong><p>BaraTrust watches your business so you don’t have to. Protect • Improve • Grow • Save.</p></div><div className="footer-links"><a href="mailto:todd@baratrust.com">todd@baratrust.com</a><span>© 2026 BaraTrust</span></div></div></footer>
     </div>

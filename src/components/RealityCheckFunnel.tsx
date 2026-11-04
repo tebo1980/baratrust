@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
+import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
 import { decodeHtmlEntities, classifyProfileSummaryText } from "@/lib/scanner/parser";
 import {
   partitionFunnelFindings,
@@ -805,6 +806,15 @@ export default function RealityCheckFunnel({
             {submittingEmail ? "Saving Your Snapshot..." : "Save Snapshot & See Business Pulse Next Steps"}
           </button>
 
+          <a
+            className="btn secondary full"
+            href={BUSINESS_PULSE_STRIPE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Start Business Pulse Now — $99/month
+          </a>
+
           {emailError && (
             <p
               className="form-note"
@@ -835,6 +845,17 @@ export default function RealityCheckFunnel({
             <strong>Business Pulse ($99/month)</strong>.
           </p>
 
+          <div style={{ marginBottom: "16px" }}>
+            <a
+              className="btn primary full"
+              href={BUSINESS_PULSE_STRIPE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Start Business Pulse — $99/month
+            </a>
+          </div>
+
           {!skippedQuestionnaire && !snapshot.questionnaireCompleted ? (
             <div className="starter-note" style={{ marginTop: "14px" }}>
               <strong>Want to share what matters most to your business? (Optional)</strong>
@@ -843,7 +864,7 @@ export default function RealityCheckFunnel({
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Link
-                  className="btn primary full"
+                  className="btn secondary full"
                   href={`/reality-check/${snapshot.shareToken}/questionnaire`}
                 >
                   Share Optional Business Context (~2 min)

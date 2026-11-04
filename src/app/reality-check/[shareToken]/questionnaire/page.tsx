@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
 import {
   CheckCircle2,
   ArrowRight,
@@ -292,7 +293,15 @@ export default function OwnerQuestionnairePage() {
                 gap: "12px",
               }}
             >
-              <Link href="/" className="btn primary">
+              <a
+                href={BUSINESS_PULSE_STRIPE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn primary"
+              >
+                Start Business Pulse — $99/month
+              </a>
+              <Link href="/" className="btn secondary">
                 Return to BaraTrust Homepage
               </Link>
               <a href="mailto:todd@baratrust.com" className="btn secondary">

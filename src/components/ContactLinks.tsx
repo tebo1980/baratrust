@@ -5,6 +5,7 @@ import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNod
 export const CONTACT_PHONE_DISPLAY = '502-418-2431'
 export const CONTACT_PHONE_DIGITS = '5024182431'
 export const CONTACT_EMAIL_DISPLAY = 'todd@baratrust.com'
+export const BUSINESS_PULSE_STRIPE_URL = 'https://buy.stripe.com/8x2dR2dS8f01gm3akp5ZC1Q'
 
 const GMAIL_TARGET = 'tebo1980@gmail.com'
 const GMAIL_COMPOSE_URL = `https://mail.google.com/mail/?view=cm&to=${GMAIL_TARGET}`

@@ -1,6 +1,6 @@
 'use client'
 
-import { PhoneLink, CONTACT_PHONE_DISPLAY } from './ContactLinks'
+import { PhoneLink, CONTACT_PHONE_DISPLAY, BUSINESS_PULSE_STRIPE_URL } from './ContactLinks'
 
 type Feature = { icon: string; title: string; text: string }
 
@@ -126,6 +126,7 @@ export default function SeoTradePage({
           </p>
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
             <a href="/reality-check" className="btn-primary">Run Free Reality Check</a>
+            <a href={BUSINESS_PULSE_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">Start Business Pulse — $99/mo</a>
             <PhoneLink className="btn-secondary">Call {CONTACT_PHONE_DISPLAY}</PhoneLink>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--cream-muted)' }}>

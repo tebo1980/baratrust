@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import RealityCheckFunnel from "@/components/RealityCheckFunnel";
+import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
 import "./landing.css";
 
 export default function LandingPage() {
@@ -234,7 +235,9 @@ export default function LandingPage() {
               <div className="cta-row" style={{ marginTop: "24px" }}>
                 <a
                   className="btn primary"
-                  href="mailto:todd@baratrust.com?subject=Start%20Business%20Pulse%20(%2499%2Fmonth)"
+                  href={BUSINESS_PULSE_STRIPE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   Start Business Pulse — $99/month
                 </a>
@@ -376,9 +379,14 @@ export default function LandingPage() {
                 <a className="btn primary" href="#reality-check-form">
                   Run Free Reality Check
                 </a>
-                <Link className="btn secondary" href="/pricing">
-                  See Business Pulse ($99/mo)
-                </Link>
+                <a
+                  className="btn secondary"
+                  href={BUSINESS_PULSE_STRIPE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Start Business Pulse — $99/mo
+                </a>
               </div>
               <p className="micro">
                 Free automated scan · Business Pulse $99/month when you want ongoing watch.

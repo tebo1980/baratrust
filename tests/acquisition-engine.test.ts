@@ -23,12 +23,36 @@ test('Acquisition Engine V1 — Operator Auth & Verified Clerk Identity Enforcem
   const harness = await createAcquisitionTestHarness();
 
   try {
-    // 1. Unauthenticated -> 401
+    // 1. Unauthenticated -> 401 across all internal acquisition endpoints
     harness.setClerkUser(null);
     const unauthRes = await harness.routes.acquisition.GET();
     assert.equal(unauthRes.status, 401);
+    const unauthPostRes = await harness.routes.acquisition.POST(
+      new Request('https://baratrust.test/api/internal/acquisition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName: 'Blocked', location: 'Louisville, KY', industry: 'Retail' }),
+      })
+    );
+    assert.equal(unauthPostRes.status, 401);
+    const unauthDetailRes = await harness.routes.acquisitionDetail.PATCH(
+      new Request('https://baratrust.test/api/internal/acquisition/00000000-0000-0000-0000-000000000000', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'VERIFY_ASSESSMENT' }),
+      }),
+      { params: Promise.resolve({ prospectId: '00000000-0000-0000-0000-000000000000' }) }
+    );
+    assert.equal(unauthDetailRes.status, 401);
+    const unauthAssistRes = await harness.routes.acquisitionAssist.POST(
+      new Request('https://baratrust.test/api/internal/acquisition/00000000-0000-0000-0000-000000000000/assist', {
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ prospectId: '00000000-0000-0000-0000-000000000000' }) }
+    );
+    assert.equal(unauthAssistRes.status, 401);
 
-    // 2. Non-operator authenticated Clerk user -> 403
+    // 2. Non-operator authenticated Clerk user -> 403 across all internal acquisition endpoints
     harness.setClerkUser({
       id: 'user_random_visitor',
       primaryEmailAddress: {
@@ -38,6 +62,18 @@ test('Acquisition Engine V1 — Operator Auth & Verified Clerk Identity Enforcem
     });
     const nonOpRes = await harness.routes.acquisition.GET();
     assert.equal(nonOpRes.status, 403);
+    const nonOpDetailRes = await harness.routes.acquisitionDetail.GET(
+      new Request('https://baratrust.test/api/internal/acquisition/00000000-0000-0000-0000-000000000000'),
+      { params: Promise.resolve({ prospectId: '00000000-0000-0000-0000-000000000000' }) }
+    );
+    assert.equal(nonOpDetailRes.status, 403);
+    const nonOpAssistRes = await harness.routes.acquisitionAssist.POST(
+      new Request('https://baratrust.test/api/internal/acquisition/00000000-0000-0000-0000-000000000000/assist', {
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ prospectId: '00000000-0000-0000-0000-000000000000' }) }
+    );
+    assert.equal(nonOpAssistRes.status, 403);
 
     // 3. Unverified email claim for Todd -> MUST be rejected (403)
     harness.setClerkUser({
@@ -187,6 +223,72 @@ test('Acquisition Engine V1 — Public Analytics PII Blocking & Rate Limiting', 
       }
     }
     assert.equal(hit429, true);
+
+    // Vercel cold-start / multi-instance simulation: clear in-memory L1 store and confirm DB still enforces 429!
+    resetRateLimitStoreForTests();
+    const postColdStartRes = await harness.routes.conversionEvent.POST(
+      new Request('https://baratrust.test/api/conversion-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-forwarded-for': '203.0.113.99',
+        },
+        body: JSON.stringify({
+          eventName: 'sample_pulse_viewed',
+          surface: 'pulse_section',
+        }),
+      })
+    );
+    assert.equal(postColdStartRes.status, 429, 'Shared DB rate limit must persist across serverless cold starts');
+
+    // Vercel header spoofing checks:
+    // (a) x-vercel-forwarded-for overrides spoofed x-forwarded-for
+    const spoofedXffWithVercelHeader = await harness.routes.conversionEvent.POST(
+      new Request('https://baratrust.test/api/conversion-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '203.0.113.99',
+          'x-forwarded-for': '192.0.2.123',
+        },
+        body: JSON.stringify({
+          eventName: 'sample_pulse_viewed',
+          surface: 'pulse_section',
+        }),
+      })
+    );
+    assert.equal(spoofedXffWithVercelHeader.status, 429);
+
+    // (b) Prepending rotating fake IPs to x-forwarded-for cannot bypass rightmost proxy hop
+    const prependedFakeHopRes = await harness.routes.conversionEvent.POST(
+      new Request('https://baratrust.test/api/conversion-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-forwarded-for': '198.51.100.250, 203.0.113.99',
+        },
+        body: JSON.stringify({
+          eventName: 'sample_pulse_viewed',
+          surface: 'pulse_section',
+        }),
+      })
+    );
+    assert.equal(prependedFakeHopRes.status, 429);
+
+    // Inspect raw DB tables: zero raw IP addresses in public_rate_limits, zero PII in public_conversion_events
+    const rateRows = harness.rawQuery('SELECT * FROM "public_rate_limits"');
+    assert.ok(rateRows.length >= 2);
+    const rateSerialized = JSON.stringify(rateRows);
+    assert.equal(rateSerialized.includes('203.0.113'), false, 'Raw visitor IPs must never be stored in DB');
+    for (const row of rateRows) {
+      assert.match(String(row.bucket_key), /^[0-9a-f]{64}$/);
+    }
+
+    const eventRows = harness.rawQuery('SELECT * FROM "public_conversion_events"');
+    const eventSerialized = JSON.stringify(eventRows);
+    assert.equal(eventSerialized.includes('leak@shop.com'), false);
+    assert.equal(eventSerialized.includes('502-555-0100'), false);
+    assert.equal(eventSerialized.includes('203.0.113'), false);
   } finally {
     delete process.env.TEST_ENFORCE_RATE_LIMIT;
     resetRateLimitStoreForTests();

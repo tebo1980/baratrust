@@ -17,13 +17,14 @@ import {
   evaluateHumanReviewClaim,
 } from '@/lib/reality-check/funnel';
 import {
-  checkPublicRateLimit,
+  enforcePublicRateLimit,
   createFollowUpClaimToken,
   FOLLOWUP_CLAIM_COOKIE_NAME,
   getClientIpKey,
   isHoneypotTriggered,
   sanitizePlainText,
 } from '@/lib/security/public-guard';
+import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
 
 /**
  * Opportunistically prunes expired base64 screenshots from older anonymous/published rows
@@ -180,8 +181,10 @@ function formatPublicFinding(
  */
 export async function GET(req: Request) {
   try {
+    await ensureAcquisitionSchema();
     const ipKey = getClientIpKey(req);
-    const rate = checkPublicRateLimit({
+    const rate = await enforcePublicRateLimit({
+      db,
       scope: 'reality_check_get',
       ipKey,
       maxRequests: 30,
@@ -354,8 +357,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    await ensureAcquisitionSchema();
     const ipKey = getClientIpKey(req);
-    const rate = checkPublicRateLimit({
+    const rate = await enforcePublicRateLimit({
+      db,
       scope: 'reality_check_scan',
       ipKey,
       maxRequests: 10,
@@ -571,8 +576,10 @@ export async function POST(req: Request) {
  */
 export async function PATCH(req: Request) {
   try {
+    await ensureAcquisitionSchema();
     const ipKey = getClientIpKey(req);
-    const rate = checkPublicRateLimit({
+    const rate = await enforcePublicRateLimit({
+      db,
       scope: 'reality_check_followup',
       ipKey,
       maxRequests: 10,
@@ -758,6 +765,10 @@ async function sendOperatorNotification(info: {
   scanStatus: string;
   shareToken: string;
 }) {
+  if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV === 'true') {
+    return;
+  }
+
   const subject = `[Discuss Results / Reality Check] ${info.businessName} (${info.cityState}) — Score: ${info.overallScore !== null ? info.overallScore : 'Pending Review'}`;
   const message = [
     `New Reality Check follow-up ("Discuss My Results") requested:`,

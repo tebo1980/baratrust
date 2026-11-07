@@ -112,7 +112,7 @@ export function evaluateClerkOperatorIdentity(user: ClerkLikeUser | null | undef
     verifiedEmails[0] ||
     user.primaryEmailAddress?.emailAddress?.trim().toLowerCase() ||
     allEmails[0]?.emailAddress?.trim().toLowerCase() ||
-    '';
+    user.id;
 
   const name =
     [user.firstName, user.lastName].filter(Boolean).join(' ').trim() ||

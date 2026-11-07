@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS "acquisition_contact_logs" (
 
 CREATE INDEX IF NOT EXISTS "idx_acq_logs_prospect_id" ON "acquisition_contact_logs" ("prospect_id", "created_at" DESC);
 
--- Strictly non-PII public website conversion telemetry (never stores email, name, phone, or submitted URL)
+-- Strictly non-PII public website conversion telemetry (never stores email, name, phone, IP, or submitted URL)
 CREATE TABLE IF NOT EXISTS "public_conversion_events" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
   "event_name" text NOT NULL,
@@ -73,3 +73,13 @@ CREATE TABLE IF NOT EXISTS "public_conversion_events" (
 );
 
 CREATE INDEX IF NOT EXISTS "idx_pub_conv_events_name" ON "public_conversion_events" ("event_name", "created_at" DESC);
+
+-- Shared serverless-safe rate limit counters (stores HMAC-SHA256 bucket digests only — never raw visitor IPs)
+CREATE TABLE IF NOT EXISTS "public_rate_limits" (
+  "bucket_key" text PRIMARY KEY NOT NULL,
+  "scope" text NOT NULL,
+  "expires_at" timestamptz NOT NULL,
+  "hit_count" integer NOT NULL DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS "idx_pub_rate_limits_expires" ON "public_rate_limits" ("expires_at");

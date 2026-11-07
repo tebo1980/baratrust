@@ -38,6 +38,7 @@ export async function createAcquisitionTestHarness() {
     schema.acquisitionProspects,
     schema.acquisitionContactLogs,
     schema.publicConversionEvents,
+    schema.publicRateLimits,
   ];
 
   for (const table of tables) {
@@ -47,9 +48,9 @@ export async function createAcquisitionTestHarness() {
         return `"${col.name}" INTEGER PRIMARY KEY AUTOINCREMENT`;
       }
       if (sqlType === 'integer' || sqlType === 'boolean') {
-        return `"${col.name}" INTEGER`;
+        return col.primary ? `"${col.name}" INTEGER PRIMARY KEY` : `"${col.name}" INTEGER`;
       }
-      return `"${col.name}" TEXT`;
+      return col.primary ? `"${col.name}" TEXT PRIMARY KEY` : `"${col.name}" TEXT`;
     });
     storage.exec(`CREATE TABLE "${getTableName(table)}" (${cols.join(', ')})`);
   }
@@ -60,7 +61,7 @@ export async function createAcquisitionTestHarness() {
     let sql = query.replace(/\$\d+/g, '?');
     const headerMatch = /^insert into "([^"]+)" \(([^)]+)\) values /i.exec(sql);
 
-    if (headerMatch) {
+    if (headerMatch && /\bdefault\b/i.test(sql)) {
       const tableName = headerMatch[1];
       const table = tables.find((t) => getTableName(t) === tableName);
       if (table) {
@@ -266,6 +267,7 @@ export async function createAcquisitionTestHarness() {
 
   return {
     db,
+    rawQuery: (sqlQuery: string) => storage.prepare(sqlQuery).all(),
     close: () => storage.close(),
     setClerkUser: (user: ClerkLikeUser | null) => {
       currentClerkUser = user;

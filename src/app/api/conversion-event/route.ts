@@ -3,7 +3,7 @@ import { db } from '@/db';
 import { publicConversionEvents } from '@/db/schema';
 import { PublicAnalyticsEventSchema } from '@/lib/analytics';
 import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
-import { checkPublicRateLimit, getClientIpKey } from '@/lib/security/public-guard';
+import { enforcePublicRateLimit, getClientIpKey } from '@/lib/security/public-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +14,10 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(req: Request) {
   try {
+    await ensureAcquisitionSchema();
     const ipKey = getClientIpKey(req);
-    const rate = checkPublicRateLimit({
+    const rate = await enforcePublicRateLimit({
+      db,
       scope: 'conversion_event',
       ipKey,
       maxRequests: 40,
@@ -43,7 +45,6 @@ export async function POST(req: Request) {
       );
     }
 
-    await ensureAcquisitionSchema();
     await db.insert(publicConversionEvents).values({
       eventName: parsed.data.eventName,
       surface: parsed.data.surface,

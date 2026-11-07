@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, ownerResponses, OwnerQuestionnaireAnswers } from '@/db/schema';
 import {
-  checkPublicRateLimit,
+  enforcePublicRateLimit,
   FOLLOWUP_CLAIM_COOKIE_NAME,
   getClientIpKey,
   isHoneypotTriggered,
@@ -12,6 +12,7 @@ import {
   sanitizePlainText,
   verifyFollowUpClaimToken,
 } from '@/lib/security/public-guard';
+import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,8 +41,10 @@ const QuestionnaireSubmissionSchema = z.object({
 
 export async function GET(req: Request) {
   try {
+    await ensureAcquisitionSchema();
     const ipKey = getClientIpKey(req);
-    const rate = checkPublicRateLimit({
+    const rate = await enforcePublicRateLimit({
+      db,
       scope: 'questionnaire_get',
       ipKey,
       maxRequests: 25,
@@ -110,8 +113,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    await ensureAcquisitionSchema();
     const ipKey = getClientIpKey(req);
-    const rate = checkPublicRateLimit({
+    const rate = await enforcePublicRateLimit({
+      db,
       scope: 'questionnaire_post',
       ipKey,
       maxRequests: 10,

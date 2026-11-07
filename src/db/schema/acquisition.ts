@@ -135,3 +135,10 @@ export const publicConversionEvents = pgTable('public_conversion_events', {
   surface: text('surface').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const publicRateLimits = pgTable('public_rate_limits', {
+  bucketKey: text('bucket_key').primaryKey().notNull(),
+  scope: text('scope').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  hitCount: integer('hit_count').notNull().default(1),
+});

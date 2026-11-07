@@ -8,11 +8,11 @@ import {
   FOLLOWUP_CLAIM_COOKIE_NAME,
   getClientIpKey,
   isHoneypotTriggered,
+  readBoundedJsonBody,
   readCookieFromHeader,
   sanitizePlainText,
   verifyFollowUpClaimToken,
 } from '@/lib/security/public-guard';
-import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +41,13 @@ const QuestionnaireSubmissionSchema = z.object({
 
 export async function GET(req: Request) {
   try {
-    await ensureAcquisitionSchema();
+    const { searchParams } = new URL(req.url);
+    const shareToken = searchParams.get('shareToken')?.trim();
+
+    if (!shareToken || shareToken.length < 16 || shareToken.length > 128) {
+      return NextResponse.json({ error: 'Valid share token is required' }, { status: 400 });
+    }
+
     const ipKey = getClientIpKey(req);
     const rate = await enforcePublicRateLimit({
       db,
@@ -51,17 +57,14 @@ export async function GET(req: Request) {
       windowMs: 10 * 60 * 1000,
     });
     if (!rate.allowed) {
+      const errorMsg =
+        rate.statusCode === 503
+          ? 'Service temporarily unavailable.'
+          : 'Too many requests.';
       return NextResponse.json(
-        { error: 'Too many requests.' },
-        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+        { error: errorMsg },
+        { status: rate.statusCode, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
       );
-    }
-
-    const { searchParams } = new URL(req.url);
-    const shareToken = searchParams.get('shareToken')?.trim();
-
-    if (!shareToken || shareToken.length < 16) {
-      return NextResponse.json({ error: 'Valid share token is required' }, { status: 400 });
     }
 
     const [check] = await db
@@ -107,34 +110,20 @@ export async function GET(req: Request) {
     });
   } catch (err: any) {
     console.error('[QUESTIONNAIRE_GET_ERROR]', err);
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable.' },
+      { status: 503, headers: { 'Retry-After': '30' } }
+    );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    await ensureAcquisitionSchema();
-    const ipKey = getClientIpKey(req);
-    const rate = await enforcePublicRateLimit({
-      db,
-      scope: 'questionnaire_post',
-      ipKey,
-      maxRequests: 10,
-      windowMs: 10 * 60 * 1000,
-    });
-    if (!rate.allowed) {
-      return NextResponse.json(
-        { error: 'Too many submissions. Please wait a few minutes.' },
-        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
-      );
+    const parsedBody = await readBoundedJsonBody(req, 49_152);
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
     }
-
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
-    }
+    const body = parsedBody.body as Record<string, unknown> | null;
 
     if (isHoneypotTriggered(body?.websiteConfirm)) {
       return NextResponse.json({ success: true, ignored: true });
@@ -144,6 +133,25 @@ export async function POST(req: Request) {
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message || 'Validation failed';
       return NextResponse.json({ error: firstError }, { status: 400 });
+    }
+
+    const ipKey = getClientIpKey(req);
+    const rate = await enforcePublicRateLimit({
+      db,
+      scope: 'questionnaire_post',
+      ipKey,
+      maxRequests: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      const errorMsg =
+        rate.statusCode === 503
+          ? 'Questionnaire submission is temporarily unavailable. Please try again shortly.'
+          : 'Too many submissions. Please wait a few minutes.';
+      return NextResponse.json(
+        { error: errorMsg },
+        { status: rate.statusCode, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
     }
 
     const data = validation.data;
@@ -251,6 +259,9 @@ export async function POST(req: Request) {
     });
   } catch (err: any) {
     console.error('[QUESTIONNAIRE_POST_ERROR]', err);
-    return NextResponse.json({ error: err.message || 'Failed to submit questionnaire' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Service temporarily unavailable. Please try again shortly.' },
+      { status: 503, headers: { 'Retry-After': '30' } }
+    );
   }
 }

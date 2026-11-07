@@ -56,8 +56,17 @@ export async function createAcquisitionTestHarness() {
   }
 
   const dialect = new PgDialect();
+  let dbFailureMode: 'none' | 'rate_limit_only' | 'all' = 'none';
+  let scanExecutionCount = 0;
 
   const db = drizzle(async (query, rawParams) => {
+    if (dbFailureMode === 'all') {
+      throw new Error('SIMULATED_NEON_OUTAGE_SECRET_HOST_DETAIL');
+    }
+    if (dbFailureMode === 'rate_limit_only' && /public_rate_limits/i.test(query)) {
+      throw new Error('SIMULATED_RATE_LIMIT_TABLE_FAILURE_SECRET_DETAIL');
+    }
+
     let sql = query.replace(/\$\d+/g, '?');
     const headerMatch = /^insert into "([^"]+)" \(([^)]+)\) values /i.exec(sql);
 
@@ -176,7 +185,9 @@ export async function createAcquisitionTestHarness() {
     },
     '@/lib/scanner': {
       ...realScanner,
-      executeDeterministicScan: async (input: { websiteUrl: string; businessName?: string | null; cityState?: string | null }) => ({
+      executeDeterministicScan: async (input: { websiteUrl: string; businessName?: string | null; cityState?: string | null }) => {
+        scanExecutionCount += 1;
+        return {
         scanStatus: 'completed' as const,
         scanFailureReason: null,
         overallScore: 78,
@@ -236,7 +247,8 @@ export async function createAcquisitionTestHarness() {
             supportingDetail: 'Phone number appears as plain text without a tap-to-call link on mobile.',
           },
         ],
-      }),
+        };
+      },
     },
   };
 
@@ -268,6 +280,10 @@ export async function createAcquisitionTestHarness() {
   return {
     db,
     rawQuery: (sqlQuery: string) => storage.prepare(sqlQuery).all(),
+    setDbFailureMode: (mode: 'none' | 'rate_limit_only' | 'all') => {
+      dbFailureMode = mode;
+    },
+    getScanExecutionCount: () => scanExecutionCount,
     close: () => storage.close(),
     setClerkUser: (user: ClerkLikeUser | null) => {
       currentClerkUser = user;

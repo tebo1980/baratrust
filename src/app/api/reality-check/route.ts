@@ -22,9 +22,9 @@ import {
   FOLLOWUP_CLAIM_COOKIE_NAME,
   getClientIpKey,
   isHoneypotTriggered,
+  readBoundedJsonBody,
   sanitizePlainText,
 } from '@/lib/security/public-guard';
-import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
 
 /**
  * Opportunistically prunes expired base64 screenshots from older anonymous/published rows
@@ -181,7 +181,13 @@ function formatPublicFinding(
  */
 export async function GET(req: Request) {
   try {
-    await ensureAcquisitionSchema();
+    const { searchParams } = new URL(req.url);
+    const shareToken = searchParams.get('shareToken')?.trim();
+
+    if (!shareToken || shareToken.length < 16 || shareToken.length > 128) {
+      return NextResponse.json({ error: 'Valid share token is required' }, { status: 400 });
+    }
+
     const ipKey = getClientIpKey(req);
     const rate = await enforcePublicRateLimit({
       db,
@@ -191,17 +197,14 @@ export async function GET(req: Request) {
       windowMs: 10 * 60 * 1000,
     });
     if (!rate.allowed) {
+      const errorMsg =
+        rate.statusCode === 503
+          ? 'Service temporarily unavailable. Please try again shortly.'
+          : 'Too many requests. Please try again shortly.';
       return NextResponse.json(
-        { error: 'Too many requests. Please try again shortly.' },
-        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+        { error: errorMsg },
+        { status: rate.statusCode, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
       );
-    }
-
-    const { searchParams } = new URL(req.url);
-    const shareToken = searchParams.get('shareToken')?.trim();
-
-    if (!shareToken || shareToken.length < 16) {
-      return NextResponse.json({ error: 'Valid share token is required' }, { status: 400 });
     }
 
     const [check] = await db
@@ -349,36 +352,19 @@ export async function GET(req: Request) {
   } catch (err: any) {
     console.error('[REALITY CHECK GET ERROR]', err);
     return NextResponse.json(
-      { error: err.message || 'Failed to load Reality Check snapshot.' },
-      { status: 500 }
+      { error: 'Service temporarily unavailable. Please try again shortly.' },
+      { status: 503, headers: { 'Retry-After': '30' } }
     );
   }
 }
 
 export async function POST(req: Request) {
   try {
-    await ensureAcquisitionSchema();
-    const ipKey = getClientIpKey(req);
-    const rate = await enforcePublicRateLimit({
-      db,
-      scope: 'reality_check_scan',
-      ipKey,
-      maxRequests: 10,
-      windowMs: 10 * 60 * 1000,
-    });
-    if (!rate.allowed) {
-      return NextResponse.json(
-        { error: 'Too many scan requests from this connection. Please wait a few minutes and try again.' },
-        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
-      );
+    const parsedBody = await readBoundedJsonBody(req, 32_768);
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
     }
-
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
-    }
+    const body = parsedBody.body as Record<string, unknown> | null;
 
     if (isHoneypotTriggered(body?.websiteConfirm)) {
       return NextResponse.json({ error: 'Unable to process request.' }, { status: 400 });
@@ -388,6 +374,25 @@ export async function POST(req: Request) {
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message || 'Validation failed';
       return NextResponse.json({ error: firstError, details: validation.error.format() }, { status: 400 });
+    }
+
+    const ipKey = getClientIpKey(req);
+    const rate = await enforcePublicRateLimit({
+      db,
+      scope: 'reality_check_scan',
+      ipKey,
+      maxRequests: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      const errorMsg =
+        rate.statusCode === 503
+          ? 'Scanner service is temporarily unavailable. Please try again shortly.'
+          : 'Too many scan requests from this connection. Please wait a few minutes and try again.';
+      return NextResponse.json(
+        { error: errorMsg },
+        { status: rate.statusCode, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
     }
 
     const data = validation.data;
@@ -561,8 +566,8 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error('[REALITY CHECK SUBMISSION ERROR]', err);
     return NextResponse.json(
-      { error: err.message || 'An error occurred during submission.' },
-      { status: 500 }
+      { error: 'Service temporarily unavailable. Please try again shortly.' },
+      { status: 503, headers: { 'Retry-After': '30' } }
     );
   }
 }
@@ -572,34 +577,17 @@ export async function POST(req: Request) {
  * Step 3 ("Discuss My Results"): Attaches the visitor's email (and optional phone, preferred contact method,
  * note, businessName, ownerName, cityState) to the existing Reality Check record identified by its
  * unguessable shareToken, sets a signed HttpOnly claim cookie, and notifies Todd & Noelah.
- * Safe against double-clicks, retries, honeypot spam, rate abuse, and unauthorized overwrites.
+ * Safe against double-clicks, retries, honeypot spam, rate abuse, DB/rate-limit outages (fail-closed), and unauthorized overwrites.
  */
 export async function PATCH(req: Request) {
   try {
-    await ensureAcquisitionSchema();
-    const ipKey = getClientIpKey(req);
-    const rate = await enforcePublicRateLimit({
-      db,
-      scope: 'reality_check_followup',
-      ipKey,
-      maxRequests: 10,
-      windowMs: 10 * 60 * 1000,
-    });
-    if (!rate.allowed) {
-      return NextResponse.json(
-        { error: 'Too many follow-up requests. Please wait a few minutes and try again.' },
-        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
-      );
+    const parsedBody = await readBoundedJsonBody(req, 32_768);
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
     }
+    const body = parsedBody.body as Record<string, unknown> | null;
 
-    let body;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
-    }
-
-    // Silent honeypot trap: reject bots without mutating records or spamming operators
+    // Silent honeypot trap: reject bots before touching the database or notifying operators
     if (isHoneypotTriggered(body?.websiteConfirm)) {
       return NextResponse.json({
         success: true,
@@ -612,6 +600,25 @@ export async function PATCH(req: Request) {
     if (!validation.success) {
       const firstError = validation.error.issues[0]?.message || 'Validation failed';
       return NextResponse.json({ error: firstError, details: validation.error.format() }, { status: 400 });
+    }
+
+    const ipKey = getClientIpKey(req);
+    const rate = await enforcePublicRateLimit({
+      db,
+      scope: 'reality_check_followup',
+      ipKey,
+      maxRequests: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      const errorMsg =
+        rate.statusCode === 503
+          ? 'Follow-up submission is temporarily unavailable. Please try again shortly.'
+          : 'Too many follow-up requests. Please wait a few minutes and try again.';
+      return NextResponse.json(
+        { error: errorMsg },
+        { status: rate.statusCode, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
     }
 
     const data = validation.data;
@@ -743,8 +750,8 @@ export async function PATCH(req: Request) {
   } catch (err: any) {
     console.error('[REALITY CHECK PATCH ERROR]', err);
     return NextResponse.json(
-      { error: err.message || 'Failed to save follow-up request.' },
-      { status: 500 }
+      { error: 'Service temporarily unavailable. Please try again shortly.' },
+      { status: 503, headers: { 'Retry-After': '30' } }
     );
   }
 }

@@ -44,6 +44,47 @@ export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   retryAfterSeconds: number;
+  statusCode: 200 | 429 | 503;
+  failureReason?: 'quota_exceeded' | 'store_unavailable';
+}
+
+export type BoundedJsonResult =
+  | { ok: true; body: unknown }
+  | { ok: false; status: 400 | 413; error: string };
+
+/**
+ * Reads and parses a JSON request body with a strict byte-length cap before any database call.
+ * Prevents oversized payload abuse even when downstream services or databases are degraded.
+ */
+export async function readBoundedJsonBody(
+  req: Request,
+  maxBytes = 32_768
+): Promise<BoundedJsonResult> {
+  const declaredLength = req.headers.get('content-length');
+  if (declaredLength) {
+    const parsedLen = Number(declaredLength);
+    if (Number.isFinite(parsedLen) && parsedLen > maxBytes) {
+      return { ok: false, status: 413, error: 'Request payload too large.' };
+    }
+  }
+
+  let rawText: string;
+  try {
+    rawText = await req.text();
+  } catch {
+    return { ok: false, status: 400, error: 'Invalid JSON payload' };
+  }
+
+  if (Buffer.byteLength(rawText, 'utf8') > maxBytes) {
+    return { ok: false, status: 413, error: 'Request payload too large.' };
+  }
+
+  try {
+    const parsed = JSON.parse(rawText);
+    return { ok: true, body: parsed };
+  } catch {
+    return { ok: false, status: 400, error: 'Invalid JSON payload' };
+  }
 }
 
 /**
@@ -74,7 +115,7 @@ export function checkPublicRateLimit(params: {
 }): RateLimitResult {
   const isTest = process.env.NODE_ENV === 'test' || process.env.TEST_ENV === 'true';
   if (isTest && process.env.TEST_ENFORCE_RATE_LIMIT !== 'true') {
-    return { allowed: true, remaining: params.maxRequests, retryAfterSeconds: 0 };
+    return { allowed: true, remaining: params.maxRequests, retryAfterSeconds: 0, statusCode: 200 };
   }
 
   const now = params.nowMs ?? Date.now();
@@ -101,6 +142,8 @@ export function checkPublicRateLimit(params: {
       allowed: false,
       remaining: 0,
       retryAfterSeconds,
+      statusCode: 429,
+      failureReason: 'quota_exceeded',
     };
   }
 
@@ -111,15 +154,18 @@ export function checkPublicRateLimit(params: {
     allowed: true,
     remaining: Math.max(0, params.maxRequests - bucket.timestamps.length),
     retryAfterSeconds: 0,
+    statusCode: 200,
   };
 }
 
 /**
  * Vercel Serverless production-grade rate limiter:
- * 1. Short-circuits immediately via L1 memory if this Lambda instance has already seen the IP exceed quota.
+ * 1. Short-circuits immediately via L1 memory (`429`) if this Lambda instance has already seen the IP exceed quota,
+ *    preventing active single-instance floods from hammering a degraded database.
  * 2. Atomically increments a shared, HMAC-hashed `public_rate_limits` bucket in Neon Postgres so
  *    cold starts and concurrent serverless instances enforce a single global limit without storing raw IPs.
- * 3. Gracefully falls back to L1 memory if the database is temporarily unreachable.
+ * 3. Fails closed (`503`, `allowed: false`) by default if the database / rate-limit store throws an error,
+ *    ensuring public submission endpoints are never left unprotected across serverless instances.
  */
 export async function enforcePublicRateLimit(params: {
   db?: any;
@@ -128,15 +174,26 @@ export async function enforcePublicRateLimit(params: {
   maxRequests: number;
   windowMs: number;
   nowMs?: number;
+  failureMode?: 'fail-closed' | 'l1-only';
 }): Promise<RateLimitResult> {
   const isTest = process.env.NODE_ENV === 'test' || process.env.TEST_ENV === 'true';
   if (isTest && process.env.TEST_ENFORCE_RATE_LIMIT !== 'true') {
-    return { allowed: true, remaining: params.maxRequests, retryAfterSeconds: 0 };
+    return { allowed: true, remaining: params.maxRequests, retryAfterSeconds: 0, statusCode: 200 };
   }
 
   const now = params.nowMs ?? Date.now();
+  const failureMode = params.failureMode ?? 'fail-closed';
 
   if (!params.db) {
+    if (failureMode === 'fail-closed') {
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterSeconds: 30,
+        statusCode: 503,
+        failureReason: 'store_unavailable',
+      };
+    }
     return checkPublicRateLimit(params);
   }
 
@@ -181,6 +238,8 @@ export async function enforcePublicRateLimit(params: {
         allowed: false,
         remaining: 0,
         retryAfterSeconds,
+        statusCode: 429,
+        failureReason: 'quota_exceeded',
       };
     }
 
@@ -188,10 +247,20 @@ export async function enforcePublicRateLimit(params: {
       allowed: true,
       remaining: Math.max(0, params.maxRequests - hits),
       retryAfterSeconds: 0,
+      statusCode: 200,
     };
-  } catch {
-    // Graceful fallback to L1 in-memory result already recorded above
-    return l1Check;
+  } catch (err) {
+    console.error(`[RATE_LIMIT_STORE_FAILURE] scope=${params.scope}`, err);
+    if (failureMode === 'l1-only') {
+      return l1Check;
+    }
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfterSeconds: 30,
+      statusCode: 503,
+      failureReason: 'store_unavailable',
+    };
   }
 }
 

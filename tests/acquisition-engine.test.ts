@@ -845,3 +845,165 @@ test('Acquisition Engine V1 — Sample Business Pulse Illustrative Disclosures &
   );
   assert.match(fullPageHtml, /\$99\/month/i);
 });
+
+test('Acquisition Engine V1 — Fail-Closed Protection Under Rate-Limit & Database Outages', async () => {
+  resetRateLimitStoreForTests();
+  process.env.TEST_ENFORCE_RATE_LIMIT = 'true';
+  const harness = await createAcquisitionTestHarness();
+
+  try {
+    // Part A: Rate-limit table failure (`rate_limit_only`) while primary tables remain up -> MUST fail closed (503)
+    harness.setDbFailureMode('rate_limit_only');
+
+    const scanUnderRlFailure = await harness.routes.realityCheck.POST(
+      new Request('https://baratrust.test/api/reality-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.201',
+        },
+        body: JSON.stringify({ website: 'https://failclosedtest.example' }),
+      })
+    );
+    assert.equal(scanUnderRlFailure.status, 503);
+    assert.ok(scanUnderRlFailure.headers.get('retry-after'));
+    const scanErrBody = JSON.stringify(await scanUnderRlFailure.json());
+    assert.equal(scanErrBody.includes('SECRET_DETAIL'), false, 'Must never leak internal DB error strings');
+    assert.equal(harness.getScanExecutionCount(), 0, 'Scanner must NOT execute when rate-limit backing store fails');
+
+    const patchUnderRlFailure = await harness.routes.realityCheck.PATCH(
+      new Request('https://baratrust.test/api/reality-check', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.202',
+        },
+        body: JSON.stringify({
+          shareToken: '0123456789abcdef0123456789abcdef',
+          email: 'owner@failclosedtest.example',
+        }),
+      })
+    );
+    assert.equal(patchUnderRlFailure.status, 503);
+    assert.equal(patchUnderRlFailure.headers.get('set-cookie'), null);
+
+    const questUnderRlFailure = await harness.routes.questionnaire.POST(
+      new Request('https://baratrust.test/api/reality-check/questionnaire', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.203',
+        },
+        body: JSON.stringify({
+          shareToken: '0123456789abcdef0123456789abcdef',
+          biggestProblem: 'Testing fail-closed behavior',
+        }),
+      })
+    );
+    assert.equal(questUnderRlFailure.status, 503);
+
+    const convUnderRlFailure = await harness.routes.conversionEvent.POST(
+      new Request('https://baratrust.test/api/conversion-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.204',
+        },
+        body: JSON.stringify({
+          eventName: 'booking_link_clicked',
+          surface: 'hero',
+        }),
+      })
+    );
+    assert.equal(convUnderRlFailure.status, 503);
+
+    // Bursting from same IP during rate-limit DB outage still trips L1 memory 429 before touching DB
+    let sawL1429 = false;
+    for (let i = 0; i < 15; i++) {
+      const r = await harness.routes.realityCheck.POST(
+        new Request('https://baratrust.test/api/reality-check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-vercel-forwarded-for': '198.51.100.205',
+          },
+          body: JSON.stringify({ website: 'https://failclosedburst.example' }),
+        })
+      );
+      if (r.status === 429) {
+        sawL1429 = true;
+        break;
+      }
+    }
+    assert.equal(sawL1429, true, 'L1 memory guard must block floods with 429 even during DB failure');
+
+    // Part B: Complete database outage (`all`) -> stateless protections (413, 400, honeypot) still block before DB
+    harness.setDbFailureMode('all');
+
+    const oversizedRes = await harness.routes.conversionEvent.POST(
+      new Request('https://baratrust.test/api/conversion-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.206',
+        },
+        body: JSON.stringify({
+          eventName: 'booking_link_clicked',
+          surface: 'x'.repeat(6000),
+        }),
+      })
+    );
+    assert.equal(oversizedRes.status, 413);
+
+    const piiDuringOutageRes = await harness.routes.conversionEvent.POST(
+      new Request('https://baratrust.test/api/conversion-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.207',
+        },
+        body: JSON.stringify({
+          eventName: 'booking_link_clicked',
+          surface: 'hero',
+          email: 'blocked-even-when-db-down@shop.example',
+        }),
+      })
+    );
+    assert.equal(piiDuringOutageRes.status, 400);
+
+    const honeypotDuringOutageRes = await harness.routes.realityCheck.POST(
+      new Request('https://baratrust.test/api/reality-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.208',
+        },
+        body: JSON.stringify({
+          website: 'https://bot-target.example',
+          websiteConfirm: 'http://spam.example',
+        }),
+      })
+    );
+    assert.equal(honeypotDuringOutageRes.status, 400);
+
+    const validScanDuringFullOutage = await harness.routes.realityCheck.POST(
+      new Request('https://baratrust.test/api/reality-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-vercel-forwarded-for': '198.51.100.209',
+        },
+        body: JSON.stringify({ website: 'https://legit-during-outage.example' }),
+      })
+    );
+    assert.equal(validScanDuringFullOutage.status, 503);
+    const fullOutageBody = JSON.stringify(await validScanDuringFullOutage.json());
+    assert.equal(fullOutageBody.includes('SECRET_HOST_DETAIL'), false);
+    assert.equal(harness.getScanExecutionCount(), 0);
+  } finally {
+    harness.setDbFailureMode('none');
+    delete process.env.TEST_ENFORCE_RATE_LIMIT;
+    resetRateLimitStoreForTests();
+    harness.close();
+  }
+});

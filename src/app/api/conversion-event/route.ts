@@ -2,19 +2,35 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { publicConversionEvents } from '@/db/schema';
 import { PublicAnalyticsEventSchema } from '@/lib/analytics';
-import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
-import { enforcePublicRateLimit, getClientIpKey } from '@/lib/security/public-guard';
+import {
+  enforcePublicRateLimit,
+  getClientIpKey,
+  readBoundedJsonBody,
+} from '@/lib/security/public-guard';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/conversion-event
  * Records strictly non-PII public conversion events (e.g., booking link clicks, sample pulse views).
- * Rejects any payload containing extra/PII fields via `.strict()` Zod validation.
+ * Enforces bounded body size and `.strict()` Zod validation BEFORE touching the database,
+ * and fails closed (`429` / `503`) if rate limiting or the database is unavailable.
  */
 export async function POST(req: Request) {
   try {
-    await ensureAcquisitionSchema();
+    const parsedBody = await readBoundedJsonBody(req, 4096);
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status });
+    }
+
+    const parsed = PublicAnalyticsEventSchema.safeParse(parsedBody.body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid analytics event payload. Personal or unexpected fields are not permitted.' },
+        { status: 400 }
+      );
+    }
+
     const ipKey = getClientIpKey(req);
     const rate = await enforcePublicRateLimit({
       db,
@@ -24,24 +40,13 @@ export async function POST(req: Request) {
       windowMs: 10 * 60 * 1000,
     });
     if (!rate.allowed) {
+      const errorMsg =
+        rate.statusCode === 503
+          ? 'Service temporarily unavailable.'
+          : 'Too many requests.';
       return NextResponse.json(
-        { error: 'Too many requests.' },
-        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
-      );
-    }
-
-    let body: unknown;
-    try {
-      body = await req.json();
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
-    }
-
-    const parsed = PublicAnalyticsEventSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid analytics event payload. Personal or unexpected fields are not permitted.' },
-        { status: 400 }
+        { error: errorMsg },
+        { status: rate.statusCode, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
       );
     }
 
@@ -52,7 +57,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.warn('[CONVERSION_EVENT_WARNING]', err);
-    return NextResponse.json({ ok: false }, { status: 202 });
+    console.error('[CONVERSION_EVENT_ERROR]', err);
+    return NextResponse.json(
+      { ok: false, error: 'Service temporarily unavailable.' },
+      { status: 503, headers: { 'Retry-After': '30' } }
+    );
   }
 }

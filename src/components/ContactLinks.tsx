@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
+import { trackPublicConversionEvent, type PublicAnalyticsSurface } from '@/lib/analytics'
 
 export const CONTACT_PHONE_DISPLAY = '502-418-2431'
 export const CONTACT_PHONE_DIGITS = '5024182431'
 export const CONTACT_EMAIL_DISPLAY = 'todd@baratrust.com'
 export const BUSINESS_PULSE_STRIPE_URL = 'https://buy.stripe.com/8x2dR2dS8f01gm3akp5ZC1Q'
+export const BOOKING_CALENDLY_URL = 'https://calendly.com/tebo1980/baratrust-consultation'
 
 const GMAIL_TARGET = 'tebo1980@gmail.com'
 const GMAIL_COMPOSE_URL = `https://mail.google.com/mail/?view=cm&to=${GMAIL_TARGET}`
@@ -19,6 +21,46 @@ type LinkProps = {
   className?: string
   style?: CSSProperties
   children?: ReactNode
+}
+
+export function BookingLink({
+  surface,
+  className,
+  style,
+  children,
+}: LinkProps & { surface: PublicAnalyticsSurface }) {
+  return (
+    <a
+      href={BOOKING_CALENDLY_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+      style={style}
+      onClick={() => trackPublicConversionEvent('booking_link_clicked', surface)}
+    >
+      {children ?? 'Book an Intro Conversation'}
+    </a>
+  )
+}
+
+export function PulseCheckoutLink({
+  surface,
+  className,
+  style,
+  children,
+}: LinkProps & { surface: PublicAnalyticsSurface }) {
+  return (
+    <a
+      href={BUSINESS_PULSE_STRIPE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+      style={style}
+      onClick={() => trackPublicConversionEvent('pulse_checkout_clicked', surface)}
+    >
+      {children ?? 'Start Business Pulse — $99/month'}
+    </a>
+  )
 }
 
 export function EmailLink({ className, style, children }: LinkProps) {
@@ -37,7 +79,9 @@ export function EmailLink({ className, style, children }: LinkProps) {
 
 function ContactModal({ message, onClose }: { message: string; onClose: () => void }) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     window.addEventListener('keydown', onKey)
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { sanitizePlainText } from '@/lib/security/public-guard';
 
 /**
  * Step 1: URL-first submission (also supports full or partial fields for backwards compatibility).
@@ -24,11 +25,17 @@ export const RealityCheckSubmissionSchema = z.object({
   phone: z.string().trim().max(50).optional().nullable(),
   businessType: z.string().trim().max(100).optional().nullable(),
   primaryHeadache: z.string().trim().max(2000).optional().nullable(),
+  // Hidden honeypot field — never filled by human visitors
+  websiteConfirm: z.string().max(200).optional().nullable(),
 });
 
+export const PreferredFollowUpMethodEnum = z.enum(['EMAIL', 'PHONE', 'INTRO_CALL']);
+export type PreferredFollowUpMethod = z.infer<typeof PreferredFollowUpMethodEnum>;
+
 /**
- * Step 3: Attach email (and optional businessName / ownerName / cityState) to an existing Reality Check
- * via its unguessable shareToken, transitioning it into the human-review queue.
+ * Step 3 ("Discuss My Results" / Follow-Up): Attach email (and optional contact preference,
+ * phone, note, businessName, ownerName, cityState) to an existing Reality Check via its
+ * unguessable shareToken, transitioning it into the operator follow-up / review queue.
  */
 export const RequestHumanReviewSchema = z.object({
   shareToken: z.string().trim().min(16, 'Valid scan token is required').max(128),
@@ -36,6 +43,11 @@ export const RequestHumanReviewSchema = z.object({
   businessName: z.string().trim().max(200).optional().nullable(),
   ownerName: z.string().trim().max(100).optional().nullable(),
   cityState: z.string().trim().max(100).optional().nullable(),
+  phone: z.string().trim().max(50).optional().nullable(),
+  preferredContactMethod: PreferredFollowUpMethodEnum.optional().nullable(),
+  followUpNote: z.string().trim().max(1500).optional().nullable(),
+  // Hidden honeypot field — never filled by human visitors
+  websiteConfirm: z.string().max(200).optional().nullable(),
 });
 
 const PRESERVED_ADVANCED_STATUSES = new Set([
@@ -45,9 +57,15 @@ const PRESERVED_ADVANCED_STATUSES = new Set([
   'completed',
 ]);
 
+const IMMUTABLE_FOLLOWUP_STATUSES = new Set([
+  'PUBLISHED',
+  'completed',
+  'archived',
+]);
+
 /**
  * Anonymous URL-only scans remain in 'AUTO_SCAN_COMPLETE' so they do not clutter
- * Todd & Noelah's active human-review queue until an email is provided.
+ * Todd & Noelah's active human-review queue until follow-up is requested.
  */
 export function resolveInitialRealityCheckStatus(
   email?: string | null
@@ -81,11 +99,39 @@ export function isActiveHumanReviewQueueItem(check: {
   );
 }
 
+export function formatDiscussResultsContext(params: {
+  preferredContactMethod?: PreferredFollowUpMethod | null;
+  followUpNote?: string | null;
+}): string | null {
+  const cleanNote = sanitizePlainText(params.followUpNote, { maxLength: 1400, multiline: true });
+  const methodLabel =
+    params.preferredContactMethod === 'PHONE'
+      ? 'Preferred: Phone call'
+      : params.preferredContactMethod === 'INTRO_CALL'
+      ? 'Preferred: 15-min intro call'
+      : params.preferredContactMethod === 'EMAIL'
+      ? 'Preferred: Email'
+      : null;
+
+  if (methodLabel && cleanNote) {
+    return `[${methodLabel}] ${cleanNote}`;
+  }
+  if (cleanNote) {
+    return cleanNote;
+  }
+  if (methodLabel) {
+    return `[${methodLabel}] Requested follow-up to discuss Reality Check results.`;
+  }
+  return null;
+}
+
 export interface ExistingClaimState {
   email: string | null;
   businessName: string | null;
   ownerName: string | null;
   cityState: string | null;
+  phone?: string | null;
+  primaryHeadache?: string | null;
   status: string;
 }
 
@@ -94,12 +140,15 @@ export interface IncomingClaimInput {
   businessName?: string | null;
   ownerName?: string | null;
   cityState?: string | null;
+  phone?: string | null;
+  preferredContactMethod?: PreferredFollowUpMethod | null;
+  followUpNote?: string | null;
 }
 
 export type HumanReviewClaimEvaluation =
   | {
       allowed: false;
-      reason: 'EMAIL_CLAIM_CONFLICT';
+      reason: 'EMAIL_CLAIM_CONFLICT' | 'RECORD_LOCKED';
       httpStatus: 409;
       error: string;
     }
@@ -110,11 +159,14 @@ export type HumanReviewClaimEvaluation =
       businessName: string | null;
       ownerName: string | null;
       cityState: string | null;
+      phone: string | null;
+      primaryHeadache: string | null;
       nextStatus: string;
     };
 
 /**
- * Enforces human-review email claim integrity:
+ * Enforces human-review / "Discuss My Results" claim integrity:
+ * - Published or archived Reality Checks are immutable and reject follow-up mutations (409 RECORD_LOCKED).
  * - First valid email claims the anonymous URL scan and transitions it to 'NEEDS_HUMAN_REVIEW'.
  * - Retries using the same normalized email are safely idempotent and may backfill still-null
  *   optional fields without overwriting already-established owner/business identity fields.
@@ -125,6 +177,16 @@ export function evaluateHumanReviewClaim(
   existing: ExistingClaimState,
   incoming: IncomingClaimInput
 ): HumanReviewClaimEvaluation {
+  if (IMMUTABLE_FOLLOWUP_STATUSES.has(existing.status)) {
+    return {
+      allowed: false,
+      reason: 'RECORD_LOCKED',
+      httpStatus: 409,
+      error:
+        'This Reality Check record has already been finalized and cannot be modified. Please run a new scan or contact Todd & Noelah directly.',
+    };
+  }
+
   const cleanIncomingEmail = incoming.email.toLowerCase().trim();
   const existingEmail =
     existing.email && existing.email.trim().length > 0
@@ -137,22 +199,18 @@ export function evaluateHumanReviewClaim(
       reason: 'EMAIL_CLAIM_CONFLICT',
       httpStatus: 409,
       error:
-        'Human review has already been requested for this scan by another email address. Please run a new scan if you need a separate review.',
+        'Follow-up has already been requested for this scan by another email address. Please run a new scan if you need a separate review.',
     };
   }
 
-  const cleanBusinessName =
-    incoming.businessName && incoming.businessName.trim().length > 0
-      ? incoming.businessName.trim()
-      : null;
-  const cleanOwnerName =
-    incoming.ownerName && incoming.ownerName.trim().length > 0
-      ? incoming.ownerName.trim()
-      : null;
-  const cleanCityState =
-    incoming.cityState && incoming.cityState.trim().length > 0
-      ? incoming.cityState.trim()
-      : null;
+  const cleanBusinessName = sanitizePlainText(incoming.businessName, { maxLength: 200 });
+  const cleanOwnerName = sanitizePlainText(incoming.ownerName, { maxLength: 100 });
+  const cleanCityState = sanitizePlainText(incoming.cityState, { maxLength: 100 });
+  const cleanPhone = sanitizePlainText(incoming.phone, { maxLength: 50 });
+  const cleanDiscussContext = formatDiscussResultsContext({
+    preferredContactMethod: incoming.preferredContactMethod,
+    followUpNote: incoming.followUpNote,
+  });
 
   const existingBusinessName =
     existing.businessName && existing.businessName.trim().length > 0
@@ -165,6 +223,14 @@ export function evaluateHumanReviewClaim(
   const existingCityState =
     existing.cityState && existing.cityState.trim().length > 0
       ? existing.cityState.trim()
+      : null;
+  const existingPhone =
+    existing.phone && existing.phone.trim().length > 0
+      ? existing.phone.trim()
+      : null;
+  const existingHeadache =
+    existing.primaryHeadache && existing.primaryHeadache.trim().length > 0
+      ? existing.primaryHeadache.trim()
       : null;
 
   const isInitialClaim = existingEmail === null;
@@ -180,6 +246,12 @@ export function evaluateHumanReviewClaim(
   const resolvedCityState = isInitialClaim
     ? cleanCityState || existingCityState || null
     : existingCityState || cleanCityState || null;
+  const resolvedPhone = isInitialClaim
+    ? cleanPhone || existingPhone || null
+    : existingPhone || cleanPhone || null;
+  const resolvedHeadache = isInitialClaim
+    ? cleanDiscussContext || existingHeadache || null
+    : existingHeadache || cleanDiscussContext || null;
 
   return {
     allowed: true,
@@ -188,6 +260,8 @@ export function evaluateHumanReviewClaim(
     businessName: resolvedBusinessName,
     ownerName: resolvedOwnerName,
     cityState: resolvedCityState,
+    phone: resolvedPhone,
+    primaryHeadache: resolvedHeadache,
     nextStatus: resolvePatchedRealityCheckStatus(existing.status),
   };
 }

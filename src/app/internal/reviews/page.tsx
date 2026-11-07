@@ -159,6 +159,12 @@ export default async function OperatorReviewQueuePage() {
           </div>
 
           <div className="flex items-center gap-4 text-xs">
+            <Link
+              href="/internal/acquisition"
+              className="px-3 py-1.5 rounded-lg bg-[#16231c] hover:bg-[#1e3127] border border-[#2c3e33] text-[#7be0b8] font-semibold transition-colors"
+            >
+              Acquisition Engine
+            </Link>
             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#16231c] border border-[#2c3e33]">
               <span className="w-2 h-2 rounded-full bg-[#7be0b8] animate-pulse"></span>
               <span className="text-[#bac9bf]">Operator:</span>

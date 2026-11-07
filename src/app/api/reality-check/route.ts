@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, desc } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
-import { desc } from 'drizzle-orm';
 import {
   executeDeterministicScan,
   classifySubmittedUrl,
@@ -11,6 +10,20 @@ import {
   sanitizeBrowserEvidenceForPublic,
   evaluateScreenshotRetention,
 } from '@/lib/scanner';
+import {
+  RealityCheckSubmissionSchema,
+  RequestHumanReviewSchema,
+  resolveInitialRealityCheckStatus,
+  evaluateHumanReviewClaim,
+} from '@/lib/reality-check/funnel';
+import {
+  checkPublicRateLimit,
+  createFollowUpClaimToken,
+  FOLLOWUP_CLAIM_COOKIE_NAME,
+  getClientIpKey,
+  isHoneypotTriggered,
+  sanitizePlainText,
+} from '@/lib/security/public-guard';
 
 /**
  * Opportunistically prunes expired base64 screenshots from older anonymous/published rows
@@ -69,12 +82,18 @@ function sanitizePublicScoreBreakdown<T extends { browserEvidence?: any } | null
     browserEvidence: sanitizeBrowserEvidenceForPublic(scoreBreakdown.browserEvidence),
   };
 }
-import {
-  RealityCheckSubmissionSchema,
-  RequestHumanReviewSchema,
-  resolveInitialRealityCheckStatus,
-  evaluateHumanReviewClaim,
-} from '@/lib/reality-check/funnel';
+
+function attachClaimCookie(res: NextResponse, shareToken: string, email: string): NextResponse {
+  const token = createFollowUpClaimToken(shareToken, email);
+  res.cookies.set(FOLLOWUP_CLAIM_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  return res;
+}
 
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
@@ -161,6 +180,20 @@ function formatPublicFinding(
  */
 export async function GET(req: Request) {
   try {
+    const ipKey = getClientIpKey(req);
+    const rate = checkPublicRateLimit({
+      scope: 'reality_check_get',
+      ipKey,
+      maxRequests: 30,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const shareToken = searchParams.get('shareToken')?.trim();
 
@@ -321,11 +354,29 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const ipKey = getClientIpKey(req);
+    const rate = checkPublicRateLimit({
+      scope: 'reality_check_scan',
+      ipKey,
+      maxRequests: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many scan requests from this connection. Please wait a few minutes and try again.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     let body;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    if (isHoneypotTriggered(body?.websiteConfirm)) {
+      return NextResponse.json({ error: 'Unable to process request.' }, { status: 400 });
     }
 
     const validation = RealityCheckSubmissionSchema.safeParse(body);
@@ -336,13 +387,14 @@ export async function POST(req: Request) {
 
     const data = validation.data;
     const cleanEmail = data.email ? data.email.toLowerCase().trim() : null;
-    const cleanBusinessName = data.businessName ? data.businessName.trim() : null;
-    const cleanCityState = data.cityState ? data.cityState.trim() : null;
-    const cleanOwnerName = data.ownerName ? data.ownerName.trim() : null;
+    const cleanBusinessName = sanitizePlainText(data.businessName, { maxLength: 200 });
+    const cleanCityState = sanitizePlainText(data.cityState, { maxLength: 100 });
+    const cleanOwnerName = sanitizePlainText(data.ownerName, { maxLength: 100 });
+    const cleanPhone = sanitizePlainText(data.phone, { maxLength: 50 });
+    const cleanHeadache = sanitizePlainText(data.primaryHeadache, { maxLength: 2000, multiline: true });
     const shareToken = crypto.randomBytes(16).toString('hex');
 
     // 1. Create the persistent Reality Check record in Postgres
-    // Real NULLs are used for unprovided fields — never fake placeholders.
     const [record] = await db
       .insert(realityChecks)
       .values({
@@ -351,16 +403,16 @@ export async function POST(req: Request) {
         cityState: cleanCityState,
         ownerName: cleanOwnerName,
         email: cleanEmail,
-        phone: data.phone ? data.phone.trim() : null,
-        businessType: data.businessType ? data.businessType.trim() : null,
-        primaryHeadache: data.primaryHeadache ? data.primaryHeadache.trim() : null,
+        phone: cleanPhone,
+        businessType: sanitizePlainText(data.businessType, { maxLength: 100 }),
+        primaryHeadache: cleanHeadache,
         status: 'NEW',
         scanStatus: 'pending',
         shareToken,
       })
       .returning();
 
-    // 2. Execute deterministic website scan
+    // 2. Execute deterministic website scan (frozen scanner)
     let scanResult;
     try {
       scanResult = await executeDeterministicScan({
@@ -440,16 +492,16 @@ export async function POST(req: Request) {
     // 5b. Opportunistic non-blocking screenshot TTL pruning on expired older rows
     pruneExpiredScreenshotsInDb().catch(() => {});
 
-    // 6. Operator Notification (only when human review is requested with an email)
+    // 6. Operator Notification (only when human follow-up is requested with an email)
     if (cleanEmail) {
       await sendOperatorNotification({
         businessName: effectiveBusinessName || data.website.trim(),
         ownerName: cleanOwnerName || 'Not provided',
         email: cleanEmail,
-        phone: data.phone || 'None provided',
+        phone: cleanPhone || 'None provided',
         website: data.website.trim(),
         cityState: effectiveCityState || 'Not specified',
-        primaryHeadache: data.primaryHeadache || 'None noted',
+        primaryHeadache: cleanHeadache || 'None noted',
         overallScore: scanResult.overallScore,
         scanStatus: scanResult.scanStatus,
         shareToken,
@@ -466,7 +518,7 @@ export async function POST(req: Request) {
     const isHostedProfile = resolvedSourceType === 'hosted_profile' || fallbackPlatform.isHostedProfile;
     const orderedFindings = orderPublicFindings(scanResult.findings, isHostedProfile);
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       shareToken,
       website: data.website.trim(),
@@ -496,6 +548,11 @@ export async function POST(req: Request) {
       humanReviewRequested: Boolean(cleanEmail),
       message: 'Business Reality Check scan completed.',
     });
+
+    if (cleanEmail) {
+      return attachClaimCookie(res, shareToken, cleanEmail);
+    }
+    return res;
   } catch (err: any) {
     console.error('[REALITY CHECK SUBMISSION ERROR]', err);
     return NextResponse.json(
@@ -507,17 +564,41 @@ export async function POST(req: Request) {
 
 /**
  * PATCH /api/reality-check
- * Step 3: Attaches the visitor's email (and optional businessName/ownerName/cityState) to the existing
- * Reality Check record identified by its unguessable shareToken, and transitions status to NEEDS_HUMAN_REVIEW.
- * Safe against double-clicks, retries, and token tampering.
+ * Step 3 ("Discuss My Results"): Attaches the visitor's email (and optional phone, preferred contact method,
+ * note, businessName, ownerName, cityState) to the existing Reality Check record identified by its
+ * unguessable shareToken, sets a signed HttpOnly claim cookie, and notifies Todd & Noelah.
+ * Safe against double-clicks, retries, honeypot spam, rate abuse, and unauthorized overwrites.
  */
 export async function PATCH(req: Request) {
   try {
+    const ipKey = getClientIpKey(req);
+    const rate = checkPublicRateLimit({
+      scope: 'reality_check_followup',
+      ipKey,
+      maxRequests: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many follow-up requests. Please wait a few minutes and try again.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     let body;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    // Silent honeypot trap: reject bots without mutating records or spamming operators
+    if (isHoneypotTriggered(body?.websiteConfirm)) {
+      return NextResponse.json({
+        success: true,
+        ignored: true,
+        humanReviewRequested: false,
+      });
     }
 
     const validation = RequestHumanReviewSchema.safeParse(body);
@@ -553,6 +634,8 @@ export async function PATCH(req: Request) {
     let finalBusinessName = claim.businessName;
     let finalOwnerName = claim.ownerName;
     let finalCityState = claim.cityState;
+    let finalPhone = claim.phone;
+    let finalHeadache = claim.primaryHeadache;
     let finalStatus = claim.nextStatus;
 
     if (claim.isInitialClaim) {
@@ -564,6 +647,8 @@ export async function PATCH(req: Request) {
           businessName: claim.businessName,
           ownerName: claim.ownerName,
           cityState: claim.cityState,
+          phone: claim.phone,
+          primaryHeadache: claim.primaryHeadache,
           status: claim.nextStatus,
           updatedAt: new Date(),
         })
@@ -598,6 +683,8 @@ export async function PATCH(req: Request) {
         finalBusinessName = raceEval.businessName;
         finalOwnerName = raceEval.ownerName;
         finalCityState = raceEval.cityState;
+        finalPhone = raceEval.phone;
+        finalHeadache = raceEval.primaryHeadache;
         finalStatus = raceEval.nextStatus;
       }
     } else {
@@ -608,6 +695,8 @@ export async function PATCH(req: Request) {
           businessName: claim.businessName,
           ownerName: claim.ownerName,
           cityState: claim.cityState,
+          phone: claim.phone,
+          primaryHeadache: claim.primaryHeadache,
           status: claim.nextStatus,
           updatedAt: new Date(),
         })
@@ -620,10 +709,10 @@ export async function PATCH(req: Request) {
         businessName: finalBusinessName || existing.website,
         ownerName: finalOwnerName || 'Not provided',
         email: claim.email,
-        phone: existing.phone || 'None provided',
+        phone: finalPhone || 'None provided',
         website: existing.website,
         cityState: finalCityState || 'Not specified',
-        primaryHeadache: existing.primaryHeadache || 'None noted',
+        primaryHeadache: finalHeadache || 'Requested follow-up via Discuss My Results',
         overallScore: existing.overallScore,
         scanStatus: existing.scanStatus,
         shareToken: existing.shareToken,
@@ -632,7 +721,7 @@ export async function PATCH(req: Request) {
       });
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       shareToken: existing.shareToken,
       businessName: finalBusinessName,
@@ -640,19 +729,21 @@ export async function PATCH(req: Request) {
       status: finalStatus,
       humanReviewRequested: true,
       alreadyRequested: !wonInitialClaim,
-      message: 'Human review requested. Todd & Noelah will review your business and email your finished report.',
+      message: 'Follow-up request saved. Todd & Noelah have your results and will follow up personally.',
     });
+
+    return attachClaimCookie(res, existing.shareToken, claim.email);
   } catch (err: any) {
     console.error('[REALITY CHECK PATCH ERROR]', err);
     return NextResponse.json(
-      { error: err.message || 'Failed to save human review request.' },
+      { error: err.message || 'Failed to save follow-up request.' },
       { status: 500 }
     );
   }
 }
 
 /**
- * Sends notification email to Todd and Noelah about the new human-review request.
+ * Sends notification email to Todd and Noelah about the new human follow-up request.
  * Non-blocking, fails gracefully.
  */
 async function sendOperatorNotification(info: {
@@ -667,9 +758,9 @@ async function sendOperatorNotification(info: {
   scanStatus: string;
   shareToken: string;
 }) {
-  const subject = `[New Reality Check] ${info.businessName} (${info.cityState}) — Score: ${info.overallScore !== null ? info.overallScore : 'Pending Review'}`;
+  const subject = `[Discuss Results / Reality Check] ${info.businessName} (${info.cityState}) — Score: ${info.overallScore !== null ? info.overallScore : 'Pending Review'}`;
   const message = [
-    `New Business Reality Check human review requested:`,
+    `New Reality Check follow-up ("Discuss My Results") requested:`,
     ``,
     `Business: ${info.businessName}`,
     `Location: ${info.cityState}`,
@@ -679,7 +770,7 @@ async function sendOperatorNotification(info: {
     `Website: ${info.website}`,
     `Scan Status: ${info.scanStatus}`,
     `Automated Score: ${info.overallScore !== null ? `${info.overallScore} / 100` : 'Scan Deferred (Human Review Required)'}`,
-    `Primary Headache: ${info.primaryHeadache}`,
+    `Follow-Up Note / Preference: ${info.primaryHeadache}`,
     ``,
     `Internal Review Token: ${info.shareToken}`,
   ].join('\n');

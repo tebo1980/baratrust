@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
+import { BookingLink, PulseCheckoutLink } from "@/components/ContactLinks";
+import { trackPublicConversionEvent } from "@/lib/analytics";
 import { decodeHtmlEntities, classifyProfileSummaryText } from "@/lib/scanner/parser";
 import {
   partitionFunnelFindings,
   buildFunnelScoreSummary,
   resolvePublicFindingBadge,
   resolveFunnelSnapshotHeader,
+  type PreferredFollowUpMethod,
 } from "@/lib/reality-check/funnel";
 
 export interface PublicFinding {
@@ -68,32 +70,38 @@ export interface ScanSnapshot {
   questionnaireCompleted?: boolean;
 }
 
-function trackFunnelEvent(eventName: string, params?: Record<string, any>) {
-  try {
-    if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
-      (window as any).gtag("event", eventName, params || {});
-    }
-  } catch {
-    // Non-blocking analytics
-  }
-}
+const HONEYPOT_STYLE: React.CSSProperties = {
+  position: "absolute",
+  left: "-9999px",
+  width: "1px",
+  height: "1px",
+  opacity: 0,
+  pointerEvents: "none",
+};
 
 export default function RealityCheckFunnel({
   variant = "embedded",
 }: {
   variant?: "embedded" | "standalone";
 }) {
+  const analyticsSurface = variant === "standalone" ? "reality_check_page" : "intake_section";
+
   const [urlInput, setUrlInput] = useState("");
+  const [scanHoneypot, setScanHoneypot] = useState("");
   const [scanning, setScanning] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [scanError, setScanError] = useState("");
   const [snapshot, setSnapshot] = useState<ScanSnapshot | null>(null);
   const [showAllFindings, setShowAllFindings] = useState(false);
 
-  // Step 3: Email capture state
+  // Step 3: Optional "Discuss My Results" follow-up state
   const [emailInput, setEmailInput] = useState("");
   const [businessNameInput, setBusinessNameInput] = useState("");
   const [ownerNameInput, setOwnerNameInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [preferredMethod, setPreferredMethod] = useState<PreferredFollowUpMethod>("EMAIL");
+  const [followUpNote, setFollowUpNote] = useState("");
+  const [followUpHoneypot, setFollowUpHoneypot] = useState("");
   const [submittingEmail, setSubmittingEmail] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [humanReviewRequested, setHumanReviewRequested] = useState(false);
@@ -190,9 +198,7 @@ export default function RealityCheckFunnel({
     setScanError("");
     setShowAllFindings(false);
 
-    trackFunnelEvent("url_scan_started", {
-      surface: variant,
-    });
+    trackPublicConversionEvent("reality_check_started", analyticsSurface);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 18000);
@@ -206,6 +212,7 @@ export default function RealityCheckFunnel({
         },
         body: JSON.stringify({
           website: trimmedUrl,
+          websiteConfirm: scanHoneypot || undefined,
         }),
         signal: controller.signal,
       });
@@ -213,7 +220,9 @@ export default function RealityCheckFunnel({
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Could not scan that link. Please check the URL and try again.");
+        throw new Error(
+          data.error || "Could not scan that link. Please check the URL and try again."
+        );
       }
 
       const nextSnapshot: ScanSnapshot = {
@@ -243,11 +252,7 @@ export default function RealityCheckFunnel({
       setHumanReviewRequested(Boolean(data.humanReviewRequested));
       setBusinessNameInput(data.businessName ? decodeHtmlEntities(data.businessName) : "");
 
-      trackFunnelEvent("automated_scan_completed", {
-        scan_status: data.scanStatus,
-        confidence: data.confidence,
-        score_available: data.overallScore !== null,
-      });
+      trackPublicConversionEvent("reality_check_completed", analyticsSurface);
 
       // Update URL query param so refresh & back/forward preserve state without re-submitting
       try {
@@ -272,13 +277,13 @@ export default function RealityCheckFunnel({
     }
   };
 
-  const handleRequestHumanReview = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleDiscussResultsSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!snapshot || submittingEmail) return;
 
     const cleanEmail = emailInput.trim();
     if (!cleanEmail || !cleanEmail.includes("@")) {
-      setEmailError("Please enter a valid email address where we can send your finished report.");
+      setEmailError("Please enter a valid email address so we can send your snapshot link and follow up.");
       return;
     }
 
@@ -298,6 +303,10 @@ export default function RealityCheckFunnel({
           businessName: businessNameInput.trim() || snapshot.businessName || null,
           ownerName: ownerNameInput.trim() || null,
           cityState: snapshot.cityState || null,
+          phone: phoneInput.trim() || null,
+          preferredContactMethod: preferredMethod,
+          followUpNote: followUpNote.trim() || null,
+          websiteConfirm: followUpHoneypot || undefined,
         }),
       });
 
@@ -319,11 +328,10 @@ export default function RealityCheckFunnel({
           : prev
       );
 
-      trackFunnelEvent("human_review_requested", {
-        surface: variant,
-      });
+      // Strictly privacy-safe conversion signal — never passes email, phone, name, or URL
+      trackPublicConversionEvent("discuss_results_submitted", "post_scan");
     } catch (err: any) {
-      setEmailError(err.message || "Could not save your email. Please try again.");
+      setEmailError(err.message || "Could not save your follow-up request. Please try again.");
     } finally {
       setSubmittingEmail(false);
     }
@@ -337,6 +345,8 @@ export default function RealityCheckFunnel({
     setScanError("");
     setEmailError("");
     setUrlInput("");
+    setPhoneInput("");
+    setFollowUpNote("");
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("scan");
@@ -357,7 +367,7 @@ export default function RealityCheckFunnel({
     );
   }
 
-  // STEP 1: URL-FIRST ENTRY
+  // STEP 1: URL-FIRST ENTRY (NO EMAIL REQUIRED)
   if (!snapshot) {
     return (
       <form
@@ -366,6 +376,7 @@ export default function RealityCheckFunnel({
         onSubmit={handleScanSubmit}
         aria-labelledby="intake-title"
         aria-describedby="intake-note form-availability"
+        style={{ position: "relative" }}
       >
         <p className="eyebrow" style={{ marginBottom: "8px" }}>
           Free Reality Check — Instant Snapshot
@@ -374,6 +385,21 @@ export default function RealityCheckFunnel({
         <p id="intake-note" style={{ marginTop: "8px", marginBottom: "20px" }}>
           Paste your website, Google Business page, or Facebook business page for a free automated outside-looking-in snapshot.
         </p>
+
+        <div aria-hidden="true" style={HONEYPOT_STYLE}>
+          <label htmlFor="rc-website-confirm">
+            Confirm Website
+            <input
+              id="rc-website-confirm"
+              name="websiteConfirm"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={scanHoneypot}
+              onChange={(e) => setScanHoneypot(e.target.value)}
+            />
+          </label>
+        </div>
 
         <label htmlFor="rc-website-input">
           Business URL
@@ -472,7 +498,7 @@ export default function RealityCheckFunnel({
   });
 
   return (
-    <div id="reality-check-form" className="lead-form" aria-live="polite">
+    <div id="reality-check-form" className="lead-form" aria-live="polite" style={{ position: "relative" }}>
       {/* STEP 2: IMMEDIATE AUTOMATED VALUE BEFORE EMAIL */}
       <div
         style={{
@@ -534,9 +560,7 @@ export default function RealityCheckFunnel({
               gap: "8px",
             }}
           >
-            <strong style={{ fontSize: "1.08rem" }}>
-              Automated Score Withheld
-            </strong>
+            <strong style={{ fontSize: "1.08rem" }}>Automated Score Withheld</strong>
             <span
               style={{
                 fontSize: "0.78rem",
@@ -564,9 +588,7 @@ export default function RealityCheckFunnel({
               gap: "8px",
             }}
           >
-            <strong style={{ fontSize: "1.2rem" }}>
-              {scoreSummary?.headline}
-            </strong>
+            <strong style={{ fontSize: "1.2rem" }}>{scoreSummary?.headline}</strong>
             <span
               style={{
                 fontSize: "0.78rem",
@@ -726,29 +748,44 @@ export default function RealityCheckFunnel({
         )}
       </div>
 
-      {/* STEP 3: SAVE SNAPSHOT / BUSINESS PULSE NEXT STEPS */}
+      {/* STEP 3: OPTIONAL "DISCUSS MY RESULTS" HUMAN FOLLOW-UP */}
       {!humanReviewRequested ? (
         <form
-          onSubmit={handleRequestHumanReview}
+          onSubmit={handleDiscussResultsSubmit}
           style={{
             borderTop: "1px solid var(--line)",
             paddingTop: "20px",
             marginTop: "16px",
             display: "grid",
             gap: "14px",
+            position: "relative",
           }}
         >
           <div>
             <p className="eyebrow" style={{ marginBottom: "6px" }}>
-              KEEP BARATRUST WATCHING — BUSINESS PULSE ($99/MONTH)
+              OPTIONAL HUMAN FOLLOW-UP
             </p>
             <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
-              Save your snapshot or keep BaraTrust watching
+              Discuss My Results
             </h3>
             <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: 0 }}>
-              Add your email to save a private link to this snapshot and get clear next steps on{" "}
-              <strong>Business Pulse ($99/month)</strong> — where BaraTrust keeps watching your business and surrounding market across Protect, Improve, Grow, and Save.
+              Want Todd and Noelah to look over what stood out, answer a straightforward question, or send a saved link to this snapshot? Request personal follow-up below — or book a brief introductory conversation directly.
             </p>
+          </div>
+
+          <div aria-hidden="true" style={HONEYPOT_STYLE}>
+            <label htmlFor="rc-followup-confirm">
+              Confirm Website
+              <input
+                id="rc-followup-confirm"
+                name="websiteConfirm"
+                type="text"
+                tabIndex={-1}
+                autoComplete="off"
+                value={followUpHoneypot}
+                onChange={(e) => setFollowUpHoneypot(e.target.value)}
+              />
+            </label>
           </div>
 
           <div>
@@ -768,52 +805,98 @@ export default function RealityCheckFunnel({
               />
             </label>
             <p id="rc-email-privacy-note" className="form-note" style={{ marginTop: "6px" }}>
-              No spam and no obligation. We’ll only use your email to share your snapshot link and follow up clearly.
+              No mass email list and no high-pressure pitch. Used only so Todd &amp; Noelah can send your snapshot link and follow up personally.
             </p>
           </div>
 
-          {!snapshot.businessName && (
-            <label htmlFor="rc-business-name-input" style={{ marginBottom: 0 }}>
-              Business name (optional)
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+            <label htmlFor="rc-owner-name-input" style={{ marginBottom: 0 }}>
+              Your name (optional)
               <input
-                id="rc-business-name-input"
-                name="businessName"
+                id="rc-owner-name-input"
+                name="ownerName"
                 type="text"
-                autoComplete="organization"
-                placeholder="e.g., River City Plumbing"
-                value={businessNameInput}
-                onChange={(e) => setBusinessNameInput(e.target.value)}
+                autoComplete="name"
+                placeholder="First name"
+                value={ownerNameInput}
+                onChange={(e) => setOwnerNameInput(e.target.value)}
                 disabled={submittingEmail}
               />
             </label>
-          )}
 
-          <label htmlFor="rc-owner-name-input" style={{ marginBottom: 0 }}>
-            Your name (optional)
-            <input
-              id="rc-owner-name-input"
-              name="ownerName"
-              type="text"
-              autoComplete="name"
-              placeholder="First name"
-              value={ownerNameInput}
-              onChange={(e) => setOwnerNameInput(e.target.value)}
+            {!snapshot.businessName && (
+              <label htmlFor="rc-business-name-input" style={{ marginBottom: 0 }}>
+                Business name (optional)
+                <input
+                  id="rc-business-name-input"
+                  name="businessName"
+                  type="text"
+                  autoComplete="organization"
+                  placeholder="e.g., River City Plumbing"
+                  value={businessNameInput}
+                  onChange={(e) => setBusinessNameInput(e.target.value)}
+                  disabled={submittingEmail}
+                />
+              </label>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px" }}>
+            <label htmlFor="rc-preferred-method" style={{ marginBottom: 0 }}>
+              Preferred follow-up (optional)
+              <select
+                id="rc-preferred-method"
+                name="preferredContactMethod"
+                value={preferredMethod}
+                onChange={(e) => setPreferredMethod(e.target.value as PreferredFollowUpMethod)}
+                disabled={submittingEmail}
+              >
+                <option value="EMAIL">Email note &amp; saved link</option>
+                <option value="INTRO_CALL">15-minute intro call</option>
+                <option value="PHONE">Phone call</option>
+              </select>
+            </label>
+
+            <label htmlFor="rc-phone-input" style={{ marginBottom: 0 }}>
+              Phone {preferredMethod === "PHONE" ? "(recommended)" : "(optional)"}
+              <input
+                id="rc-phone-input"
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                placeholder="502-555-0199"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                disabled={submittingEmail}
+              />
+            </label>
+          </div>
+
+          <label htmlFor="rc-followup-note" style={{ marginBottom: 0 }}>
+            Anything specific you want us to look at? (optional)
+            <textarea
+              id="rc-followup-note"
+              name="followUpNote"
+              rows={2}
+              placeholder="e.g., Curious how our mobile page looks, or interested in how Business Pulse works."
+              value={followUpNote}
+              onChange={(e) => setFollowUpNote(e.target.value)}
               disabled={submittingEmail}
             />
           </label>
 
           <button className="btn primary full" type="submit" disabled={submittingEmail}>
-            {submittingEmail ? "Saving Your Snapshot..." : "Save Snapshot & See Business Pulse Next Steps"}
+            {submittingEmail ? "Sending Request..." : "Discuss My Results With Todd & Noelah"}
           </button>
 
-          <a
-            className="btn secondary full"
-            href={BUSINESS_PULSE_STRIPE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Start Business Pulse Now — $99/month
-          </a>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
+            <BookingLink surface="post_scan" className="btn secondary full">
+              Book an Intro Conversation
+            </BookingLink>
+            <PulseCheckoutLink surface="post_scan" className="btn secondary full">
+              Start Business Pulse — $99/mo
+            </PulseCheckoutLink>
+          </div>
 
           {emailError && (
             <p
@@ -826,7 +909,7 @@ export default function RealityCheckFunnel({
           )}
         </form>
       ) : (
-        /* STEP 4: OPTIONAL OWNER CONTEXT AFTER EMAIL CAPTURE */
+        /* STEP 4: CONFIRMATION & OPTIONAL OWNER CONTEXT AFTER FOLLOW-UP REQUEST */
         <div
           style={{
             borderTop: "1px solid var(--line)",
@@ -835,32 +918,37 @@ export default function RealityCheckFunnel({
           }}
         >
           <p className="eyebrow" style={{ marginBottom: "6px" }}>
-            ✓ Snapshot Saved
+            ✓ Follow-Up Requested
           </p>
           <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
-            Your Reality Check snapshot is saved.
+            Todd &amp; Noelah have your results.
           </h3>
           <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: "16px" }}>
-            Todd &amp; Noelah have your snapshot and will follow up with your saved link and straightforward next steps if you’d like BaraTrust to keep watching your business through{" "}
-            <strong>Business Pulse ($99/month)</strong>.
+            We’ve saved your Reality Check snapshot and will follow up personally with your saved link and clear answers — including whether{" "}
+            <strong>Business Pulse ($99/month)</strong> makes sense for your business.
           </p>
 
-          <div style={{ marginBottom: "16px" }}>
-            <a
-              className="btn primary full"
-              href={BUSINESS_PULSE_STRIPE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Start Business Pulse — $99/month
-            </a>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "10px",
+              marginBottom: "16px",
+            }}
+          >
+            <BookingLink surface="post_scan" className="btn secondary full">
+              Book a Time on Todd’s Calendar
+            </BookingLink>
+            <PulseCheckoutLink surface="post_scan" className="btn primary full">
+              Start Business Pulse — $99/mo
+            </PulseCheckoutLink>
           </div>
 
           {!skippedQuestionnaire && !snapshot.questionnaireCompleted ? (
             <div className="starter-note" style={{ marginTop: "14px" }}>
               <strong>Want to share what matters most to your business? (Optional)</strong>
               <span style={{ marginTop: "6px", marginBottom: "14px" }}>
-                Answer a few quick questions about where customers come from, growth opportunities you care about, or recurring expenses worth questioning so we have real context.
+                Answer a few quick questions about where customers come from, growth opportunities you care about, or recurring expenses worth questioning so we have real context before we talk.
               </span>
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                 <Link

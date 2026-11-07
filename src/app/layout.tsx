@@ -23,8 +23,8 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL('https://baratrust.com'),
   title: 'BaraTrust — Watches Your Business So You Don’t Have To',
-  description: 'You run your business. BaraTrust keeps looking around the corner — watching your business and surrounding market across Protect, Improve, Grow, and Save with Business Pulse ($99/month) and a free automated Reality Check.',
-  keywords: 'small business intelligence, Business Pulse, local business growth opportunities, vendor and supplier comparison, customer experience, business reality check, Louisville Kentucky, New Albany Indiana',
+  description: 'You run your business. BaraTrust keeps looking around the corner — watching your business and surrounding market across Protect, Improve, Grow, and Save with Business Pulse ($99/month) and a free automated Reality Check. Serving Southern Indiana and Greater Louisville.',
+  keywords: 'small business intelligence, Business Pulse, local business growth opportunities, vendor and supplier comparison, customer experience, business reality check, Southern Indiana, New Albany Indiana, Jeffersonville Indiana, Clarksville Indiana, Louisville Kentucky',
   alternates: {
     canonical: 'https://baratrust.com',
   },

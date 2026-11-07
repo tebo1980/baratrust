@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
+import { BookingLink, PulseCheckoutLink } from "@/components/ContactLinks";
 import {
   CheckCircle2,
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Send,
   RefreshCw,
   AlertCircle,
+  Lock,
 } from "lucide-react";
 import "../../../landing.css";
 
@@ -23,7 +24,18 @@ interface BusinessData {
   primaryHeadache?: string | null;
   status: string;
   humanReviewRequested?: boolean;
+  questionnaireLocked?: boolean;
+  questionnaireSubmitted?: boolean;
 }
+
+const HONEYPOT_STYLE: React.CSSProperties = {
+  position: "absolute",
+  left: "-9999px",
+  width: "1px",
+  height: "1px",
+  opacity: 0,
+  pointerEvents: "none",
+};
 
 export default function OwnerQuestionnairePage() {
   const params = useParams();
@@ -33,6 +45,9 @@ export default function OwnerQuestionnairePage() {
   const [submitting, setSubmitting] = useState(false);
   const [business, setBusiness] = useState<BusinessData | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [honeypot, setHoneypot] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   // Form state
@@ -101,20 +116,19 @@ export default function OwnerQuestionnairePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           shareToken,
+          email: confirmEmail.trim() || undefined,
+          websiteConfirm: honeypot || undefined,
           ...answers,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
+        if (res.status === 403 && data?.code === "CLAIMANT_VERIFICATION_REQUIRED") {
+          setNeedsEmailVerification(true);
+        }
         throw new Error(data.error || "Failed to save questionnaire responses.");
       }
-
-      try {
-        if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
-          (window as any).gtag("event", "questionnaire_completed");
-        }
-      } catch {}
 
       setSubmitted(true);
       window.scrollTo({ top: 100, behavior: "smooth" });
@@ -205,7 +219,7 @@ export default function OwnerQuestionnairePage() {
         {business && !business.humanReviewRequested ? (
           <div className="lead-form" style={{ textAlign: "center", padding: "36px 28px" }}>
             <h2 style={{ fontSize: "1.65rem", marginBottom: "10px" }}>
-              Save Your Snapshot With Your Email First
+              Request Follow-Up With Your Email First
             </h2>
             <p
               style={{
@@ -215,7 +229,7 @@ export default function OwnerQuestionnairePage() {
                 color: "var(--muted)",
               }}
             >
-              Before adding optional owner context, please save your email on your scan snapshot so we can connect your notes to your business link.
+              Before adding optional owner context, please save your email on your scan snapshot so we can securely connect your notes to your business link.
             </p>
             <Link
               href={`/reality-check?scan=${encodeURIComponent(shareToken)}`}
@@ -224,6 +238,46 @@ export default function OwnerQuestionnairePage() {
             >
               Return to Scan Snapshot &amp; Add Email <ArrowRight className="w-4 h-4" />
             </Link>
+          </div>
+        ) : business?.questionnaireLocked ? (
+          <div className="lead-form" style={{ textAlign: "center", padding: "36px 28px" }}>
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "999px",
+                background: "rgba(123, 224, 184, 0.12)",
+                border: "1px solid rgba(123, 224, 184, 0.3)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                color: "var(--mint)",
+              }}
+            >
+              <Lock className="w-6 h-6" />
+            </div>
+            <h2 style={{ fontSize: "1.65rem", marginBottom: "10px" }}>
+              Review Already Underway
+            </h2>
+            <p
+              style={{
+                fontSize: "0.95rem",
+                maxWidth: "540px",
+                margin: "0 auto 22px",
+                color: "var(--muted)",
+              }}
+            >
+              This Reality Check record is already in review or finalized, so online form edits are locked to protect your saved record. Feel free to email Todd directly or book a quick conversation if you want to share anything else.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px" }}>
+              <BookingLink surface="questionnaire_page" className="btn primary">
+                Book an Intro Conversation
+              </BookingLink>
+              <a href="mailto:todd@baratrust.com" className="btn secondary">
+                Email Todd Directly
+              </a>
+            </div>
           </div>
         ) : submitted ? (
           /* SUCCESS CONFIRMATION */
@@ -293,14 +347,12 @@ export default function OwnerQuestionnairePage() {
                 gap: "12px",
               }}
             >
-              <a
-                href={BUSINESS_PULSE_STRIPE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn primary"
-              >
+              <BookingLink surface="questionnaire_page" className="btn secondary">
+                Book an Intro Conversation
+              </BookingLink>
+              <PulseCheckoutLink surface="questionnaire_page" className="btn primary">
                 Start Business Pulse — $99/month
-              </a>
+              </PulseCheckoutLink>
               <Link href="/" className="btn secondary">
                 Return to BaraTrust Homepage
               </Link>
@@ -311,7 +363,26 @@ export default function OwnerQuestionnairePage() {
           </div>
         ) : (
           /* THE 8 QUESTIONS FORM */
-          <form onSubmit={handleSubmit} className="lead-form" style={{ display: "grid", gap: "22px" }}>
+          <form
+            onSubmit={handleSubmit}
+            className="lead-form"
+            style={{ display: "grid", gap: "22px", position: "relative" }}
+          >
+            <div aria-hidden="true" style={HONEYPOT_STYLE}>
+              <label htmlFor="q-website-confirm">
+                Confirm Website
+                <input
+                  id="q-website-confirm"
+                  name="websiteConfirm"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </label>
+            </div>
+
             {/* Question 1 */}
             <div>
               <label htmlFor="q-customer-acquisition" style={{ marginBottom: "4px" }}>
@@ -473,6 +544,31 @@ export default function OwnerQuestionnairePage() {
                 placeholder="e.g. Our main rival down the road just revamped their site. Also, we are thinking about opening a second location next year."
               />
             </div>
+
+            {needsEmailVerification && (
+              <div
+                className="starter-note"
+                style={{
+                  border: "1px solid rgba(123, 224, 184, 0.35)",
+                  padding: "16px 18px",
+                }}
+              >
+                <label htmlFor="q-confirm-email" style={{ marginBottom: "6px" }}>
+                  Confirm the email address used to save this snapshot
+                </label>
+                <p className="form-note" style={{ marginTop: 0, marginBottom: "8px" }}>
+                  For your security when opening this link in a new browser or device, please enter the email address you used when requesting follow-up.
+                </p>
+                <input
+                  id="q-confirm-email"
+                  type="email"
+                  required
+                  value={confirmEmail}
+                  onChange={(e) => setConfirmEmail(e.target.value)}
+                  placeholder="you@yourbusiness.com"
+                />
+              </div>
+            )}
 
             {errorMsg && (
               <div

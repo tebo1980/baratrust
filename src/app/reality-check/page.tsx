@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import RealityCheckFunnel from "@/components/RealityCheckFunnel";
-import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
+import { BookingLink, PulseCheckoutLink } from "@/components/ContactLinks";
 import "../landing.css";
 
 export default function RealityCheckPage() {
@@ -49,8 +49,8 @@ export default function RealityCheckPage() {
           <nav>
             <Link href="/#services">What we watch</Link>
             <Link href="/#pulse">Business Pulse · $99/mo</Link>
+            <Link href="/sample-pulse">Sample Pulse</Link>
             <Link href="/#how">How it works</Link>
-            <Link href="/#who">Who it’s for</Link>
             <Link className="nav-cta" href="/">
               ← Back to Homepage
             </Link>
@@ -79,7 +79,7 @@ export default function RealityCheckPage() {
                 <strong>Paste your business link for a free automated outside-looking-in snapshot.</strong>
               </p>
               <p>
-                Start with your website, Google Business page, or Facebook business page. You’ll see what our automated scan can spot from publicly visible signals right away — with no email required to view your initial snapshot.
+                Start with your website, Google Business page, or Facebook business page. You’ll see what our automated scan can spot from publicly visible signals right away — with no email required to view your initial snapshot, and an optional “Discuss My Results” step if you want personal follow-up from Todd &amp; Noelah.
               </p>
 
               <p>What the automated outside-in snapshot checks:</p>
@@ -110,19 +110,24 @@ export default function RealityCheckPage() {
                     Business Pulse ($99/month)
                   </Link>
                   {" — "}
-                  <a
-                    href={BUSINESS_PULSE_STRIPE_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <PulseCheckoutLink
+                    surface="reality_check_page"
                     style={{ textDecoration: "underline", fontWeight: 700 }}
                   >
                     start Business Pulse now →
-                  </a>
+                  </PulseCheckoutLink>
+                  {" or "}
+                  <BookingLink
+                    surface="reality_check_page"
+                    style={{ textDecoration: "underline", fontWeight: 700 }}
+                  >
+                    book an intro conversation →
+                  </BookingLink>
                 </span>
               </div>
 
               <p className="micro">
-                100% free automated snapshot. No credit card required. No obligation.
+                100% free automated snapshot. No credit card required. No obligation. Serving Southern Indiana &amp; Greater Louisville.
               </p>
             </div>
 
@@ -140,6 +145,8 @@ export default function RealityCheckPage() {
           <div className="footer-links">
             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
               <Link href="/pricing">Business Pulse ($99/mo)</Link>
+              <Link href="/sample-pulse">Sample Pulse</Link>
+              <BookingLink surface="footer">Book Intro Call</BookingLink>
               <Link href="/terms">Terms</Link>
             </div>
             <a href="mailto:todd@baratrust.com">todd@baratrust.com</a>

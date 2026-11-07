@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import RealityCheckFunnel from "@/components/RealityCheckFunnel";
-import { BUSINESS_PULSE_STRIPE_URL } from "@/components/ContactLinks";
+import { BookingLink, PulseCheckoutLink } from "@/components/ContactLinks";
+import { SampleBusinessPulsePreview } from "@/components/SampleBusinessPulse";
+import { trackPublicConversionEvent } from "@/lib/analytics";
 import "./landing.css";
 
 export default function LandingPage() {
@@ -49,8 +51,13 @@ export default function LandingPage() {
           <nav>
             <a href="#services">What we watch</a>
             <a href="#pulse">Business Pulse · $99/mo</a>
+            <Link
+              href="/sample-pulse"
+              onClick={() => trackPublicConversionEvent("sample_pulse_viewed", "nav")}
+            >
+              Sample Pulse
+            </Link>
             <a href="#how">How it works</a>
-            <a href="#who">Who it’s for</a>
             <a className="nav-cta" href="#start">
               Free Reality Check
             </a>
@@ -87,9 +94,12 @@ export default function LandingPage() {
                 <a className="btn secondary" href="#pulse">
                   Business Pulse — $99/month
                 </a>
+                <BookingLink surface="hero" className="btn secondary">
+                  Book Intro Conversation
+                </BookingLink>
               </div>
               <p className="micro">
-                Free Reality Check: see what BaraTrust can spot right now. Business Pulse ($99/month): keep BaraTrust watching.
+                Free Reality Check: see what BaraTrust can spot right now (no email required). Business Pulse ($99/month): keep BaraTrust watching.
               </p>
             </div>
 
@@ -118,7 +128,7 @@ export default function LandingPage() {
             <div>
               <strong>Built for real small businesses</strong>
               <span>
-                Plain English, transparent pricing, and practical business sense — no consultant jargon, no agency smoke, and no dashboards to learn.
+                Plain English, transparent $99/month pricing, and practical business sense — no consultant jargon, no agency smoke, and no dashboards to learn.
               </span>
             </div>
             <div>
@@ -128,9 +138,9 @@ export default function LandingPage() {
               </span>
             </div>
             <div>
-              <strong>Intelligence + optional execution</strong>
+              <strong>Rooted in Southern Indiana &amp; Louisville</strong>
               <span>
-                Technology helps us cover ground behind the scenes while Todd and Noelah determine what deserves your attention — and help execute when it makes sense.
+                Based locally and working with independent owners across New Albany, Jeffersonville, Clarksville, Greater Louisville, and beyond.
               </span>
             </div>
           </div>
@@ -218,60 +228,62 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 4. BUSINESS PULSE — $99/MONTH */}
+        {/* 4. BUSINESS PULSE — $99/MONTH + SAMPLE PULSE */}
         <section id="pulse" className="section alt">
-          <div className="wrap who-grid">
-            <div>
-              <p className="eyebrow">Business Pulse — $99/month</p>
-              <h2>Keep BaraTrust watching.</h2>
-              <p className="section-intro">
-                <strong>Business Pulse ($99/month)</strong> is BaraTrust’s ongoing intelligence service. BaraTrust keeps watching your business and surrounding market for ways to{" "}
-                <strong>Protect, Improve, Grow, and Save</strong> — and tells you what actually deserves your attention.
-              </p>
-              <p>
-                It isn’t software you have to learn, and it isn’t filler generated just to look busy. A healthy, well-run business may get most of its value from{" "}
-                <strong>Grow</strong> and <strong>Save</strong> — spotting events, partnerships, competitor gaps, emerging demand, or better supplier options while you stay focused on running the shop.
-              </p>
-              <div className="cta-row" style={{ marginTop: "24px" }}>
-                <a
-                  className="btn primary"
-                  href={BUSINESS_PULSE_STRIPE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Start Business Pulse — $99/month
-                </a>
-                <a className="btn secondary" href="#start">
-                  Try Free Reality Check First
-                </a>
+          <div className="wrap">
+            <div className="who-grid">
+              <div>
+                <p className="eyebrow">Business Pulse — $99/month</p>
+                <h2>Keep BaraTrust watching.</h2>
+                <p className="section-intro">
+                  <strong>Business Pulse ($99/month)</strong> is BaraTrust’s primary ongoing intelligence service. BaraTrust keeps watching your business and surrounding market for ways to{" "}
+                  <strong>Protect, Improve, Grow, and Save</strong> — and tells you what actually deserves your attention.
+                </p>
+                <p>
+                  It isn’t software you have to learn, and it isn’t filler generated just to look busy. A healthy, well-run business may get most of its value from{" "}
+                  <strong>Grow</strong> and <strong>Save</strong> — spotting events, partnerships, competitor gaps, emerging demand, or better supplier options while you stay focused on running the shop.
+                </p>
+                <div className="cta-row" style={{ marginTop: "24px" }}>
+                  <PulseCheckoutLink surface="pulse_section" className="btn primary">
+                    Start Business Pulse — $99/month
+                  </PulseCheckoutLink>
+                  <BookingLink surface="pulse_section" className="btn secondary">
+                    Book an Intro Conversation
+                  </BookingLink>
+                  <Link href="/pricing" className="btn secondary">
+                    Full Pricing &amp; Details
+                  </Link>
+                </div>
+                <p className="micro">
+                  $99/month · Straightforward pricing — no “book a meeting just to learn the price.”
+                </p>
               </div>
-              <p className="micro">
-                $99/month · Straightforward pricing — no “book a meeting just to learn the price.”
-              </p>
+
+              <aside className="reality-card" style={{ marginTop: 0 }}>
+                <p className="card-kicker">
+                  What you get for $99/month inside Business Pulse:
+                </p>
+                <ul>
+                  <li>
+                    <strong>Ongoing outside &amp; market watch</strong> across Protect, Improve, Grow, and Save
+                  </li>
+                  <li>
+                    <strong>Human-verified findings</strong> reviewed by Todd and Noelah — never raw automated dumps
+                  </li>
+                  <li>
+                    <strong>Practical recommendations</strong> weighed against switching costs, staff time, and real value
+                  </li>
+                  <li>
+                    <strong>Explicit restraint</strong> when the honest call is “No action recommended”
+                  </li>
+                </ul>
+                <p className="card-bottom">
+                  Not every category needs a finding every cycle. “No action recommended” is a legitimate outcome — we never manufacture problems.
+                </p>
+              </aside>
             </div>
 
-            <aside className="reality-card" style={{ marginTop: 0 }}>
-              <p className="card-kicker">
-                What honest judgment looks like inside Business Pulse:
-              </p>
-              <ul>
-                <li>
-                  <strong>PROTECT —</strong> No meaningful concerns identified.
-                </li>
-                <li>
-                  <strong>IMPROVE —</strong> Mobile inquiry path is working well; one outdated seasonal hours listing worth updating.
-                </li>
-                <li>
-                  <strong>GROW —</strong> Two upcoming regional events match your customer base; vendor booth applications close next month.
-                </li>
-                <li>
-                  <strong>SAVE —</strong> No change recommended. Your current provider remains competitive once shipping, minimums, and reliability are weighed.
-                </li>
-              </ul>
-              <p className="card-bottom">
-                Not every category needs a finding every cycle. “No action recommended” is a legitimate outcome — we never manufacture problems.
-              </p>
-            </aside>
+            <SampleBusinessPulsePreview theme="landing" />
           </div>
         </section>
 
@@ -320,7 +332,7 @@ export default function LandingPage() {
               <p className="eyebrow">Who it’s for</p>
               <h2>For owners busy running a real business — whether things feel hectic or healthy.</h2>
               <p className="section-intro">
-                Restaurants, boutiques and retailers, contractors, trades, local service businesses, makers, and independent teams wearing ten hats — including strong, well-run businesses that want someone credible watching for new revenue opportunities, market changes, and smarter spending.
+                Restaurants, boutiques and specialty retailers, contractors, trades, local service businesses, makers, and independent teams across Southern Indiana (New Albany, Jeffersonville, Clarksville, Floyd &amp; Clark Counties) and Greater Louisville — as well as independent owners anywhere who want someone credible watching for new revenue opportunities, market changes, and smarter spending.
               </p>
             </div>
             <div className="quote-box">
@@ -343,6 +355,18 @@ export default function LandingPage() {
             <p className="light-copy">
               <strong>You run your business. BaraTrust keeps watch.</strong> And when the smartest move is to leave things alone, that’s exactly what we’ll tell you.
             </p>
+            <div className="cta-row" style={{ marginTop: "22px" }}>
+              <BookingLink surface="intake_section" className="btn primary">
+                Book a 15-Minute Intro Conversation
+              </BookingLink>
+              <Link
+                href="/sample-pulse"
+                className="btn secondary"
+                onClick={() => trackPublicConversionEvent("sample_pulse_viewed", "intake_section")}
+              >
+                Read Sample Business Pulse
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -363,7 +387,7 @@ export default function LandingPage() {
                 <li>Visible customer contact paths, action callouts, and inquiry friction</li>
                 <li>Public trust signals, location clarity, and business details</li>
                 <li>Local search findability and structured business metadata</li>
-                <li>Honest separation between confirmed public signals and items requiring human verification</li>
+                <li>Optional “Discuss My Results” follow-up if you want to talk with Todd &amp; Noelah afterward</li>
               </ul>
               <p>
                 <strong>100% free automated snapshot. No email required to see your initial results. No credit card. No obligation.</strong>
@@ -379,14 +403,12 @@ export default function LandingPage() {
                 <a className="btn primary" href="#reality-check-form">
                   Run Free Reality Check
                 </a>
-                <a
-                  className="btn secondary"
-                  href={BUSINESS_PULSE_STRIPE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <PulseCheckoutLink surface="intake_section" className="btn secondary">
                   Start Business Pulse — $99/mo
-                </a>
+                </PulseCheckoutLink>
+                <BookingLink surface="intake_section" className="btn secondary">
+                  Book Intro Call
+                </BookingLink>
               </div>
               <p className="micro">
                 Free automated scan · Business Pulse $99/month when you want ongoing watch.
@@ -402,12 +424,24 @@ export default function LandingPage() {
         <div className="wrap footer-wrap">
           <div>
             <strong>BaraTrust</strong>
-            <p>BaraTrust watches your business so you don’t have to. Protect • Improve • Grow • Save.</p>
+            <p>
+              BaraTrust watches your business so you don’t have to. Protect • Improve • Grow • Save.
+            </p>
+            <p style={{ fontSize: "0.84rem", opacity: 0.85, marginTop: "6px" }}>
+              Serving local business owners across Southern Indiana (New Albany, Jeffersonville, Clarksville) and Greater Louisville, KY.
+            </p>
           </div>
           <div className="footer-links">
             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
               <Link href="/pricing">Business Pulse ($99/mo)</Link>
+              <Link
+                href="/sample-pulse"
+                onClick={() => trackPublicConversionEvent("sample_pulse_viewed", "footer")}
+              >
+                Sample Pulse
+              </Link>
               <Link href="/reality-check">Free Reality Check</Link>
+              <BookingLink surface="footer">Book Intro Call</BookingLink>
               <Link href="/terms">Terms</Link>
             </div>
             <a href="mailto:todd@baratrust.com">todd@baratrust.com</a>

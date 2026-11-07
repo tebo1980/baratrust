@@ -3,11 +3,30 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, ownerResponses, OwnerQuestionnaireAnswers } from '@/db/schema';
+import {
+  checkPublicRateLimit,
+  FOLLOWUP_CLAIM_COOKIE_NAME,
+  getClientIpKey,
+  isHoneypotTriggered,
+  readCookieFromHeader,
+  sanitizePlainText,
+  verifyFollowUpClaimToken,
+} from '@/lib/security/public-guard';
 
 export const dynamic = 'force-dynamic';
 
+const LOCKED_QUESTIONNAIRE_STATUSES = new Set([
+  'IN_REVIEW',
+  'READY_TO_PUBLISH',
+  'PUBLISHED',
+  'completed',
+  'archived',
+]);
+
 const QuestionnaireSubmissionSchema = z.object({
-  shareToken: z.string().min(1, 'Share token is required'),
+  shareToken: z.string().trim().min(16, 'Valid share token is required').max(128),
+  email: z.string().trim().email().max(200).optional().nullable(),
+  websiteConfirm: z.string().max(200).optional().nullable(),
   customerAcquisition: z.string().max(2000).optional().nullable(),
   biggestProblem: z.string().max(2000).optional().nullable(),
   missedInquiries: z.string().max(2000).optional().nullable(),
@@ -21,11 +40,25 @@ const QuestionnaireSubmissionSchema = z.object({
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const shareToken = searchParams.get('shareToken');
+    const ipKey = getClientIpKey(req);
+    const rate = checkPublicRateLimit({
+      scope: 'questionnaire_get',
+      ipKey,
+      maxRequests: 25,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
 
-    if (!shareToken) {
-      return NextResponse.json({ error: 'Share token is required' }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const shareToken = searchParams.get('shareToken')?.trim();
+
+    if (!shareToken || shareToken.length < 16) {
+      return NextResponse.json({ error: 'Valid share token is required' }, { status: 400 });
     }
 
     const [check] = await db
@@ -44,7 +77,16 @@ export async function GET(req: Request) {
       .where(eq(ownerResponses.realityCheckId, check.id))
       .limit(1);
 
-    // Do not expose internal database UUID or owner PII on public GET
+    // Only expose private saved questionnaire answers to the verified claimant session
+    const claimCookie = readCookieFromHeader(req.headers.get('cookie'), FOLLOWUP_CLAIM_COOKIE_NAME);
+    const isVerifiedClaimant =
+      Boolean(check.email) &&
+      verifyFollowUpClaimToken({
+        cookieToken: claimCookie,
+        shareToken,
+        expectedEmail: check.email,
+      });
+
     return NextResponse.json({
       success: true,
       business: {
@@ -52,11 +94,13 @@ export async function GET(req: Request) {
         website: check.website,
         cityState: check.cityState || null,
         businessType: check.businessType || null,
-        primaryHeadache: check.primaryHeadache || null,
+        primaryHeadache: isVerifiedClaimant ? check.primaryHeadache || null : null,
         status: check.status,
         humanReviewRequested: Boolean(check.email),
+        questionnaireLocked: LOCKED_QUESTIONNAIRE_STATUSES.has(check.status),
+        questionnaireSubmitted: Boolean(existing),
       },
-      responses: existing ? existing.responses : null,
+      responses: isVerifiedClaimant && existing ? existing.responses : null,
     });
   } catch (err: any) {
     console.error('[QUESTIONNAIRE_GET_ERROR]', err);
@@ -66,11 +110,29 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const ipKey = getClientIpKey(req);
+    const rate = checkPublicRateLimit({
+      scope: 'questionnaire_post',
+      ipKey,
+      maxRequests: 10,
+      windowMs: 10 * 60 * 1000,
+    });
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many submissions. Please wait a few minutes.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      );
+    }
+
     let body;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    if (isHoneypotTriggered(body?.websiteConfirm)) {
+      return NextResponse.json({ success: true, ignored: true });
     }
 
     const validation = QuestionnaireSubmissionSchema.safeParse(body);
@@ -92,25 +154,54 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Reality check record not found for this token' }, { status: 404 });
     }
 
-    // Questionnaire is only available after the user requests the human-reviewed report (Step 3)
+    // Questionnaire is only available after follow-up has been requested with an email
     if (!check.email) {
       return NextResponse.json(
-        { error: 'Please add your email to request the human-reviewed Reality Check before submitting owner context.' },
+        { error: 'Please request follow-up with your email before submitting owner context.' },
         { status: 400 }
+      );
+    }
+
+    // Block modifications once review is in progress or published
+    if (LOCKED_QUESTIONNAIRE_STATUSES.has(check.status)) {
+      return NextResponse.json(
+        { error: 'This Reality Check is already in review or published and can no longer be modified.' },
+        { status: 409 }
+      );
+    }
+
+    // Verify caller authorization via HttpOnly claim cookie OR matching claimed email
+    const claimCookie = readCookieFromHeader(req.headers.get('cookie'), FOLLOWUP_CLAIM_COOKIE_NAME);
+    const hasValidClaimCookie = verifyFollowUpClaimToken({
+      cookieToken: claimCookie,
+      shareToken: data.shareToken,
+      expectedEmail: check.email,
+    });
+    const hasMatchingEmail =
+      Boolean(data.email) && data.email!.trim().toLowerCase() === check.email.trim().toLowerCase();
+
+    if (!hasValidClaimCookie && !hasMatchingEmail) {
+      return NextResponse.json(
+        {
+          error:
+            'Session verification required to update this follow-up record. Please confirm the email address used when requesting follow-up.',
+          code: 'CLAIMANT_VERIFICATION_REQUIRED',
+        },
+        { status: 403 }
       );
     }
 
     // 2. Prepare structured response object with mandatory evidence label
     const questionnairePayload: OwnerQuestionnaireAnswers = {
-      customerAcquisition: data.customerAcquisition?.trim() || '',
-      biggestProblem: data.biggestProblem?.trim() || '',
-      missedInquiries: data.missedInquiries?.trim() || '',
-      followUpProcess: data.followUpProcess?.trim() || '',
-      currentMarketingSpend: data.currentMarketingSpend?.trim() || '',
-      repetitiveAdminWaste: data.repetitiveAdminWaste?.trim() || '',
-      growthOpportunity: data.growthOpportunity?.trim() || '',
-      freeEmployeeRole: data.freeEmployeeRole?.trim() || '',
-      additionalNotes: data.additionalNotes?.trim() || '',
+      customerAcquisition: sanitizePlainText(data.customerAcquisition, { maxLength: 2000, multiline: true }) || '',
+      biggestProblem: sanitizePlainText(data.biggestProblem, { maxLength: 2000, multiline: true }) || '',
+      missedInquiries: sanitizePlainText(data.missedInquiries, { maxLength: 2000, multiline: true }) || '',
+      followUpProcess: sanitizePlainText(data.followUpProcess, { maxLength: 2000, multiline: true }) || '',
+      currentMarketingSpend: sanitizePlainText(data.currentMarketingSpend, { maxLength: 2000, multiline: true }) || '',
+      repetitiveAdminWaste: sanitizePlainText(data.repetitiveAdminWaste, { maxLength: 2000, multiline: true }) || '',
+      growthOpportunity: sanitizePlainText(data.growthOpportunity, { maxLength: 2000, multiline: true }) || '',
+      freeEmployeeRole: sanitizePlainText(data.freeEmployeeRole, { maxLength: 2000, multiline: true }) || '',
+      additionalNotes: sanitizePlainText(data.additionalNotes, { maxLength: 3000, multiline: true }) || '',
       evidenceLabel: 'OWNER_PROVIDED',
       submittedAt: new Date().toISOString(),
     };

@@ -1,6 +1,11 @@
 'use client'
 
-import { PhoneLink, CONTACT_PHONE_DISPLAY, BUSINESS_PULSE_STRIPE_URL } from './ContactLinks'
+import {
+  PhoneLink,
+  CONTACT_PHONE_DISPLAY,
+  BookingLink,
+  PulseCheckoutLink,
+} from './ContactLinks'
 
 type Feature = { icon: string; title: string; text: string }
 
@@ -32,7 +37,7 @@ export default function SeoTradePage({
         <ul className="nav-links">
           <li><a href="/#services">What We Watch</a></li>
           <li><a href="/#pulse">Business Pulse · $99/mo</a></li>
-          <li><a href="/#how">How It Works</a></li>
+          <li><a href="/sample-pulse">Sample Pulse</a></li>
           <li><a href="/pricing">Pricing</a></li>
           <li><a href="/reality-check" className="nav-cta">Free Reality Check</a></li>
         </ul>
@@ -49,7 +54,7 @@ export default function SeoTradePage({
           <p className="hero-sub" style={{ maxWidth: '580px' }}>{subtext}</p>
           <div className="hero-buttons">
             <a href="/reality-check" className="btn-primary">Run Free Reality Check</a>
-            <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="btn-secondary">Talk With Todd</a>
+            <BookingLink surface="trade_page" className="btn-secondary">Talk With Todd</BookingLink>
           </div>
           <div className="hero-proof">
             <div className="proof-item"><span className="proof-check">{'\u2713'}</span> Protect • Improve • Grow • Save</div>
@@ -126,11 +131,12 @@ export default function SeoTradePage({
           </p>
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
             <a href="/reality-check" className="btn-primary">Run Free Reality Check</a>
-            <a href={BUSINESS_PULSE_STRIPE_URL} target="_blank" rel="noopener noreferrer" className="btn-secondary">Start Business Pulse — $99/mo</a>
+            <PulseCheckoutLink surface="trade_page" className="btn-secondary">Start Business Pulse — $99/mo</PulseCheckoutLink>
+            <BookingLink surface="trade_page" className="btn-secondary">Book Intro Call</BookingLink>
             <PhoneLink className="btn-secondary">Call {CONTACT_PHONE_DISPLAY}</PhoneLink>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--cream-muted)' }}>
-            Serving {location} and surrounding {state === 'KY' ? 'Kentucky' : 'Indiana'} communities
+            Serving {location} and surrounding {state === 'KY' ? 'Greater Louisville & Kentucky' : 'Southern Indiana'} communities
           </div>
         </div>
       </section>
@@ -143,6 +149,7 @@ export default function SeoTradePage({
         <div className="footer-links">
           <a href="/">Home</a>
           <a href="/#pulse">Business Pulse</a>
+          <a href="/sample-pulse">Sample Pulse</a>
           <a href="/terms">Terms</a>
           <a href="/reality-check">Free Reality Check</a>
           <a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Back to Top</a>

@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
-import { BUSINESS_PULSE_STRIPE_URL } from '@/components/ContactLinks';
+import { BookingLink, PulseCheckoutLink } from '@/components/ContactLinks';
+import { SampleBusinessPulsePreview } from '@/components/SampleBusinessPulse';
 
 export default function PricingPage() {
   return (
@@ -19,7 +20,10 @@ export default function PricingPage() {
               Bara<span className="text-amber-400">Trust</span>
             </span>
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
+            <Link href="/sample-pulse" className="text-sm text-slate-300 hover:text-amber-300 transition-colors hidden md:block">
+              Sample Pulse
+            </Link>
             <Link href="/" className="text-sm text-slate-400 hover:text-slate-200 transition-colors hidden sm:block">
               ← Back to Homepage
             </Link>
@@ -43,7 +47,7 @@ export default function PricingPage() {
             See what we spot for free. <span className="text-amber-400">Keep us watching for $99/month.</span>
           </h1>
           <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-            No “book a meeting just to hear the price.” Start with a Free Reality Check to see what BaraTrust can spot from public signals right now — or start Business Pulse for $99/month so BaraTrust keeps watching your business and surrounding market.
+            No “book a meeting just to hear the price.” Start with a Free Reality Check to see what BaraTrust can spot from public signals right now — or start Business Pulse for $99/month so BaraTrust keeps watching your business and surrounding market across Southern Indiana, Greater Louisville, and beyond.
           </p>
         </div>
 
@@ -85,7 +89,7 @@ export default function PricingPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>No email or credit card required to see your initial snapshot</span>
+                  <span>No email or credit card required to see your initial snapshot, with optional “Discuss My Results” follow-up afterward</span>
                 </li>
               </ul>
             </div>
@@ -148,19 +152,26 @@ export default function PricingPage() {
               </ul>
             </div>
 
-            <div className="pt-8">
-              <a
-                href={BUSINESS_PULSE_STRIPE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+            <div className="pt-8 space-y-3">
+              <PulseCheckoutLink
+                surface="pricing_page"
                 className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 shadow-lg"
               >
                 Start Business Pulse — $99/month <ArrowRight className="w-5 h-5" />
-              </a>
+              </PulseCheckoutLink>
+              <BookingLink
+                surface="pricing_page"
+                className="w-full py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-semibold rounded-lg text-sm transition-colors flex items-center justify-center border border-slate-700"
+              >
+                Want to talk first? Book a 15-Minute Intro Call
+              </BookingLink>
             </div>
           </div>
 
         </div>
+
+        {/* Illustrative Sample Business Pulse */}
+        <SampleBusinessPulsePreview theme="dark" />
 
         {/* Optional Execution & Broader Support Note */}
         <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -175,12 +186,20 @@ export default function PricingPage() {
               When Business Pulse identifies an opportunity or fix worth acting on, you can handle it in-house, ask BaraTrust to scope and execute it directly (websites, online stores, video, campaigns, booth prep, supplier quotes, SOPs, workflows), have us coordinate a qualified specialist, or explore broader managed support when appropriate — always with clear scope approved before any project work begins.
             </p>
           </div>
-          <a
-            href="mailto:todd@baratrust.com"
-            className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg text-sm transition-colors border border-slate-700 whitespace-nowrap"
-          >
-            Questions? Email Todd
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <BookingLink
+              surface="pricing_page"
+              className="px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-semibold rounded-lg text-sm transition-colors border border-amber-500/30 whitespace-nowrap text-center"
+            >
+              Book Intro Conversation
+            </BookingLink>
+            <a
+              href="mailto:todd@baratrust.com"
+              className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-lg text-sm transition-colors border border-slate-700 whitespace-nowrap text-center"
+            >
+              Email Todd
+            </a>
+          </div>
         </div>
 
       </main>
@@ -188,8 +207,9 @@ export default function PricingPage() {
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-10 bg-[#04070D]">
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400 font-mono">
-          <p>© 2026 BaraTrust. BaraTrust watches your business so you don&apos;t have to.</p>
-          <div className="flex gap-6">
+          <p>© 2026 BaraTrust · Serving Southern Indiana &amp; Greater Louisville. Watches your business so you don&apos;t have to.</p>
+          <div className="flex flex-wrap gap-6">
+            <Link href="/sample-pulse" className="hover:text-amber-400 transition-colors">Sample Pulse</Link>
             <a href="mailto:todd@baratrust.com" className="hover:text-amber-400 transition-colors">todd@baratrust.com</a>
             <Link href="/terms" className="hover:text-slate-200 transition-colors">Terms of Service</Link>
           </div>

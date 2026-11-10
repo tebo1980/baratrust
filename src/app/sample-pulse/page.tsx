@@ -99,6 +99,19 @@ export default function SamplePulsePage() {
               <strong>Protect, Improve, Grow, and Save</strong>. When nothing needs fixing or switching vendors isn’t worth the disruption, we say so plainly.
             </p>
 
+            <div
+              className="starter-note"
+              style={{
+                marginTop: '20px',
+                padding: '16px 20px',
+              }}
+            >
+              <strong>How a Personalized Business Pulse ($99/mo) Differs From the Free Automated Reality Check:</strong>
+              <span>
+                Our free online Reality Check is an <strong>instant automated scan</strong> of a single public link (HTTPS, mobile setup, metadata, contact paths). By contrast, a Business Pulse report like the illustrative example below is <strong>researched and verified by humans (Todd &amp; Noelah)</strong> across third-party listings/menus, local competitors, regional event calendars, and vendor quotes. For <strong>$99/month</strong>, members receive <strong>one written Monthly Business Pulse report</strong> (PDF/brief with clickable sources &amp; Decision Cards) plus <strong>quick heads-ups in between only when something time-sensitive comes up</strong>. You can act on any recommendation yourself for $0 extra; optional hands-on implementation is quoted separately upfront as a flat project fee.
+              </span>
+            </div>
+
             <div style={{ display: 'grid', gap: '20px', marginTop: '30px' }}>
               {ILLUSTRATIVE_RETAIL_PULSE_ITEMS.map((item, idx) => (
                 <article

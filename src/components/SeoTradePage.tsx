@@ -126,8 +126,8 @@ export default function SeoTradePage({
       <section className="seo-cta">
         <div className="container">
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 3.5vw, 44px)', fontWeight: 900, lineHeight: 1.1, marginBottom: '16px' }}>{closingHeadline}</h2>
-          <p style={{ fontSize: '16px', color: 'var(--cream-dim)', maxWidth: '520px', margin: '0 auto 32px', lineHeight: 1.7 }}>
-            See what BaraTrust can spot right now with a Free Reality Check, or keep BaraTrust watching your business and market with Business Pulse for $99/month.
+          <p style={{ fontSize: '16px', color: 'var(--cream-dim)', maxWidth: '560px', margin: '0 auto 32px', lineHeight: 1.7 }}>
+            Start with an instant, automated Free Reality Check scan on your link, or get a human-researched Monthly Business Pulse report plus timely heads-ups for $99/month — with any hands-on implementation flat-quoted upfront.
           </p>
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
             <a href="/reality-check" className="btn-primary">Run Free Reality Check</a>

@@ -99,7 +99,8 @@ export default function LandingPage() {
                 </BookingLink>
               </div>
               <p className="micro">
-                Free Reality Check: see what BaraTrust can spot right now (no email required). Business Pulse ($99/month): keep BaraTrust watching.
+                <strong>Free Reality Check ($0):</strong> instant automated public scan (no email required).{" "}
+                <strong>Business Pulse ($99/month):</strong> one written human-researched report each month + timely heads-ups.
               </p>
             </div>
 
@@ -234,14 +235,20 @@ export default function LandingPage() {
             <div className="who-grid">
               <div>
                 <p className="eyebrow">Business Pulse — $99/month</p>
-                <h2>Keep BaraTrust watching.</h2>
+                <h2>Tangible monthly intelligence. Zero filler.</h2>
                 <p className="section-intro">
-                  <strong>Business Pulse ($99/month)</strong> is BaraTrust’s primary ongoing intelligence service. BaraTrust keeps watching your business and surrounding market for ways to{" "}
-                  <strong>Protect, Improve, Grow, and Save</strong> — and tells you what actually deserves your attention.
+                  <strong>Business Pulse ($99/month)</strong> is BaraTrust’s human-researched monthly watch service. Each month, Todd and Noelah look across your business and surrounding local market for practical ways to{" "}
+                  <strong>Protect, Improve, Grow, and Save</strong> — and hand you a clear written brief on what actually deserves attention.
                 </p>
                 <p>
-                  It isn’t software you have to learn, and it isn’t filler generated just to look busy. A healthy, well-run business may get most of its value from{" "}
-                  <strong>Grow</strong> and <strong>Save</strong> — spotting events, partnerships, competitor gaps, emerging demand, or better supplier options while you stay focused on running the shop.
+                  <strong>What you receive &amp; how often you hear from us:</strong> You receive{" "}
+                  <strong>one written Monthly Business Pulse report</strong> each month (a clean, plain-English PDF / brief with clickable source links, focused Decision Cards, and notes on what only you can verify internally) —{" "}
+                  <strong>plus a quick personal heads-up in between</strong> only if something time-sensitive comes up, like an upcoming event booth deadline or broken public hours. Never weekly filler spam, and no software dashboard to learn.
+                </p>
+                <p>
+                  <strong>What’s included in $99/month vs. what costs extra:</strong> Your $99/month covers ongoing watch, manual human research, verification, and plain-English recommendations — and you can act on any recommendation yourself for{" "}
+                  <strong>$0 extra</strong>. Hands-on implementation (such as building or fixing websites, updating multi-platform listings or menus, producing video/ads, preparing booth applications, supplier quote legwork, SOPs, or workflow setup) costs extra and is always{" "}
+                  <strong>quoted upfront as a flat, pre-approved project fee</strong> before any work starts.
                 </p>
                 <div className="cta-row" style={{ marginTop: "24px" }}>
                   <PulseCheckoutLink surface="pulse_section" className="btn primary">
@@ -255,30 +262,30 @@ export default function LandingPage() {
                   </Link>
                 </div>
                 <p className="micro">
-                  $99/month · Straightforward pricing — no “book a meeting just to learn the price.”
+                  $99/month · Cancel anytime · No surprise hourly bills or unapproved project charges.
                 </p>
               </div>
 
               <aside className="reality-card" style={{ marginTop: 0 }}>
                 <p className="card-kicker">
-                  What you get for $99/month inside Business Pulse:
+                  Free Automated Reality Check vs. Personalized Human Report:
                 </p>
                 <ul>
                   <li>
-                    <strong>Ongoing outside &amp; market watch</strong> across Protect, Improve, Grow, and Save
+                    <strong>Free Reality Check ($0 · Automated Scan):</strong> An instant software check of one public link (HTTPS, mobile setup, metadata, tap-to-call, contact paths, schema). No human has reviewed your menus, third-party listings, competitors, or vendor costs yet.
                   </li>
                   <li>
-                    <strong>Human-verified findings</strong> reviewed by Todd and Noelah — never raw automated dumps
+                    <strong>Business Pulse ($99/mo · Human-Researched):</strong> Custom outside-in &amp; local market research by Todd and Noelah — checking cross-platform hours and menus, nearby competitors, local events &amp; partnerships, and supplier value.
                   </li>
                   <li>
-                    <strong>Practical recommendations</strong> weighed against switching costs, staff time, and real value
+                    <strong>Cadence you can count on:</strong> 1 written Monthly Business Pulse report + quick heads-ups in between only when something is genuinely time-sensitive.
                   </li>
                   <li>
-                    <strong>Explicit restraint</strong> when the honest call is “No action recommended”
+                    <strong>Restraint &amp; clear boundaries:</strong> “No action recommended” is a normal, honest outcome — and optional hands-on execution is always flat-quoted upfront.
                   </li>
                 </ul>
                 <p className="card-bottom">
-                  Not every category needs a finding every cycle. “No action recommended” is a legitimate outcome — we never manufacture problems.
+                  Note: While we occasionally prepare a complimentary one-time personalized sample report selectively by invitation when reviewing a business, the self-serve online Reality Check is strictly an automated scan.
                 </p>
               </aside>
             </div>
@@ -291,34 +298,34 @@ export default function LandingPage() {
         <section id="how" className="section">
           <div className="wrap">
             <p className="eyebrow">How it works</p>
-            <h2>See what we can spot. Keep us watching. Act when it makes sense.</h2>
+            <h2>Automated scan first. Human-researched Pulse monthly. Execution only when wanted.</h2>
             <div className="steps">
               <div className="step">
                 <span>1</span>
-                <h3>Free Reality Check</h3>
+                <h3>Free Automated Scan</h3>
                 <p>
-                  <strong>See what BaraTrust can spot right now.</strong> Paste your link for a free automated outside-looking-in snapshot of publicly visible signals, potential concerns, and areas worth investigating.
+                  <strong>Instant software snapshot ($0).</strong> Paste one public link to check surface website or profile signals in seconds — no email required, and clearly distinct from a custom human-researched report.
                 </p>
               </div>
               <div className="step">
                 <span>2</span>
                 <h3>Business Pulse — $99/mo</h3>
                 <p>
-                  <strong>Keep BaraTrust watching.</strong> Ongoing human-led monitoring, verification, opportunity discovery, and cost vigilance across Protect, Improve, Grow, and Save.
+                  <strong>1 written report/month + timely alerts.</strong> Human research by Todd &amp; Noelah delivered as a monthly PDF/brief with source-linked Decision Cards, plus a quick heads-up in between only if something urgent surfaces.
                 </p>
               </div>
               <div className="step">
                 <span>3</span>
-                <h3>Optional Execution</h3>
+                <h3>Optional Implementation</h3>
                 <p>
-                  <strong>Act when something is worth doing.</strong> Ask BaraTrust to handle the project, have us coordinate a specialist, or take the recommendation and run with it yourself.
+                  <strong>Quoted extra as a flat fee.</strong> Handle any recommendation in-house for $0 extra, or ask us for an upfront, pre-approved flat project quote before we build, fix, or coordinate anything for you.
                 </p>
               </div>
               <div className="step">
                 <span>4</span>
                 <h3>Broader Managed Support</h3>
                 <p>
-                  <strong>Go deeper when appropriate.</strong> Businesses wanting a fuller ongoing hands-on partner across growth, marketing, and operations can expand when it makes sense.
+                  <strong>Go deeper when appropriate.</strong> Businesses wanting ongoing hands-on execution across marketing, creative, or operations can scope broader support when it makes sense.
                 </p>
               </div>
             </div>
@@ -374,29 +381,28 @@ export default function LandingPage() {
         <section id="start" className="section start-section">
           <div className="wrap start-grid">
             <div>
-              <p className="eyebrow">Free Reality Check</p>
-              <h2 className="offer-title">See What BaraTrust Can Spot Right Now</h2>
+              <p className="eyebrow">Free Automated Reality Check</p>
+              <h2 className="offer-title">Run an Instant Automated Public Scan</h2>
               <p className="section-intro">
-                <strong>Paste your business link for a free automated outside-looking-in snapshot.</strong>
+                <strong>Paste your business link for an instant automated check — and know exactly how it differs from a personalized BaraTrust report.</strong>
               </p>
               <p>
-                The Free Reality Check demonstrates what BaraTrust can spot immediately from public information — while being upfront about what automated scanning can and cannot see on its own:
+                This free tool runs an <strong>automated software scan</strong> on a single public URL in seconds so you can see surface technical and contact signals right away:
               </p>
               <ul className="offer-details">
-                <li>Public website setup, HTTPS security, and mobile readiness</li>
-                <li>Visible customer contact paths, action callouts, and inquiry friction</li>
-                <li>Public trust signals, location clarity, and business details</li>
-                <li>Local search findability and structured business metadata</li>
+                <li>Public website setup, HTTPS security, and mobile viewport readiness</li>
+                <li>Visible customer contact paths, tap-to-call links, and action callouts</li>
+                <li>Public trust signals, location clarity, and structured search metadata</li>
                 <li>Optional “Discuss My Results” follow-up if you want to talk with Todd &amp; Noelah afterward</li>
               </ul>
               <p>
-                <strong>100% free automated snapshot. No email required to see your initial results. No credit card. No obligation.</strong>
+                <strong>100% free automated scan. No email required to see your initial results. No credit card. No obligation.</strong>
               </p>
               <div className="starter-note">
-                <strong>Want BaraTrust to keep watching?</strong>
+                <strong>Automated scan vs. personalized human-researched report:</strong>
                 <span>
-                  Your Free Reality Check is an instant public snapshot. Deeper ongoing research, human verification, local opportunity discovery, and supplier/cost vigilance live inside{" "}
-                  <strong>Business Pulse ($99/month)</strong> — with optional execution whenever something is worth acting on.
+                  This online tool does <strong>not</strong> perform manual human research across third-party menus, delivery apps, competitors, local event calendars, or supplier pricing. Those custom, human-researched reports (1 written report each month + time-sensitive heads-ups) are what{" "}
+                  <strong>Business Pulse ($99/month)</strong> members receive — though we occasionally prepare a complimentary one-time sample edition selectively by invitation when reviewing a business.
                 </span>
               </div>
               <div className="cta-row">

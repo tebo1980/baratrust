@@ -71,18 +71,18 @@ export default function RealityCheckPage() {
         <section className="section start-section" style={{ minHeight: "calc(100vh - 150px)" }}>
           <div className="wrap start-grid">
             <div>
-              <p className="eyebrow">Free Reality Check</p>
+              <p className="eyebrow">Free Automated Reality Check</p>
               <h1 className="offer-title" style={{ marginBottom: "18px" }}>
-                See What BaraTrust Can Spot Right Now
+                Instant Automated Public Link Scan
               </h1>
               <p className="section-intro">
-                <strong>Paste your business link for a free automated outside-looking-in snapshot.</strong>
+                <strong>Paste your website, Google Business page, or Facebook business page for an instant automated check — no email required.</strong>
               </p>
               <p>
-                Start with your website, Google Business page, or Facebook business page. You’ll see what our automated scan can spot from publicly visible signals right away — with no email required to view your initial snapshot, and an optional “Discuss My Results” step if you want personal follow-up from Todd &amp; Noelah.
+                This self-serve tool runs an <strong>automated software scan</strong> on one public URL in seconds so you can see surface technical and contact signals right away. It is intentionally distinct from a personalized, human-researched BaraTrust report.
               </p>
 
-              <p>What the automated outside-in snapshot checks:</p>
+              <p>What this free automated scan checks on your link:</p>
               <ul className="offer-details">
                 <li>
                   <strong>Digital Presence (20%):</strong> HTTPS security, mobile setup, search title &amp; metadata
@@ -102,19 +102,19 @@ export default function RealityCheckPage() {
               </ul>
 
               <div className="starter-note">
-                <strong>Keep BaraTrust watching — Business Pulse ($99/month)</strong>
+                <strong>How this differs from a personalized report — &amp; what $99/month includes:</strong>
                 <span>
-                  The Free Reality Check shows what public automation can see right now. Ongoing monitoring, human verification, local opportunity discovery, and supplier/cost comparisons across{" "}
-                  <strong>Protect • Improve • Grow • Save</strong> live inside{" "}
+                  An automated scan cannot manually cross-check third-party menus, delivery apps, nearby competitors, local event deadlines, or supplier pricing. Inside{" "}
                   <Link href="/pricing" style={{ textDecoration: "underline", fontWeight: 700 }}>
                     Business Pulse ($99/month)
                   </Link>
-                  {" — "}
+                  , Todd &amp; Noelah deliver <strong>1 written human-researched report each month</strong> (PDF/brief with clickable sources &amp; Decision Cards) <strong>plus quick heads-ups in between</strong> only when something time-sensitive comes up. Act on any recommendation in-house for $0 extra, or request an upfront flat project quote for hands-on implementation.{" "}
+                  <em>(Complimentary one-time sample editions are prepared selectively by invitation when reviewing a business.)</em>{" "}
                   <PulseCheckoutLink
                     surface="reality_check_page"
                     style={{ textDecoration: "underline", fontWeight: 700 }}
                   >
-                    start Business Pulse now →
+                    Start Business Pulse →
                   </PulseCheckoutLink>
                   {" or "}
                   <BookingLink

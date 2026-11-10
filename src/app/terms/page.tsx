@@ -61,23 +61,23 @@ export default function TermsPage() {
         <div className="space-y-8 text-sm text-slate-300 leading-relaxed">
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">01</span>
-            <h2 className="text-xl font-bold text-white font-serif">The Free Automated Reality Check</h2>
+            <h2 className="text-xl font-bold text-white font-serif">The Free Automated Reality Check vs. Selective Sample Reports</h2>
             <p>
-              The automated BaraTrust Reality Check snapshot is provided free of charge, with no credit card required and no obligation to purchase any follow-on service. It provides an automated outside-looking-in look at publicly visible signals on your business link.
+              The self-serve BaraTrust Reality Check on our website is an automated software scan of a single public business link, provided free of charge with no credit card required and no obligation. It checks surface technical and contact signals and is distinct from a custom human-researched report.
             </p>
             <p>
-              Snapshots can be accessed via a private, unguessable share link so you can review or share findings with your team without creating an account.
+              Automated snapshots can be accessed via a private, unguessable share link. Separately, BaraTrust may occasionally prepare a complimentary one-time personalized sample report selectively by invitation when reviewing a business; selective sample invitations are discretionary and carry no purchase obligation.
             </p>
           </section>
 
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">02</span>
-            <h2 className="text-xl font-bold text-white font-serif">Business Pulse ($99/Month), Optional Execution &amp; Managed Support</h2>
+            <h2 className="text-xl font-bold text-white font-serif">Business Pulse ($99/Month) &amp; Optional Flat-Fee Implementation</h2>
             <p>
-              Ongoing monitoring, human verification, opportunity discovery, and cost comparisons across Protect, Improve, Grow, and Save are offered through Business Pulse ($99/month). Optional execution projects, specialist coordination, or broader managed support are always scoped clearly in writing before any project work begins. Referral or partner compensation never drives our recommendations and is disclosed when relevant.
+              Business Pulse ($99/month) includes one written human-researched Monthly Business Pulse report each month across Protect, Improve, Grow, and Save, plus brief personal heads-ups in between if we spot something time-sensitive. Members may implement any recommendation in-house at no extra cost, and may cancel anytime prior to the next monthly billing cycle.
             </p>
             <p>
-              You will never be billed for any service without your explicit approval of the scope and pricing.
+              Hands-on implementation services (such as websites, online stores, multi-platform menu or listing updates, video or ad production, event/booth applications, supplier quote outreach, SOPs, workflows, or broader managed support) are not included in the $99/month subscription and are always quoted upfront as a separate flat-fee scope approved in writing before work begins. Referral or partner compensation never drives our recommendations and is disclosed when relevant.
             </p>
           </section>
 

@@ -847,6 +847,24 @@ test('Acquisition Engine V1 — Sample Business Pulse Illustrative Disclosures &
     /does not represent an actual customer, verified real-world business findings, or achieved financial results/i
   );
   assert.match(fullPageHtml, /\$99\/month/i);
+  assert.match(fullPageHtml, /instant automated scan/i);
+  assert.match(fullPageHtml, /one written Monthly Business Pulse report/i);
+  assert.match(fullPageHtml, /time-sensitive/i);
+  assert.match(fullPageHtml, /flat project fee/i);
+
+  const pricingPageMod = loadModule<{ default: React.ComponentType }>(
+    'src/app/pricing/page.tsx',
+    {
+      '@/components/SampleBusinessPulse': sampleCompMod,
+      '@/components/ContactLinks': loadModule('src/components/ContactLinks.tsx', {}),
+    }
+  );
+  const pricingHtml = renderToStaticMarkup(React.createElement(pricingPageMod.default));
+  assert.match(pricingHtml, /Free Automated Reality Check/i);
+  assert.match(pricingHtml, /1 written Monthly Business Pulse report/i);
+  assert.match(pricingHtml, /selectively by invitation/i);
+  assert.match(pricingHtml, /flat, pre-approved project fee/i);
+  assert.equal(/mimo|retail choice/i.test(fullPageHtml + pricingHtml), false, 'Real client names must never leak to public pages');
 });
 
 test('Acquisition Engine V1 — Fail-Closed Protection Under Rate-Limit & Database Outages', async () => {

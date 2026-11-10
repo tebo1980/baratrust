@@ -379,11 +379,11 @@ export default function RealityCheckFunnel({
         style={{ position: "relative" }}
       >
         <p className="eyebrow" style={{ marginBottom: "8px" }}>
-          Free Reality Check — Instant Snapshot
+          Free Reality Check — Instant Automated Scan
         </p>
-        <h3 id="intake-title">See What BaraTrust Can Spot Right Now</h3>
+        <h3 id="intake-title">Run a Free Automated Link Scan</h3>
         <p id="intake-note" style={{ marginTop: "8px", marginBottom: "20px" }}>
-          Paste your website, Google Business page, or Facebook business page for a free automated outside-looking-in snapshot.
+          Paste your website, Google Business page, or Facebook business page for an instant software check of surface public signals.
         </p>
 
         <div aria-hidden="true" style={HONEYPOT_STYLE}>
@@ -427,9 +427,9 @@ export default function RealityCheckFunnel({
         </p>
 
         <div className="starter-note" style={{ marginTop: "18px", padding: "14px 16px" }}>
-          <strong style={{ fontSize: "0.9rem" }}>See what we spot now. Keep us watching when ready.</strong>
+          <strong style={{ fontSize: "0.9rem" }}>Automated scan vs. personalized human report:</strong>
           <span style={{ fontSize: "0.86rem" }}>
-            Your free scan checks publicly visible signals right away. Ongoing monitoring and deeper research across Protect, Improve, Grow, and Save live inside Business Pulse ($99/month).
+            This free tool runs an instant automated check on one URL. Personalized human-researched reports (cross-checking menus &amp; hours across platforms, competitors, local events, and supplier value) are delivered monthly inside Business Pulse ($99/month), with optional implementation quoted separately upfront.
           </span>
         </div>
 
@@ -702,13 +702,13 @@ export default function RealityCheckFunnel({
         </div>
       )}
 
-      {/* Clear Explanation of What the Scanner Could and Could Not Determine */}
+      {/* Clear Explanation of Automated Scan vs Personalized Human Report */}
       <div
         className="starter-note"
         style={{ marginTop: "14px", marginBottom: "22px", padding: "14px 16px" }}
       >
         <strong style={{ fontSize: "0.9rem", display: "block" }}>
-          What this free automated scan can and cannot determine:
+          Automated scan vs. personalized human-researched report:
         </strong>
         <p
           style={{
@@ -718,10 +718,10 @@ export default function RealityCheckFunnel({
             color: "var(--muted)",
           }}
         >
-          <strong style={{ display: "inline", color: "var(--text)" }}>Spotted automatically:</strong>{" "}
+          <strong style={{ display: "inline", color: "var(--text)" }}>This Free Automated Scan ($0):</strong>{" "}
           {isHostedProfile
-            ? "Public business name, location signals, category or offerings summary, public page activity, and any direct contact or website links exposed in static HTML."
-            : "Public HTTPS security, mobile setup, search title & metadata, tap-to-call links, contact paths, and structured schema markup."}
+            ? "Instant software check of public business name, location signals, category/offerings text, and links exposed in static HTML on this single page."
+            : "Instant software check of HTTPS security, mobile setup, search metadata, tap-to-call links, contact paths, and schema on this single URL."}
         </p>
         <p
           style={{
@@ -731,8 +731,9 @@ export default function RealityCheckFunnel({
             color: "var(--muted)",
           }}
         >
-          <strong style={{ display: "inline", color: "var(--text)" }}>Requires Business Pulse ($99/month):</strong>{" "}
-          Ongoing monitoring, human verification of flagged items, local competitor shifts, outside growth opportunities (events, partnerships, emerging demand), supplier or vendor value comparisons, and knowing when no action is needed.
+          <strong style={{ display: "inline", color: "var(--text)" }}>Personalized Business Pulse ($99/month):</strong>{" "}
+          Human research by Todd &amp; Noelah across third-party menus/listings, competitors, local events &amp; partnerships, and supplier value — delivered as <strong>1 written Monthly Business Pulse report</strong> (PDF/brief with source links &amp; Decision Cards) plus quick heads-ups in between only if something time-sensitive comes up. Act in-house for $0 extra; hands-on implementation is quoted upfront as a flat project fee.{" "}
+          <em>(Complimentary one-time sample editions are prepared selectively by invitation.)</em>
         </p>
         {snapshot.scoreBreakdown?.browserEvidence?.status === "UNAVAILABLE" && (
           <p
@@ -763,13 +764,13 @@ export default function RealityCheckFunnel({
         >
           <div>
             <p className="eyebrow" style={{ marginBottom: "6px" }}>
-              OPTIONAL HUMAN FOLLOW-UP
+              OPTIONAL PERSONAL CONVERSATION
             </p>
             <h3 style={{ fontSize: "1.25rem", marginBottom: "8px" }}>
               Discuss My Results
             </h3>
             <p style={{ fontSize: "0.92rem", marginTop: 0, marginBottom: 0 }}>
-              Want Todd and Noelah to look over what stood out, answer a straightforward question, or send a saved link to this snapshot? Request personal follow-up below — or book a brief introductory conversation directly.
+              Want to talk through what this automated scan flagged, get a saved link to this snapshot, or ask how a personalized $99/month Business Pulse would work for your business? Share your email below so Todd and Noelah can follow up personally — or book a 15-minute intro call directly.
             </p>
           </div>
 

@@ -138,7 +138,7 @@ export function SampleBusinessPulsePreview({
         padding: '28px',
         borderRadius: '18px',
         border: '1px solid var(--line)',
-        background: 'var(--card)',
+        background: 'var(--surface)',
       }}
     >
       <div
@@ -161,8 +161,8 @@ export function SampleBusinessPulsePreview({
             See how evidence, findings, recommendations, and verification come together
           </h3>
           <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--muted)' }}>
-            <strong>Illustrative example only:</strong> “Riverbend Trail &amp; Provisions” is a fictional Southern Indiana / Louisville specialty retailer created to show what a{' '}
-            <strong>$99/month Business Pulse</strong> looks like — not an actual client or claimed financial result.
+            <strong>Illustrative example only:</strong> “Riverbend Trail &amp; Provisions” is a fictional Southern Indiana / Louisville specialty retailer created to show what a human-researched{' '}
+            <strong>$99/month Monthly Business Pulse</strong> looks like (1 written report/month + urgent heads-ups; optional implementation quoted separately upfront) — not an actual client or claimed financial result.
           </p>
         </div>
         <Link

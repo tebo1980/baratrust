@@ -44,10 +44,10 @@ export default function PricingPage() {
             <ShieldCheck className="w-3.5 h-3.5" /> Protect • Improve • Grow • Save
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white font-serif">
-            See what we spot for free. <span className="text-amber-400">Keep us watching for $99/month.</span>
+            Automated scan for free. <span className="text-amber-400">Human-researched Business Pulse for $99/month.</span>
           </h1>
           <p className="text-slate-300 text-base md:text-lg leading-relaxed">
-            No “book a meeting just to hear the price.” Start with a Free Reality Check to see what BaraTrust can spot from public signals right now — or start Business Pulse for $99/month so BaraTrust keeps watching your business and surrounding market across Southern Indiana, Greater Louisville, and beyond.
+            We keep the difference plain and upfront: the Free Reality Check is an instant automated scan of one public link, while Business Pulse ($99/month) delivers a personalized, human-researched monthly report plus timely heads-ups — with any hands-on implementation quoted separately upfront before work begins.
           </p>
         </div>
 
@@ -59,37 +59,37 @@ export default function PricingPage() {
             <div className="space-y-6">
               <div>
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400">
-                  See What BaraTrust Can Spot Right Now
+                  Instant Software Check · Self-Serve Online
                 </span>
                 <h2 className="text-2xl md:text-3xl font-bold text-white font-serif mt-1">
-                  Free Reality Check
+                  Free Automated Reality Check
                 </h2>
                 <p className="text-slate-400 text-sm mt-2">
-                  An instant automated outside-looking-in snapshot of your public digital presence — with clear transparency on what automation can and cannot see.
+                  An instant automated scan of a single public website or social business page — built to show surface technical and contact signals in seconds, not to replace human research.
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2 pt-2 pb-4 border-b border-slate-800">
                 <span className="text-5xl font-bold text-white font-serif">$0</span>
-                <span className="text-slate-400 font-mono text-sm">/ Free Automated Snapshot</span>
+                <span className="text-slate-400 font-mono text-sm">/ Instant Automated Scan</span>
               </div>
 
               <ul className="space-y-3.5 text-sm text-slate-300">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>Checks publicly visible signals across Digital Presence, Customer Journey, Trust &amp; Reputation, Local Discovery, and Opportunity Capture</span>
+                  <span><strong>Automated single-link check:</strong> Scans public HTTPS security, mobile viewport setup, search title &amp; metadata, tap-to-call links, visible contact paths, and schema</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>Highlights potential concerns, visible strengths, and areas worth deeper human verification</span>
+                  <span><strong>Honest boundaries:</strong> Marks anything automation cannot verify as UNKNOWN instead of inventing fake score penalties</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>Never invents fake penalties when public or browser evidence is incomplete</span>
+                  <span><strong>Not a custom human report:</strong> Does not manually cross-check third-party menus, delivery apps, local competitors, event calendars, or supplier pricing</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-1 flex-shrink-0" />
-                  <span>No email or credit card required to see your initial snapshot, with optional “Discuss My Results” follow-up afterward</span>
+                  <span><strong>Optional human conversation:</strong> No email required to view your scan; request “Discuss My Results” if you want to talk with Todd &amp; Noelah (complimentary personalized sample editions are prepared selectively by invitation only)</span>
                 </li>
               </ul>
             </div>
@@ -99,7 +99,7 @@ export default function PricingPage() {
                 href="/reality-check"
                 className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-base transition-colors flex items-center justify-center gap-2 border border-slate-700"
               >
-                Run Free Reality Check <ArrowRight className="w-5 h-5" />
+                Run Free Automated Scan <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
           </div>
@@ -107,47 +107,47 @@ export default function PricingPage() {
           {/* Card 2: Business Pulse — $99/month */}
           <div className="bg-[#0E1524] border-2 border-amber-500/40 rounded-2xl p-8 md:p-10 shadow-2xl flex flex-col justify-between relative overflow-hidden">
             <div className="absolute top-0 right-0 px-4 py-1.5 bg-amber-500 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-bl-xl">
-              PRIMARY SERVICE
+              HUMAN-RESEARCHED
             </div>
 
             <div className="space-y-6">
               <div>
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
-                  Keep BaraTrust Watching
+                  Personalized Monthly Report + Timely Heads-Ups
                 </span>
                 <h2 className="text-2xl md:text-3xl font-bold text-white font-serif mt-1">
                   Business Pulse
                 </h2>
                 <p className="text-slate-400 text-sm mt-2">
-                  BaraTrust keeps watching your business and surrounding market for ways to Protect, Improve, Grow, and Save — and tells you what actually deserves attention.
+                  Real human research and verification by Todd and Noelah across your business and surrounding local market — organized around Protect, Improve, Grow, and Save.
                 </p>
               </div>
 
               <div className="flex items-baseline gap-2 pt-2 pb-4 border-b border-slate-800">
                 <span className="text-5xl font-bold text-white font-serif">$99</span>
-                <span className="text-slate-400 font-mono text-sm">/ month</span>
+                <span className="text-slate-400 font-mono text-sm">/ month · Cancel anytime</span>
               </div>
 
               <ul className="space-y-3.5 text-sm text-slate-300">
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Protect &amp; Improve:</strong> Ongoing watch for reputation shifts, public-info issues, competitor threats, customer-experience friction, and practical performance gains</span>
+                  <span><strong>1 written Monthly Business Pulse report:</strong> Delivered as a clean, readable PDF / brief with clickable source links, focused Decision Cards, and clear notes on what only you can verify internally — no dashboard to learn</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Grow:</strong> Active search outside and inside your business for events, booths, partnerships, corporate/B2B angles, competitor gaps, local developments, and emerging demand</span>
+                  <span><strong>How often you hear from us:</strong> Once a month for your full written report, plus a quick personal heads-up in between <em>only</em> if something time-sensitive comes up (like an event booth deadline or broken public hours) — never filler spam</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Save:</strong> Supplier alternatives, vendor comparisons, software overlap, and expense checks weighed against quality, reliability, contracts, and switching risk</span>
+                  <span><strong>Real outside-in &amp; market research:</strong> Cross-platform hours, menus, and listings; local competitors; regional events &amp; partnerships; and supplier/vendor comparisons</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Built for healthy businesses too:</strong> You don&apos;t need something broken to benefit — and “No action recommended” is always a legitimate finding</span>
+                  <span><strong>Included in $99/mo ($0 extra to act in-house):</strong> Covers ongoing watch, research, verification, and plain-English recommendations (including “No action recommended” when leaving things alone is smarter)</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
-                  <span><strong>Human judgment, not another dashboard:</strong> Todd and Noelah review what matters so you don&apos;t get stuck learning software</span>
+                  <span><strong>Hands-on implementation costs extra:</strong> Websites, listing/menu fixes, video/ads, booth applications, supplier legwork, SOPs, and workflows are optional and quoted upfront as a flat, pre-approved project fee</span>
                 </li>
               </ul>
             </div>
@@ -170,6 +170,45 @@ export default function PricingPage() {
 
         </div>
 
+        {/* Concrete 3-Column Expectation Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-6 space-y-2.5">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+              1. What Lands in Your Inbox
+            </span>
+            <h3 className="text-lg font-bold text-white font-serif">
+              A written monthly brief with Decision Cards
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Each month you get a clean, owner-ready Business Pulse PDF / brief showing exact public sources checked, prioritized Decision Cards across Protect, Improve, Grow, and Save, what requires your internal confirmation, and where no change is warranted.
+            </p>
+          </div>
+
+          <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-6 space-y-2.5">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+              2. How Often We Reach Out
+            </span>
+            <h3 className="text-lg font-bold text-white font-serif">
+              Monthly cadence + urgent heads-ups only
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              Expect your scheduled Business Pulse once per month. In between, we only message you if we spot something time-sensitive that shouldn&apos;t wait 30 days (like a vendor booth deadline or broken hours) — plus direct replies anytime you have a question.
+            </p>
+          </div>
+
+          <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-6 space-y-2.5">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
+              3. Included vs. Extra Cost
+            </span>
+            <h3 className="text-lg font-bold text-white font-serif">
+              $99/mo for intelligence · Flat quotes for execution
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed">
+              $99/month covers all ongoing monitoring, human research, and recommendations — implement any of them yourself for $0 extra. Hands-on execution is never bundled silently or billed hourly by surprise; we quote a flat project fee upfront for your sign-off first.
+            </p>
+          </div>
+        </div>
+
         {/* Illustrative Sample Business Pulse */}
         <SampleBusinessPulsePreview theme="dark" />
 
@@ -177,13 +216,13 @@ export default function PricingPage() {
         <div className="bg-[#0A101D] border border-slate-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-3xl">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400">
-              Optional Execution &amp; Broader Managed Support
+              What Implementation Services Cost Extra (Optional &amp; Pre-Approved)
             </span>
             <h3 className="text-xl font-bold text-white font-serif">
-              Act only when something is worth doing.
+              Act in-house for $0 extra — or get an upfront flat quote before we build anything.
             </h3>
             <p className="text-sm text-slate-300 leading-relaxed">
-              When Business Pulse identifies an opportunity or fix worth acting on, you can handle it in-house, ask BaraTrust to scope and execute it directly (websites, online stores, video, campaigns, booth prep, supplier quotes, SOPs, workflows), have us coordinate a qualified specialist, or explore broader managed support when appropriate — always with clear scope approved before any project work begins.
+              Your $99/month Business Pulse never locks you into project fees. Whenever a report surfaces something worth acting on, you can run with it yourself for $0 extra, or ask BaraTrust for a separate, flat-fee project quote (websites, online stores, listing/menu cleanups, short-form video &amp; campaigns, event/booth applications, supplier quote legwork, SOPs, or workflow setup) — or specialist coordination — approved in writing before any work begins.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">

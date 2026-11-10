@@ -201,7 +201,7 @@ export default function RealityCheckFunnel({
     trackPublicConversionEvent("reality_check_started", analyticsSurface);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 18000);
+    const timeout = setTimeout(() => controller.abort(), 29000);
 
     try {
       const res = await fetch("/api/reality-check", {

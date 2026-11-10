@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+
 import { 
   Search, 
   ExternalLink, 
@@ -329,6 +330,7 @@ export default function ClientReviewQueue({ items }: { items: QueueItem[] }) {
                     {/* Submitted Date */}
                     <td className="py-4 px-4 align-top text-[#bac9bf] text-[11px]">
                       {new Date(item.createdAt).toLocaleDateString("en-US", {
+                        timeZone: "America/New_York",
                         month: "short",
                         day: "numeric",
                         year: "numeric",

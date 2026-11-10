@@ -1,4 +1,4 @@
-import type { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,16 +7,16 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         disallow: [
-          '/internal/', 
-          '/api/', 
-          '/preview/', 
-          '/report/', 
+          '/internal/',
+          '/api/',
+          '/preview/',
+          '/report/',
           '/reality-check/*/questionnaire',
-          '/dashboard/'
+          '/dashboard/',
         ],
       },
     ],
-    sitemap: 'https://baratrust.com/sitemap.xml',
-    host: 'https://baratrust.com',
-  }
+    sitemap: 'https://www.baratrust.com/sitemap.xml',
+    host: 'https://www.baratrust.com',
+  };
 }

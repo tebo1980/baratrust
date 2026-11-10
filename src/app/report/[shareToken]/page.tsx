@@ -221,7 +221,7 @@ export default async function PublishedRealityCheckReportPage({
 
           <div className="flex items-center gap-4 text-xs font-mono">
             <span className="text-slate-400 hidden sm:inline print:inline">
-              {publishedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              {publishedDate.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric" })}
             </span>
             <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full font-bold print:border-black print:text-black">
               ✓ VERIFIED REPORT

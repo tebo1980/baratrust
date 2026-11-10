@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  formatEasternDate,
+  formatEasternDateTime,
+  formatEasternTime,
+} from "@/lib/format-date";
 import { 
   Save, 
   ExternalLink, 
@@ -223,7 +228,7 @@ export default function ReviewStudioEditor({
   const [generating, setGenerating] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(
-    existingReview?.updatedAt ? new Date(existingReview.updatedAt).toLocaleTimeString() : null
+    existingReview?.updatedAt ? formatEasternTime(existingReview.updatedAt) : null
   );
   const [saveSuccessMsg, setSaveSuccessMsg] = useState("");
   const [saveErrorMsg, setSaveErrorMsg] = useState("");
@@ -424,7 +429,7 @@ export default function ReviewStudioEditor({
 
       setReviewStatus(targetStatus);
       setRealityCheckStatus(targetCheckStatus);
-      const timeStr = new Date().toLocaleTimeString();
+      const timeStr = formatEasternTime(new Date());
       setLastSaved(timeStr);
       setSaveSuccessMsg(`Review draft saved at ${timeStr}`);
       setTimeout(() => setSaveSuccessMsg(""), 5000);
@@ -853,7 +858,7 @@ export default function ReviewStudioEditor({
                       <span>
                         Captured:{" "}
                         {browserEvidence.capturedAt
-                          ? new Date(browserEvidence.capturedAt).toLocaleString()
+                          ? formatEasternDateTime(browserEvidence.capturedAt)
                           : "—"}
                       </span>
                       {typeof browserEvidence.totalDurationMs === "number" && (
@@ -1090,7 +1095,7 @@ export default function ReviewStudioEditor({
                 </span>
                 {ownerResponse?.submittedAt && (
                   <span className="text-[11px] text-[#bac9bf]">
-                    {new Date(ownerResponse.submittedAt).toLocaleDateString()}
+                    {formatEasternDate(ownerResponse.submittedAt)}
                   </span>
                 )}
               </div>
@@ -2613,7 +2618,7 @@ Client Edge: Higher authentic review rating and direct owner trust."
               {reportDraft && (
                 <div className="pt-4 border-t border-[#2c3e33] flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="text-xs text-[#bac9bf]">
-                    {reportAudit?.lastReportEditAt ? `Report edited: ${new Date(reportAudit.lastReportEditAt).toLocaleTimeString()}` : "Remember to save your report draft."}
+                    {reportAudit?.lastReportEditAt ? `Report edited: ${formatEasternTime(reportAudit.lastReportEditAt)}` : "Remember to save your report draft."}
                   </div>
 
                   <div className="flex items-center gap-3 w-full sm:w-auto">

@@ -8,6 +8,9 @@ import { resetRateLimitStoreForTests, FOLLOWUP_CLAIM_COOKIE_NAME } from '../src/
 import { buildSafeAnalyticsPayload } from '../src/lib/analytics';
 import { buildManualEmailComposeLinks } from '../src/lib/acquisition/service';
 import { SampleBusinessPulsePreview, ILLUSTRATIVE_RETAIL_PULSE_ITEMS } from '../src/components/SampleBusinessPulse';
+import { formatEasternDate, formatEasternDateTime, formatEasternTime } from '../src/lib/format-date';
+import sitemap from '../src/app/sitemap';
+import robots from '../src/app/robots';
 import { loadModule } from './helpers/publication-harness';
 import { createAcquisitionTestHarness } from './helpers/acquisition-harness';
 
@@ -1004,6 +1007,108 @@ test('Acquisition Engine V1 — Fail-Closed Protection Under Rate-Limit & Databa
     harness.setDbFailureMode('none');
     delete process.env.TEST_ENFORCE_RATE_LIMIT;
     resetRateLimitStoreForTests();
+    harness.close();
+  }
+});
+
+test('Error Scan Regressions — Hydration-Safe Dates, Canonical Sitemap, & Stripe Payment Link First-Time Customer Webhook', async () => {
+  // 1. Late-evening UTC timestamp (2026-11-04T03:35:46.987Z = Nov 3, 10:35:46 PM EST) formats identically on UTC server & EST client
+  const eveningUtc = '2026-11-04T03:35:46.987Z';
+  assert.equal(formatEasternDate(eveningUtc), 'Nov 3, 2026');
+  assert.match(formatEasternTime(eveningUtc), /10:35:46\s*PM ET/);
+  assert.match(formatEasternDateTime(eveningUtc), /Nov 3, 2026.*10:35\s*PM ET/);
+
+  // 2. Sitemap & robots emit canonical https://www.baratrust.com URLs and include /pricing + /sample-pulse
+  const sm = sitemap();
+  const smUrls = sm.map((entry) => entry.url);
+  assert.ok(smUrls.every((u) => u.startsWith('https://www.baratrust.com/')), 'All sitemap URLs must use canonical www host');
+  assert.ok(smUrls.includes('https://www.baratrust.com/pricing'));
+  assert.ok(smUrls.includes('https://www.baratrust.com/sample-pulse'));
+
+  const rb = robots();
+  assert.equal(rb.sitemap, 'https://www.baratrust.com/sitemap.xml');
+  assert.equal(rb.host, 'https://www.baratrust.com');
+
+  // 3. Stripe webhook creates active Business Pulse record for first-time Payment Link buyer & syncs matching prospect
+  const prevSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_error_scan';
+  const harness = await createAcquisitionTestHarness();
+
+  try {
+    // Seed a researched prospect matching the buyer's email
+    const createRes = await harness.routes.acquisition.POST(
+      new Request('https://baratrust.test/api/internal/acquisition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: 'New Albany Bakery Co',
+          location: 'New Albany, IN',
+          industry: 'Bakery',
+          contactMethod: 'EMAIL',
+          contactValue: 'owner@newalbanybakery.example',
+          permissionStatus: 'PUBLIC_BUSINESS_CONTACT',
+        }),
+      })
+    );
+    assert.equal(createRes.status, 201);
+
+    const stripeWebhookRoute = loadModule<typeof import('../src/app/api/webhooks/stripe/route')>(
+      'src/app/api/webhooks/stripe/route.ts',
+      {
+        '@/db': { db: harness.db },
+        '../../../../lib/stripe/client': {
+          stripe: {
+            webhooks: {
+              constructEvent: (rawBody: string) => JSON.parse(rawBody),
+            },
+          },
+        },
+      }
+    );
+
+    const checkoutPayload = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_live_test_pulse_001',
+          customer: 'cus_test_pulse_001',
+          subscription: 'sub_test_pulse_001',
+          customer_details: {
+            email: 'Owner@NewAlbanyBakery.example',
+            name: 'claire baker',
+          },
+        },
+      },
+    };
+
+    const webhookRes = await stripeWebhookRoute.POST(
+      new Request('https://baratrust.test/api/webhooks/stripe', {
+        method: 'POST',
+        headers: { 'stripe-signature': 't=123,v1=valid' },
+        body: JSON.stringify(checkoutPayload),
+      })
+    );
+    assert.equal(webhookRes.status, 200);
+
+    // Retry delivery must be 100% idempotent
+    const retryRes = await stripeWebhookRoute.POST(
+      new Request('https://baratrust.test/api/webhooks/stripe', {
+        method: 'POST',
+        headers: { 'stripe-signature': 't=123,v1=valid' },
+        body: JSON.stringify(checkoutPayload),
+      })
+    );
+    assert.equal(retryRes.status, 200);
+
+    const wsRes = await harness.routes.acquisition.GET();
+    const wsJson = await wsRes.json();
+    assert.equal(wsJson.prospects[0].stage, 'CUSTOMER_ACQUIRED');
+    assert.ok(wsJson.prospects[0].convertedToPulseAt);
+    // Deduplicated across businesses + acquisition_prospects -> 1 (not 0 and not 2!)
+    assert.equal(wsJson.measurements.businessPulseCustomersAcquired, 1);
+  } finally {
+    if (prevSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+    else process.env.STRIPE_WEBHOOK_SECRET = prevSecret;
     harness.close();
   }
 });

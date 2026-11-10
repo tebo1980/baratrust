@@ -706,16 +706,35 @@ export async function synthesizeReportWithGemini(
   const prompt = buildEvidencePrompt(pkg);
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: activeModel,
-      systemInstruction: SYSTEM_INSTRUCTION,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-      },
-    });
+    let resolvedModelName = activeModel;
+    const invokeModel = async (candidateModel: string) => {
+      const model = genAI.getGenerativeModel({
+        model: candidateModel,
+        systemInstruction: SYSTEM_INSTRUCTION,
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.4,
+        },
+      });
+      return model.generateContent(prompt);
+    };
 
-    const result = await model.generateContent(prompt);
+    let result;
+    try {
+      result = await invokeModel(activeModel);
+    } catch (primaryErr: any) {
+      const msg = String(primaryErr?.message || "");
+      if (
+        activeModel !== "gemini-2.5-flash" &&
+        (primaryErr?.status === 404 || /404|not found|retired|deprecated/i.test(msg))
+      ) {
+        resolvedModelName = "gemini-2.5-flash";
+        result = await invokeModel("gemini-2.5-flash");
+      } else {
+        throw primaryErr;
+      }
+    }
+
     const text = result.response.text();
     const parsed = JSON.parse(text) as RealityCheckReportContent;
 
@@ -746,7 +765,7 @@ export async function synthesizeReportWithGemini(
         ghostFootprintSummary: hiFallbacks.ghostFootprintSummary ? parsed.ghostFootprintSummary || hiFallbacks.ghostFootprintSummary : "",
         closingNote: parsed.closingNote || "",
       },
-      modelUsed: activeModel,
+      modelUsed: resolvedModelName,
       generatedAt,
     };
   } catch (err: any) {

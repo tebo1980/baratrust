@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
+import { formatEasternDate } from "@/lib/format-date";
 import {
   Sparkles,
   CheckCircle2,
@@ -205,42 +206,38 @@ export default function AcquisitionWorkspace({
   const [noteSummary, setNoteSummary] = useState("");
   const [optOutReasonInput, setOptOutReasonInput] = useState("");
 
-  useEffect(() => {
-    if (!selectedProspect) return;
-    setEditBusinessName(selectedProspect.businessName);
-    setEditLocation(selectedProspect.location);
-    setEditIndustry(selectedProspect.industry);
-    setEditWebsiteUrl(selectedProspect.websiteUrl || "");
-    setEditSources(selectedProspect.sourceUrls || []);
-    setEditResearchNotes(selectedProspect.researchNotes || "");
+  const hydratedProspectIdRef = useRef<string | null>(null);
+
+  const hydrateFormFromProspect = useCallback((p: SerializedProspect) => {
+    hydratedProspectIdRef.current = p.id;
+    setEditBusinessName(p.businessName);
+    setEditLocation(p.location);
+    setEditIndustry(p.industry);
+    setEditWebsiteUrl(p.websiteUrl || "");
+    setEditSources(p.sourceUrls || []);
+    setNewSourceLabel("");
+    setNewSourceUrl("");
+    setEditResearchNotes(p.researchNotes || "");
     setEditFitScore(
-      selectedProspect.fitScore !== null && selectedProspect.fitScore !== undefined
-        ? String(selectedProspect.fitScore)
-        : ""
+      p.fitScore !== null && p.fitScore !== undefined ? String(p.fitScore) : ""
     );
-    setEditFitExplanation(selectedProspect.fitExplanation || "");
-    setEditPrimaryPillar(selectedProspect.primaryPillar || "");
-    setEditEvidenceObs(selectedProspect.evidenceObservation || "");
-    setEditDmName(selectedProspect.decisionMakerName || "");
-    setEditDmRole(selectedProspect.decisionMakerRole || "");
-    setEditDmSource(selectedProspect.decisionMakerSource || "");
-    setEditContactMethod(
-      (selectedProspect.contactMethod as ProspectContactMethod) || "NONE"
-    );
-    setEditContactValue(selectedProspect.contactValue || "");
+    setEditFitExplanation(p.fitExplanation || "");
+    setEditPrimaryPillar(p.primaryPillar || "");
+    setEditEvidenceObs(p.evidenceObservation || "");
+    setEditDmName(p.decisionMakerName || "");
+    setEditDmRole(p.decisionMakerRole || "");
+    setEditDmSource(p.decisionMakerSource || "");
+    setEditContactMethod((p.contactMethod as ProspectContactMethod) || "NONE");
+    setEditContactValue(p.contactValue || "");
     setEditPermission(
-      (selectedProspect.permissionStatus as ProspectPermissionStatus) ||
-        "NEEDS_VERIFICATION"
+      (p.permissionStatus as ProspectPermissionStatus) || "NEEDS_VERIFICATION"
     );
-    setEditNextFollowUp(toDateInputValue(selectedProspect.nextFollowUpAt));
-    setEditSubject(selectedProspect.outreachSubject || "");
-    setEditDraft(selectedProspect.outreachDraft || "");
-    if (
-      selectedProspect.contactMethod &&
-      selectedProspect.contactMethod !== "NONE"
-    ) {
+    setEditNextFollowUp(toDateInputValue(p.nextFollowUpAt));
+    setEditSubject(p.outreachSubject || "");
+    setEditDraft(p.outreachDraft || "");
+    if (p.contactMethod && p.contactMethod !== "NONE") {
       setSentChannel(
-        selectedProspect.contactMethod as
+        p.contactMethod as
           | "EMAIL"
           | "PHONE"
           | "IN_PERSON"
@@ -250,9 +247,20 @@ export default function AcquisitionWorkspace({
     } else {
       setSentChannel("EMAIL");
     }
-  }, [selectedProspect]);
+  }, []);
 
-  const refreshAll = async () => {
+  // Only auto-hydrate when switching to a different selected prospect ID
+  useEffect(() => {
+    if (!selectedProspect) {
+      hydratedProspectIdRef.current = null;
+      return;
+    }
+    if (hydratedProspectIdRef.current !== selectedProspect.id) {
+      hydrateFormFromProspect(selectedProspect);
+    }
+  }, [selectedProspect, hydrateFormFromProspect]);
+
+  const refreshMetricsAndQueue = async () => {
     try {
       const res = await fetch("/api/internal/acquisition", { cache: "no-store" });
       if (!res.ok) return;
@@ -260,7 +268,6 @@ export default function AcquisitionWorkspace({
       if (data.success) {
         setMeasurements(data.measurements);
         setDiscussLeads(data.unimportedDiscussLeads || []);
-        setProspects(data.prospects || []);
       }
     } catch {
       // Non-blocking
@@ -273,7 +280,8 @@ export default function AcquisitionWorkspace({
       if (!exists) return [updated, ...prev];
       return prev.map((p) => (p.id === updated.id ? updated : p));
     });
-    void refreshAll();
+    hydrateFormFromProspect(updated);
+    void refreshMetricsAndQueue();
   };
 
   const filteredProspects = useMemo(() => {
@@ -386,11 +394,108 @@ export default function AcquisitionWorkspace({
     }
   };
 
+  const collectMergedSources = (): ProspectSourceUrl[] => {
+    if (newSourceLabel.trim() && newSourceUrl.trim()) {
+      const formattedUrl = /^https?:\/\//i.test(newSourceUrl.trim())
+        ? newSourceUrl.trim()
+        : `https://${newSourceUrl.trim()}`;
+      const merged = [
+        ...editSources,
+        { label: newSourceLabel.trim(), url: formattedUrl },
+      ];
+      setEditSources(merged);
+      setNewSourceLabel("");
+      setNewSourceUrl("");
+      return merged;
+    }
+    return editSources;
+  };
+
+  const buildUpdateFieldsPayload = (sourcesToSave: ProspectSourceUrl[]) => {
+    const parsedScore =
+      editFitScore.trim() === "" ? null : Number.parseInt(editFitScore, 10);
+    return {
+      action: "UPDATE_FIELDS" as const,
+      businessName: editBusinessName,
+      location: editLocation,
+      industry: editIndustry,
+      websiteUrl: editWebsiteUrl || null,
+      sourceUrls: sourcesToSave,
+      researchNotes: editResearchNotes || null,
+      fitScore: Number.isFinite(parsedScore) ? parsedScore : null,
+      fitExplanation: editFitExplanation || null,
+      primaryPillar: (editPrimaryPillar as AcquisitionPillar) || null,
+      evidenceObservation: editEvidenceObs || null,
+      decisionMakerName: editDmName || null,
+      decisionMakerRole: editDmRole || null,
+      decisionMakerSource: editDmSource || null,
+      contactMethod: editContactMethod,
+      contactValue: editContactValue || null,
+      permissionStatus: editPermission,
+      outreachSubject: editSubject || null,
+      outreachDraft: editDraft || null,
+      nextFollowUpAt: editNextFollowUp
+        ? new Date(`${editNextFollowUp}T13:00:00Z`).toISOString()
+        : null,
+    };
+  };
+
+  const hasDirtyNonDraftFields = (sourcesToCheck: ProspectSourceUrl[]): boolean => {
+    if (!selectedProspect) return false;
+    const savedScoreStr =
+      selectedProspect.fitScore !== null && selectedProspect.fitScore !== undefined
+        ? String(selectedProspect.fitScore)
+        : "";
+    return (
+      selectedProspect.businessName !== editBusinessName ||
+      selectedProspect.location !== editLocation ||
+      selectedProspect.industry !== editIndustry ||
+      (selectedProspect.websiteUrl || "") !== editWebsiteUrl ||
+      JSON.stringify(selectedProspect.sourceUrls || []) !==
+        JSON.stringify(sourcesToCheck) ||
+      (selectedProspect.researchNotes || "") !== editResearchNotes ||
+      savedScoreStr !== editFitScore.trim() ||
+      (selectedProspect.fitExplanation || "") !== editFitExplanation ||
+      (selectedProspect.primaryPillar || "") !== editPrimaryPillar ||
+      (selectedProspect.evidenceObservation || "") !== editEvidenceObs ||
+      (selectedProspect.decisionMakerName || "") !== editDmName ||
+      (selectedProspect.decisionMakerRole || "") !== editDmRole ||
+      (selectedProspect.decisionMakerSource || "") !== editDmSource ||
+      (selectedProspect.contactMethod || "NONE") !== editContactMethod ||
+      (selectedProspect.contactValue || "") !== editContactValue ||
+      (selectedProspect.permissionStatus || "NEEDS_VERIFICATION") !==
+        editPermission ||
+      toDateInputValue(selectedProspect.nextFollowUpAt) !== editNextFollowUp
+    );
+  };
+
   const runPatchAction = async (payload: Record<string, unknown>, okMessage: string) => {
     if (!selectedProspect) return;
     setBusyAction(String(payload.action));
     setStatusBanner(null);
     try {
+      // Persist any unsaved research/contact/pillar edits before VERIFY_ASSESSMENT or APPROVE_DRAFT so nothing typed is lost
+      if (
+        payload.action === "VERIFY_ASSESSMENT" ||
+        payload.action === "APPROVE_DRAFT"
+      ) {
+        const mergedSources = collectMergedSources();
+        if (hasDirtyNonDraftFields(mergedSources)) {
+          const preSaveRes = await fetch(
+            `/api/internal/acquisition/${selectedProspect.id}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(buildUpdateFieldsPayload(mergedSources)),
+            }
+          );
+          const preSaveData = await preSaveRes.json();
+          if (!preSaveRes.ok || !preSaveData.success) {
+            throw new Error(preSaveData.error || "Could not save pending field edits.");
+          }
+        }
+      }
+
       const res = await fetch(`/api/internal/acquisition/${selectedProspect.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -414,6 +519,23 @@ export default function AcquisitionWorkspace({
     setBusyAction("AI_ASSIST");
     setStatusBanner(null);
     try {
+      // Auto-save any unsaved research notes, attached source URLs, or contact edits BEFORE running AI Assist
+      const mergedSources = collectMergedSources();
+      if (hasDirtyNonDraftFields(mergedSources) || hasUnsavedDraftChanges) {
+        const preSaveRes = await fetch(
+          `/api/internal/acquisition/${selectedProspect.id}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(buildUpdateFieldsPayload(mergedSources)),
+          }
+        );
+        const preSaveData = await preSaveRes.json();
+        if (!preSaveRes.ok || !preSaveData.success) {
+          throw new Error(preSaveData.error || "Could not save research notes before AI assist.");
+        }
+      }
+
       const res = await fetch(
         `/api/internal/acquisition/${selectedProspect.id}/assist`,
         { method: "POST" }
@@ -435,33 +557,9 @@ export default function AcquisitionWorkspace({
   };
 
   const handleSaveFields = () => {
-    const parsedScore =
-      editFitScore.trim() === "" ? null : Number.parseInt(editFitScore, 10);
+    const mergedSources = collectMergedSources();
     void runPatchAction(
-      {
-        action: "UPDATE_FIELDS",
-        businessName: editBusinessName,
-        location: editLocation,
-        industry: editIndustry,
-        websiteUrl: editWebsiteUrl || null,
-        sourceUrls: editSources,
-        researchNotes: editResearchNotes || null,
-        fitScore: Number.isFinite(parsedScore) ? parsedScore : null,
-        fitExplanation: editFitExplanation || null,
-        primaryPillar: (editPrimaryPillar as AcquisitionPillar) || null,
-        evidenceObservation: editEvidenceObs || null,
-        decisionMakerName: editDmName || null,
-        decisionMakerRole: editDmRole || null,
-        decisionMakerSource: editDmSource || null,
-        contactMethod: editContactMethod,
-        contactValue: editContactValue || null,
-        permissionStatus: editPermission,
-        outreachSubject: editSubject || null,
-        outreachDraft: editDraft || null,
-        nextFollowUpAt: editNextFollowUp
-          ? new Date(`${editNextFollowUp}T13:00:00Z`).toISOString()
-          : null,
-      },
+      buildUpdateFieldsPayload(mergedSources),
       hasUnsavedDraftChanges &&
         selectedProspect?.draftStatus === "APPROVED_FOR_OUTREACH"
         ? "Saved changes. Draft approval was reset because message wording changed — re-approve when ready."
@@ -1570,7 +1668,7 @@ export default function AcquisitionWorkspace({
                         </div>
                       </div>
                       <span className="text-[11px] text-[#8fa396] font-mono whitespace-nowrap">
-                        {new Date(log.createdAt).toLocaleDateString()}
+                        {formatEasternDate(log.createdAt)}
                       </span>
                     </div>
                   ))}

@@ -191,32 +191,74 @@ export default function OwnerQuestionnairePage() {
             Answer any questions below that are helpful so Todd and Noelah understand your business context across Protect, Improve, Grow, and Save.
           </p>
 
-          <div
-            className="starter-note"
-            style={{
-              marginTop: "20px",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "12px",
-              padding: "16px 18px",
-            }}
-          >
-            <ShieldCheck
-              className="w-5 h-5 flex-shrink-0 mt-0.5"
-              style={{ color: "var(--mint)" }}
-            />
-            <div>
-              <strong style={{ fontSize: "0.94rem", color: "var(--ink)" }}>
-                Your Reality Check snapshot is already saved
-              </strong>
-              <span style={{ fontSize: "0.86rem", lineHeight: 1.55, marginTop: "4px" }}>
-                Completing this page is completely optional. You can answer whichever questions are relevant, leave any blank, or skip this step altogether.
-              </span>
+          {business && (
+            <div
+              className="starter-note"
+              style={{
+                marginTop: "20px",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "12px",
+                padding: "16px 18px",
+              }}
+            >
+              <ShieldCheck
+                className="w-5 h-5 flex-shrink-0 mt-0.5"
+                style={{ color: "var(--mint)" }}
+              />
+              <div>
+                <strong style={{ fontSize: "0.94rem", color: "var(--ink)" }}>
+                  Your Reality Check snapshot is already saved
+                </strong>
+                <span style={{ fontSize: "0.86rem", lineHeight: 1.55, marginTop: "4px" }}>
+                  Completing this page is completely optional. You can answer whichever questions are relevant, leave any blank, or skip this step altogether.
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {business && !business.humanReviewRequested ? (
+        {!business ? (
+          <div className="lead-form" style={{ textAlign: "center", padding: "36px 28px" }}>
+            <div
+              style={{
+                width: "52px",
+                height: "52px",
+                borderRadius: "999px",
+                background: "rgba(248, 113, 113, 0.12)",
+                border: "1px solid rgba(248, 113, 113, 0.35)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                color: "#fca5a5",
+              }}
+            >
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <h2 style={{ fontSize: "1.65rem", marginBottom: "10px" }}>
+              Snapshot Link Not Found
+            </h2>
+            <p
+              style={{
+                fontSize: "0.95rem",
+                maxWidth: "520px",
+                margin: "0 auto 22px",
+                color: "var(--muted)",
+              }}
+            >
+              {errorMsg || "We couldn’t find a saved Reality Check snapshot matching this link. You can run a fresh Free Reality Check anytime with no email required."}
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px" }}>
+              <Link href="/reality-check" className="btn primary" style={{ gap: "8px" }}>
+                Run Free Reality Check <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link href="/" className="btn secondary">
+                Return to Homepage
+              </Link>
+            </div>
+          </div>
+        ) : !business.humanReviewRequested ? (
           <div className="lead-form" style={{ textAlign: "center", padding: "36px 28px" }}>
             <h2 style={{ fontSize: "1.65rem", marginBottom: "10px" }}>
               Request Follow-Up With Your Email First

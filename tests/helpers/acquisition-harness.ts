@@ -50,7 +50,9 @@ export async function createAcquisitionTestHarness() {
       if (sqlType === 'integer' || sqlType === 'boolean') {
         return col.primary ? `"${col.name}" INTEGER PRIMARY KEY` : `"${col.name}" INTEGER`;
       }
-      return col.primary ? `"${col.name}" TEXT PRIMARY KEY` : `"${col.name}" TEXT`;
+      if (col.primary) return `"${col.name}" TEXT PRIMARY KEY`;
+      if (col.isUnique) return `"${col.name}" TEXT UNIQUE`;
+      return `"${col.name}" TEXT`;
     });
     storage.exec(`CREATE TABLE "${getTableName(table)}" (${cols.join(', ')})`);
   }

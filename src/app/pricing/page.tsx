@@ -163,7 +163,7 @@ export default function PricingPage() {
                 surface="pricing_page"
                 className="w-full py-3 bg-slate-800/80 hover:bg-slate-800 text-slate-200 font-semibold rounded-lg text-sm transition-colors flex items-center justify-center border border-slate-700"
               >
-                Want to talk first? Book a 15-Minute Intro Call
+                Book a Free 15-Minute Conversation
               </BookingLink>
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function PricingPage() {
               surface="pricing_page"
               className="px-5 py-3 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-semibold rounded-lg text-sm transition-colors border border-amber-500/30 whitespace-nowrap text-center"
             >
-              Book Intro Conversation
+              Book a Free 15-Minute Conversation
             </BookingLink>
             <a
               href="mailto:todd@baratrust.com"

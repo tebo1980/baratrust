@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useCallback, useRef, useState } from 'react'
-import { EmailLink, SmsLink, CONTACT_PHONE_DISPLAY } from '@/components/ContactLinks'
+import { BookingLink, EmailLink, SmsLink, CONTACT_PHONE_DISPLAY } from '@/components/ContactLinks'
 
 export default function HealthScoreClient() {
   const initialized = useRef(false)
@@ -149,7 +149,7 @@ export default function HealthScoreClient() {
       <ScoreLeadCapture />
 
       <div className="cta-section">
-        <a href="https://calendly.com/tebo1980/baratrust-consultation" target="_blank" rel="noopener noreferrer" className="cta-btn">Get a Free BaraTrust Consultation</a>
+        <BookingLink surface="hero" className="cta-btn">Book a Free 15-Minute Conversation</BookingLink>
         <div className="cta-sub">
           No pitch. No pressure. Just an honest look at what your business needs.<br />
           Or text us at <SmsLink>{CONTACT_PHONE_DISPLAY}</SmsLink> &nbsp;·&nbsp; <EmailLink />

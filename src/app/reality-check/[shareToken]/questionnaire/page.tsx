@@ -314,7 +314,7 @@ export default function OwnerQuestionnairePage() {
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "12px" }}>
               <BookingLink surface="questionnaire_page" className="btn primary">
-                Book an Intro Conversation
+                Book a Free 15-Minute Conversation
               </BookingLink>
               <a href="mailto:todd@baratrust.com" className="btn secondary">
                 Email Todd Directly
@@ -390,7 +390,7 @@ export default function OwnerQuestionnairePage() {
               }}
             >
               <BookingLink surface="questionnaire_page" className="btn secondary">
-                Book an Intro Conversation
+                Book a Free 15-Minute Conversation
               </BookingLink>
               <PulseCheckoutLink surface="questionnaire_page" className="btn primary">
                 Start Business Pulse — $99/month

@@ -42,7 +42,7 @@ export default function ThankYouPage() {
         <p className="section-intro">Todd and Noelah have your information and will follow up with your saved snapshot link and straightforward next steps if you want BaraTrust to keep watching your business through Business Pulse ($99/month).</p>
         <div className="cta-row">
           <PulseCheckoutLink surface="thank_you_page" className="btn primary">Start Business Pulse — $99/month</PulseCheckoutLink>
-          <BookingLink surface="thank_you_page" className="btn secondary">Book an Intro Conversation</BookingLink>
+          <BookingLink surface="thank_you_page" className="btn secondary">Book a Free 15-Minute Conversation</BookingLink>
           <Link className="btn secondary" href="/">Back to BaraTrust</Link>
         </div>
       </div></section></main>

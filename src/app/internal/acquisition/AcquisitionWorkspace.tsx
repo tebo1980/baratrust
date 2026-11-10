@@ -639,7 +639,7 @@ export default function AcquisitionWorkspace({
             </span>
           </div>
           <div className="text-[11px] text-[#8fa396] mt-1">
-            Unconfirmed Calendly clicks: {measurements.unconfirmedBookingClicks}
+            Unconfirmed booking clicks: {measurements.unconfirmedBookingClicks}
           </div>
         </div>
 
@@ -1681,7 +1681,7 @@ export default function AcquisitionWorkspace({
 
       <div className="text-[11px] text-[#8fa396] flex flex-wrap items-center justify-between gap-2 pt-2">
         <span>
-          Safeguards active: Human approval required before outreach · Opt-outs enforced · No SMS or automated outbound sending · Calendly clicks separated from confirmed meetings.
+          Safeguards active: Human approval required before outreach · Opt-outs enforced · No SMS or automated outbound sending · Booking clicks separated from confirmed meetings.
         </span>
         <Link href="/internal/reviews" className="text-[#7be0b8] hover:underline">
           Open Reality Check Review Studio &rarr;

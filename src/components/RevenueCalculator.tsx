@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { BookingLink } from '@/components/ContactLinks'
 
 export default function RevenueCalculator() {
   // 1. Manage inputs as "State" instead of searching the DOM
@@ -94,9 +95,9 @@ export default function RevenueCalculator() {
         </div>
       </div>
 
-      <button className="calc-cta" onClick={() => window.open('https://calendly.com/tebo1980/baratrust-consultation', '_blank')}>
-        Stop Leaving Money Behind — Book Free Call
-      </button>
+      <BookingLink surface="hero" className="calc-cta" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+        Book a Free 15-Minute Conversation
+      </BookingLink>
     </div>
   )
 }

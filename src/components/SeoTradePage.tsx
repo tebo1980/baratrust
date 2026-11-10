@@ -54,7 +54,7 @@ export default function SeoTradePage({
           <p className="hero-sub" style={{ maxWidth: '580px' }}>{subtext}</p>
           <div className="hero-buttons">
             <a href="/reality-check" className="btn-primary">Run Free Reality Check</a>
-            <BookingLink surface="trade_page" className="btn-secondary">Talk With Todd</BookingLink>
+            <BookingLink surface="trade_page" className="btn-secondary">Book a Free 15-Minute Conversation</BookingLink>
           </div>
           <div className="hero-proof">
             <div className="proof-item"><span className="proof-check">{'\u2713'}</span> Protect • Improve • Grow • Save</div>
@@ -132,7 +132,7 @@ export default function SeoTradePage({
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '16px' }}>
             <a href="/reality-check" className="btn-primary">Run Free Reality Check</a>
             <PulseCheckoutLink surface="trade_page" className="btn-secondary">Start Business Pulse — $99/mo</PulseCheckoutLink>
-            <BookingLink surface="trade_page" className="btn-secondary">Book Intro Call</BookingLink>
+            <BookingLink surface="trade_page" className="btn-secondary">Book a Free 15-Minute Conversation</BookingLink>
             <PhoneLink className="btn-secondary">Call {CONTACT_PHONE_DISPLAY}</PhoneLink>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--cream-muted)' }}>

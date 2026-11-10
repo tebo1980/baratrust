@@ -54,7 +54,7 @@ export default function SamplePulsePage() {
             <Link href="/pricing">Business Pulse · $99/mo</Link>
             <Link href="/reality-check">Free Reality Check</Link>
             <BookingLink surface="nav" className="nav-cta">
-              Book Intro Chat
+              Book a Free 15-Minute Conversation
             </BookingLink>
             <button
               id="theme-toggle"
@@ -181,7 +181,7 @@ export default function SamplePulsePage() {
                   Start Business Pulse — $99/month
                 </PulseCheckoutLink>
                 <BookingLink surface="sample_pulse_page" className="btn secondary">
-                  Book an Intro Conversation
+                  Book a Free 15-Minute Conversation
                 </BookingLink>
               </div>
             </div>

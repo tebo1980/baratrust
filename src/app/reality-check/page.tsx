@@ -121,7 +121,7 @@ export default function RealityCheckPage() {
                     surface="reality_check_page"
                     style={{ textDecoration: "underline", fontWeight: 700 }}
                   >
-                    book an intro conversation →
+                    Book a Free 15-Minute Conversation →
                   </BookingLink>
                 </span>
               </div>
@@ -146,7 +146,7 @@ export default function RealityCheckPage() {
             <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
               <Link href="/pricing">Business Pulse ($99/mo)</Link>
               <Link href="/sample-pulse">Sample Pulse</Link>
-              <BookingLink surface="footer">Book Intro Call</BookingLink>
+              <BookingLink surface="footer">Book a Free 15-Minute Conversation</BookingLink>
               <Link href="/terms">Terms</Link>
             </div>
             <a href="mailto:todd@baratrust.com">todd@baratrust.com</a>

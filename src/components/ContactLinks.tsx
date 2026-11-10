@@ -8,6 +8,10 @@ export const CONTACT_PHONE_DIGITS = '5024182431'
 export const CONTACT_EMAIL_DISPLAY = 'todd@baratrust.com'
 export const BUSINESS_PULSE_STRIPE_URL = 'https://buy.stripe.com/8x2dR2dS8f01gm3akp5ZC1Q'
 export const BOOKING_REQUEST_EMAIL_URL = 'mailto:todd@baratrust.com?subject=BaraTrust%20%E2%80%94%20Request%20a%2015-Minute%20Conversation&body=Hi%20BaraTrust%2C%0A%0AI%27d%20like%20to%20arrange%20a%20free%2015-minute%20conversation.%0A%0AMy%20business%3A%20%0APreferred%20days%2Ftimes%3A%20%0A%0AThank%20you.'
+export const GOOGLE_CALENDAR_BOOKING_URL =
+  process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_BOOKING_URL?.trim() || ''
+export const BOOKING_URL = GOOGLE_CALENDAR_BOOKING_URL || BOOKING_REQUEST_EMAIL_URL
+export const DEFAULT_BOOKING_LABEL = 'Book a Free 15-Minute Conversation'
 
 const GMAIL_TARGET = 'tebo1980@gmail.com'
 const GMAIL_COMPOSE_URL = `https://mail.google.com/mail/?view=cm&to=${GMAIL_TARGET}`
@@ -29,14 +33,17 @@ export function BookingLink({
   style,
   children,
 }: LinkProps & { surface: PublicAnalyticsSurface }) {
+  const isExternalCalendarUrl = /^https?:\/\//i.test(BOOKING_URL)
   return (
     <a
-      href={BOOKING_REQUEST_EMAIL_URL}
+      href={BOOKING_URL}
+      target={isExternalCalendarUrl ? '_blank' : undefined}
+      rel={isExternalCalendarUrl ? 'noopener noreferrer' : undefined}
       className={className}
       style={style}
       onClick={() => trackPublicConversionEvent('booking_link_clicked', surface)}
     >
-      Request a 15-Minute Conversation
+      {children ?? DEFAULT_BOOKING_LABEL}
     </a>
   )
 }

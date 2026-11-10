@@ -864,6 +864,9 @@ test('Acquisition Engine V1 — Sample Business Pulse Illustrative Disclosures &
   assert.match(pricingHtml, /1 written Monthly Business Pulse report/i);
   assert.match(pricingHtml, /selectively by invitation/i);
   assert.match(pricingHtml, /flat, pre-approved project fee/i);
+  assert.match(fullPageHtml, /Book a Free 15-Minute Conversation/);
+  assert.match(pricingHtml, /Book a Free 15-Minute Conversation/);
+  assert.equal(/calendly\.com/i.test(fullPageHtml + pricingHtml), false, 'Broken Calendly URL must not appear on public pages');
   assert.equal(/mimo|retail choice/i.test(fullPageHtml + pricingHtml), false, 'Real client names must never leak to public pages');
 });
 

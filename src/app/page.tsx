@@ -95,7 +95,7 @@ export default function LandingPage() {
                   Business Pulse — $99/month
                 </a>
                 <BookingLink surface="hero" className="btn secondary">
-                  Book Intro Conversation
+                  Book a Free 15-Minute Conversation
                 </BookingLink>
               </div>
               <p className="micro">
@@ -255,7 +255,7 @@ export default function LandingPage() {
                     Start Business Pulse — $99/month
                   </PulseCheckoutLink>
                   <BookingLink surface="pulse_section" className="btn secondary">
-                    Book an Intro Conversation
+                    Book a Free 15-Minute Conversation
                   </BookingLink>
                   <Link href="/pricing" className="btn secondary">
                     Full Pricing &amp; Details
@@ -364,7 +364,7 @@ export default function LandingPage() {
             </p>
             <div className="cta-row" style={{ marginTop: "22px" }}>
               <BookingLink surface="intake_section" className="btn primary">
-                Book a 15-Minute Intro Conversation
+                Book a Free 15-Minute Conversation
               </BookingLink>
               <Link
                 href="/sample-pulse"
@@ -413,7 +413,7 @@ export default function LandingPage() {
                   Start Business Pulse — $99/mo
                 </PulseCheckoutLink>
                 <BookingLink surface="intake_section" className="btn secondary">
-                  Book Intro Call
+                  Book a Free 15-Minute Conversation
                 </BookingLink>
               </div>
               <p className="micro">
@@ -447,7 +447,7 @@ export default function LandingPage() {
                 Sample Pulse
               </Link>
               <Link href="/reality-check">Free Reality Check</Link>
-              <BookingLink surface="footer">Book Intro Call</BookingLink>
+              <BookingLink surface="footer">Book a Free 15-Minute Conversation</BookingLink>
               <Link href="/terms">Terms</Link>
             </div>
             <a href="mailto:todd@baratrust.com">todd@baratrust.com</a>

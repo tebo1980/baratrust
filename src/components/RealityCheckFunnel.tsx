@@ -892,7 +892,7 @@ export default function RealityCheckFunnel({
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px" }}>
             <BookingLink surface="post_scan" className="btn secondary full">
-              Book an Intro Conversation
+              Book a Free 15-Minute Conversation
             </BookingLink>
             <PulseCheckoutLink surface="post_scan" className="btn secondary full">
               Start Business Pulse — $99/mo
@@ -938,7 +938,7 @@ export default function RealityCheckFunnel({
             }}
           >
             <BookingLink surface="post_scan" className="btn secondary full">
-              Book a Time on Todd’s Calendar
+              Book a Free 15-Minute Conversation
             </BookingLink>
             <PulseCheckoutLink surface="post_scan" className="btn primary full">
               Start Business Pulse — $99/mo

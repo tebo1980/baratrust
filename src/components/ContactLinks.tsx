@@ -7,7 +7,7 @@ export const CONTACT_PHONE_DISPLAY = '502-418-2431'
 export const CONTACT_PHONE_DIGITS = '5024182431'
 export const CONTACT_EMAIL_DISPLAY = 'todd@baratrust.com'
 export const BUSINESS_PULSE_STRIPE_URL = 'https://buy.stripe.com/8x2dR2dS8f01gm3akp5ZC1Q'
-export const BOOKING_CALENDLY_URL = 'https://calendly.com/tebo1980/baratrust-consultation'
+export const BOOKING_REQUEST_EMAIL_URL = 'mailto:todd@baratrust.com?subject=BaraTrust%20%E2%80%94%20Request%20a%2015-Minute%20Conversation&body=Hi%20BaraTrust%2C%0A%0AI%27d%20like%20to%20arrange%20a%20free%2015-minute%20conversation.%0A%0AMy%20business%3A%20%0APreferred%20days%2Ftimes%3A%20%0A%0AThank%20you.'
 
 const GMAIL_TARGET = 'tebo1980@gmail.com'
 const GMAIL_COMPOSE_URL = `https://mail.google.com/mail/?view=cm&to=${GMAIL_TARGET}`
@@ -31,14 +31,12 @@ export function BookingLink({
 }: LinkProps & { surface: PublicAnalyticsSurface }) {
   return (
     <a
-      href={BOOKING_CALENDLY_URL}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={BOOKING_REQUEST_EMAIL_URL}
       className={className}
       style={style}
       onClick={() => trackPublicConversionEvent('booking_link_clicked', surface)}
     >
-      {children ?? 'Book an Intro Conversation'}
+      Request a 15-Minute Conversation
     </a>
   )
 }

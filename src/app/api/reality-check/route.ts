@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { and, eq, isNull, desc } from 'drizzle-orm';
 import { db } from '@/db';
+import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
+import { recordRealityCheckInquiryInNeon } from '@/lib/customer-intake/service';
 import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
 import {
   executeDeterministicScan,
@@ -502,6 +504,27 @@ export async function POST(req: Request) {
     // 5b. Opportunistic non-blocking screenshot TTL pruning on expired older rows
     pruneExpiredScreenshotsInDb().catch(() => {});
 
+    // 5c. Phase C unified customer inquiry hook (idempotent by rc_<shareToken>, non-disruptive)
+    if (cleanEmail) {
+      try {
+        await ensureAcquisitionSchema();
+        await recordRealityCheckInquiryInNeon(db, {
+          realityCheckId: record.id,
+          shareToken,
+          email: cleanEmail,
+          ownerName: cleanOwnerName,
+          businessName: effectiveBusinessName,
+          websiteUrl: data.website.trim(),
+          cityState: effectiveCityState,
+          phone: cleanPhone,
+          primaryHeadache: cleanHeadache,
+          overallScore: scanResult.overallScore,
+        });
+      } catch (intakeErr) {
+        console.warn('[REALITY CHECK UNIFIED INQUIRY WARNING]', intakeErr);
+      }
+    }
+
     // 6. Operator Notification (only when human follow-up is requested with an email)
     if (cleanEmail) {
       await sendOperatorNotification({
@@ -715,6 +738,25 @@ export async function PATCH(req: Request) {
           updatedAt: new Date(),
         })
         .where(and(eq(realityChecks.id, existing.id), eq(realityChecks.email, existing.email!)));
+    }
+
+    // Phase C unified customer inquiry hook (idempotent by rc_<shareToken>; never duplicates on retries)
+    try {
+      await ensureAcquisitionSchema();
+      await recordRealityCheckInquiryInNeon(db, {
+        realityCheckId: existing.id,
+        shareToken: existing.shareToken,
+        email: claim.email,
+        ownerName: finalOwnerName,
+        businessName: finalBusinessName,
+        websiteUrl: existing.website,
+        cityState: finalCityState,
+        phone: finalPhone,
+        primaryHeadache: finalHeadache,
+        overallScore: existing.overallScore,
+      });
+    } catch (intakeErr) {
+      console.warn('[REALITY CHECK FOLLOWUP UNIFIED INQUIRY WARNING]', intakeErr);
     }
 
     // Strictly dispatch operator notification once on the winning initial transition

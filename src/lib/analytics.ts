@@ -23,6 +23,7 @@ export const ALLOWED_PUBLIC_ANALYTICS_SURFACES = [
   'thank_you_page',
   'questionnaire_page',
   'trade_page',
+  'contact_page',
   'footer',
 ] as const;
 

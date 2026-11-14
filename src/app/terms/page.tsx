@@ -97,9 +97,9 @@ export default function TermsPage() {
 
           <section className="bg-[#0A101E] border border-slate-800 rounded-2xl p-6 md:p-8 space-y-3">
             <span className="text-xs font-mono text-amber-400 font-bold">04</span>
-            <h2 className="text-xl font-bold text-white font-serif">Privacy &amp; Respect for Your Information</h2>
+            <h2 id="privacy" className="text-xl font-bold text-white font-serif scroll-mt-28">Privacy &amp; Respect for Your Information</h2>
             <p>
-              Information you submit through the Reality Check intake form or optional owner questionnaire is used solely to review your business context and communicate with you about your business. We do not sell, rent, or trade your contact details or operational notes to third parties.
+              Information you submit through our customer contact form, the Reality Check intake form, or the optional owner questionnaire is used solely to review your inquiry or business context and communicate with you personally. We do not sell, rent, or trade your contact details, research questions, or operational notes to third parties. Please avoid submitting passwords, Social Security numbers, or payment card numbers in general inquiry messages.
             </p>
           </section>
 

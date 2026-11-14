@@ -58,6 +58,7 @@ export default function LandingPage() {
               Sample Pulse
             </Link>
             <a href="#how">How it works</a>
+            <Link href="/contact">Contact</Link>
             <a className="nav-cta" href="#start">
               Free Reality Check
             </a>
@@ -448,6 +449,7 @@ export default function LandingPage() {
               </Link>
               <Link href="/reality-check">Free Reality Check</Link>
               <BookingLink surface="footer">Book a Free 15-Minute Conversation</BookingLink>
+              <Link href="/contact">Contact</Link>
               <Link href="/terms">Terms</Link>
             </div>
             <a href="mailto:todd@baratrust.com">todd@baratrust.com</a>

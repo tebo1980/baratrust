@@ -8,3 +8,4 @@ import './milestone4_5.test';
 import './publication-lifecycle.test';
 import './browser-evidence.test';
 import './acquisition-engine.test';
+import './customer-receptionist-phase-c.test';

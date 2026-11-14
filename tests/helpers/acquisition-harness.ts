@@ -26,6 +26,8 @@ type ConversionEventRoute = typeof import('../../src/app/api/conversion-event/ro
 type AcquisitionCollectionRoute = typeof import('../../src/app/api/internal/acquisition/route');
 type AcquisitionDetailRoute = typeof import('../../src/app/api/internal/acquisition/[prospectId]/route');
 type AcquisitionAssistRoute = typeof import('../../src/app/api/internal/acquisition/[prospectId]/assist/route');
+type CustomerInquiriesRoute = typeof import('../../src/app/api/customer-inquiries/route');
+type CustomerInquiriesSyncRoute = typeof import('../../src/app/api/customer-inquiries/sync/route');
 
 export async function createAcquisitionTestHarness() {
   const storage = new DatabaseSync(':memory:');
@@ -39,6 +41,7 @@ export async function createAcquisitionTestHarness() {
     schema.acquisitionContactLogs,
     schema.publicConversionEvents,
     schema.publicRateLimits,
+    schema.websiteCustomerInquiries,
   ];
 
   for (const table of tables) {
@@ -124,7 +127,7 @@ export async function createAcquisitionTestHarness() {
     const rows = rawRows.map((row) =>
       Object.entries(row).map(([colKey, val]) => {
         if (
-          (colKey === 'opt_out' || colKey === 'is_active') &&
+          (colKey === 'opt_out' || colKey === 'is_active' || colKey === 'privacy_notice_accepted') &&
           (val === 0 || val === 1)
         ) {
           return val === 1;
@@ -278,6 +281,14 @@ export async function createAcquisitionTestHarness() {
     'src/app/api/internal/acquisition/[prospectId]/assist/route.ts',
     boundaries
   );
+  const customerInquiriesRoute = loadModule<CustomerInquiriesRoute>(
+    'src/app/api/customer-inquiries/route.ts',
+    boundaries
+  );
+  const customerInquiriesSyncRoute = loadModule<CustomerInquiriesSyncRoute>(
+    'src/app/api/customer-inquiries/sync/route.ts',
+    boundaries
+  );
 
   return {
     db,
@@ -297,6 +308,8 @@ export async function createAcquisitionTestHarness() {
       acquisition: acquisitionCollectionRoute,
       acquisitionDetail: acquisitionDetailRoute,
       acquisitionAssist: acquisitionAssistRoute,
+      customerInquiries: customerInquiriesRoute,
+      customerInquiriesSync: customerInquiriesSyncRoute,
     },
   };
 }

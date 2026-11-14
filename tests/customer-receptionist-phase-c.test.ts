@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAcquisitionTestHarness } from './helpers/acquisition-harness';
 import {
+  dispatchWebsiteCustomerAck,
   setAckMailerTestTransport,
   type AckMailerInput,
 } from '../src/lib/customer-intake/ack-mailer';
@@ -500,6 +501,199 @@ test('Phase C1/C2/C3 — Reality Check funnel hooks cleanly without duplicates, 
     assert.equal(page2.items.length, 1);
     assert.equal(page2.hasMore, false);
     assert.notEqual(page2.items[0].id, page1.items[0].id);
+  } finally {
+    harness.close();
+    resetPhaseCEnv();
+  }
+});
+
+test('Step 2A — Operator-authenticated internal test sends at most once to tebo1980@gmail.com while CUSTOMER_AUTO_ACK_ENABLED=false globally', async () => {
+  resetPhaseCEnv();
+  process.env.CUSTOMER_AUTO_ACK_ENABLED = 'false';
+  process.env.CUSTOMER_RESPONSE_BUSINESS_DAYS = '2';
+  process.env.HUNTER_INQUIRY_SYNC_SECRET = TEST_SYNC_SECRET;
+  const harness = await createAcquisitionTestHarness();
+
+  const sentPayloads: AckMailerInput[] = [];
+  setAckMailerTestTransport(async (input) => {
+    sentPayloads.push(input);
+    return {
+      outcome: 'SENT',
+      provider: 'MOCK_ADAPTER',
+      messageId: `<step2a-mock-${sentPayloads.length}@baratrust.com>`,
+      error: null,
+      diagnostics: {
+        tcpConnected: true,
+        tlsNegotiated: true,
+        tlsProtocol: 'TLSv1.3',
+        smtpAuthenticated: true,
+        senderEmail: 'todd@baratrust.com',
+        smtpResponse: '250 OK id=1tStep2AMock',
+      },
+    };
+  });
+
+  try {
+    // 1. Direct mailer guard blocks non-allowlisted recipients even if authorizedInternalTest=true is passed
+    const blockedMailer = await dispatchWebsiteCustomerAck(
+      {
+        inquiryId: 'inq-non-allowlisted',
+        recipientEmail: 'someone@customer.example',
+        subject: 'Test',
+        bodyText: 'Test',
+      },
+      { authorizedInternalTest: true }
+    );
+    assert.equal(blockedMailer.outcome, 'FAILED_RETRYABLE');
+    assert.equal(sentPayloads.length, 0);
+
+    // 2. Unauthenticated POST to /api/customer-inquiries/sync returns 401 and sends 0 emails
+    const unauthPost = await harness.routes.customerInquiriesSync.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'send_authorized_internal_test',
+          recipientEmail: 'tebo1980@gmail.com',
+        }),
+      })
+    );
+    assert.equal(unauthPost.status, 401);
+    assert.equal(sentPayloads.length, 0);
+
+    // 3. Authenticated POST for non-allowlisted recipient returns 403, writes 0 rows, sends 0 emails
+    const forbiddenRecipientPost = await harness.routes.customerInquiriesSync.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries/sync', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${TEST_SYNC_SECRET}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'send_authorized_internal_test',
+          recipientEmail: 'customer@realbusiness.example',
+        }),
+      })
+    );
+    assert.equal(forbiddenRecipientPost.status, 403);
+    assert.equal(sentPayloads.length, 0);
+    assert.equal(harness.rawQuery('SELECT * FROM website_customer_inquiries').length, 0);
+
+    // 4. Ordinary public contact form submission (even before or after) NEVER triggers auto-ack while disabled
+    const publicRes = await harness.routes.customerInquiries.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionKey: 'sub_public_customer_step2a',
+          name: 'Real Customer',
+          email: 'owner@louisvilleplumbing.example',
+          segment: 'BUSINESS',
+          serviceCategory: 'BUSINESS_PULSE',
+          organizationName: 'Louisville Plumbing',
+          message: 'Interested in Business Pulse monitoring for our shop.',
+          privacyNoticeAccepted: true,
+        }),
+      })
+    );
+    assert.equal(publicRes.status, 200);
+    const publicJson = await publicRes.json();
+    assert.equal(publicJson.acknowledgmentSent, false);
+    assert.equal(sentPayloads.length, 0);
+
+    // 5. Authorized operator internal test for tebo1980@gmail.com sends ONCE with approved template & booking URL
+    const firstTestRes = await harness.routes.customerInquiriesSync.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries/sync', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${TEST_SYNC_SECRET}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'send_authorized_internal_test',
+          recipientEmail: 'tebo1980@gmail.com',
+          submissionKey: 'step2a_unit_test_001',
+        }),
+      })
+    );
+    assert.equal(firstTestRes.status, 200);
+    const firstJson = await firstTestRes.json();
+    assert.equal(firstJson.ok, true);
+    assert.equal(firstJson.attempted, true);
+    assert.equal(firstJson.globalAutoAckEnabled, false);
+    assert.equal(firstJson.deliveryOutcome, 'SENT');
+    assert.equal(firstJson.inquirySummary.ackStatus, 'SENT');
+    assert.equal(sentPayloads.length, 1);
+    assert.equal(sentPayloads[0].recipientEmail, 'tebo1980@gmail.com');
+    assert.ok(sentPayloads[0].bodyText.includes(TWO_BUSINESS_DAYS_COMMITMENT_TEXT));
+    assert.ok(sentPayloads[0].bodyText.includes('$99/month'));
+    assert.ok(sentPayloads[0].bodyText.includes(VERIFIED_BARATRUST_CALENDAR_URL));
+
+    // 6. Repeat operator call with same submissionKey is blocked (ALREADY_SENT) -> 0 second emails
+    const repeatSameKeyRes = await harness.routes.customerInquiriesSync.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries/sync', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${TEST_SYNC_SECRET}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'send_authorized_internal_test',
+          recipientEmail: 'tebo1980@gmail.com',
+          submissionKey: 'step2a_unit_test_001',
+        }),
+      })
+    );
+    const repeatSameJson = await repeatSameKeyRes.json();
+    assert.equal(repeatSameJson.attempted, false);
+    assert.equal(repeatSameJson.blockedReason, 'ALREADY_SENT');
+    assert.equal(sentPayloads.length, 1);
+
+    // 7. Repeat operator call with a brand-new submissionKey within 15m deduplicates by content fingerprint -> ALREADY_SENT, 0 new rows, 0 second emails
+    const repeatNewKeyRes = await harness.routes.customerInquiriesSync.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries/sync', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${TEST_SYNC_SECRET}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'send_authorized_internal_test',
+          recipientEmail: 'tebo1980@gmail.com',
+          submissionKey: 'step2a_unit_test_002_different_key',
+        }),
+      })
+    );
+    const repeatNewJson = await repeatNewKeyRes.json();
+    assert.equal(repeatNewJson.attempted, false);
+    assert.equal(repeatNewJson.deduplicatedSubmission, true);
+    assert.equal(repeatNewJson.blockedReason, 'ALREADY_SENT');
+    assert.equal(sentPayloads.length, 1);
+
+    // 8. A distinct inquiry for tebo1980@gmail.com within 24h records SKIPPED_DUPLICATE_RECENT and sends 0 emails
+    const distinctSameRecipientRes = await harness.routes.customerInquiries.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionKey: 'step2a_distinct_inquiry_cooldown_check',
+          name: 'Todd Followup',
+          email: 'tebo1980@gmail.com',
+          segment: 'BUSINESS',
+          serviceCategory: 'GENERAL_INQUIRY',
+          organizationName: 'BaraTrust Cooldown Check',
+          message: 'Distinct follow-up inquiry text within 24 hours to verify cooldown.',
+          privacyNoticeAccepted: true,
+        }),
+      })
+    );
+    assert.equal(distinctSameRecipientRes.status, 200);
+    const cooldownRows = harness.rawQuery(
+      "SELECT ack_status FROM website_customer_inquiries WHERE external_submission_key = 'web_step2a_distinct_inquiry_cooldown_check'"
+    );
+    assert.equal(cooldownRows.length, 1);
+    assert.equal(cooldownRows[0].ack_status, 'SKIPPED_DUPLICATE_RECENT');
+    assert.equal(sentPayloads.length, 1);
   } finally {
     harness.close();
     resetPhaseCEnv();

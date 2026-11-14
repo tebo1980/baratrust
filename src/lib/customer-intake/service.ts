@@ -10,7 +10,13 @@ import {
   type WebsiteInquirySegment,
 } from '@/db/schema/customerInquiries';
 import { sanitizePlainText } from '@/lib/security/public-guard';
-import { dispatchWebsiteCustomerAck, isWebsiteAutoAckEnabled } from './ack-mailer';
+import {
+  AUTHORIZED_INTERNAL_TEST_RECIPIENT,
+  dispatchWebsiteCustomerAck,
+  isWebsiteAutoAckEnabled,
+  type AckMailerOutcome,
+  type AckTransportDiagnostics,
+} from './ack-mailer';
 import {
   computeBusinessDayDeadline,
   matchApprovedFaqKeys,
@@ -506,7 +512,8 @@ async function attemptAutoAckForStoredInquiry(
 export async function submitWebsiteCustomerInquiry(
   dbClient: any,
   input: SubmitWebsiteInquiryInput,
-  nowOverride?: Date
+  nowOverride?: Date,
+  options?: { skipImmediateAutoAck?: boolean }
 ): Promise<{
   inquiry: WebsiteInquiryRecordDto;
   deduplicated: boolean;
@@ -650,7 +657,9 @@ export async function submitWebsiteCustomerInquiry(
     .returning();
 
   // 4. Attempt acknowledgment ONLY if eligible and explicitly enabled; inquiry stays saved either way
-  const finalRow = await attemptAutoAckForStoredInquiry(dbClient, inserted);
+  const finalRow = options?.skipImmediateAutoAck
+    ? inserted
+    : await attemptAutoAckForStoredInquiry(dbClient, inserted);
 
   return {
     inquiry: toInquiryDto(finalRow),
@@ -980,4 +989,260 @@ export async function listWebsiteInquiriesForHunterSync(
     nextCursor: lastItem ? { updatedAt: lastItem.updatedAt, id: lastItem.id } : null,
     hasMore,
   };
+}
+
+export interface AuthorizedInternalAckTestResult {
+  attempted: boolean;
+  blockedReason: string | null;
+  deduplicatedSubmission: boolean;
+  globalAutoAckEnabled: boolean;
+  deliveryOutcome: AckMailerOutcome['outcome'] | null;
+  diagnostics: AckTransportDiagnostics | null;
+  inquiry: WebsiteInquiryRecordDto;
+}
+
+/**
+ * Operator-authenticated, single-recipient (`tebo1980@gmail.com`) controlled test helper (Step 2A).
+ * - Never enables `CUSTOMER_AUTO_ACK_ENABLED` globally.
+ * - Cannot be triggered from public contact or Reality Check submissions.
+ * - Rejects any recipient other than `tebo1980@gmail.com`.
+ * - Enforces all suppression/opt-out checks, atomic `IN_FLIGHT` locking, `UNCERTAIN_DELIVERY_LOCKED`
+ *   non-retry locks, single-ack-per-inquiry, and 24-hour recipient duplicate cooldown.
+ */
+export async function runAuthorizedInternalAckTest(
+  dbClient: any,
+  params?: {
+    recipientEmail?: string;
+    submissionKey?: string;
+  }
+): Promise<AuthorizedInternalAckTestResult> {
+  const requestedRecipient = normalizeInquiryEmail(
+    params?.recipientEmail ?? AUTHORIZED_INTERNAL_TEST_RECIPIENT
+  );
+  if (requestedRecipient !== AUTHORIZED_INTERNAL_TEST_RECIPIENT) {
+    throw new Error(
+      `Authorized internal acknowledgment test is strictly allowlisted to ${AUTHORIZED_INTERNAL_TEST_RECIPIENT}.`
+    );
+  }
+
+  const safeSubmissionKey =
+    params?.submissionKey?.trim() || 'prod_step2a_internal_email_test_001';
+
+  const subResult = await submitWebsiteCustomerInquiry(
+    dbClient,
+    {
+      submissionKey: safeSubmissionKey,
+      name: 'Todd (Internal Step 2A Test)',
+      email: AUTHORIZED_INTERNAL_TEST_RECIPIENT,
+      segment: 'BUSINESS',
+      serviceCategory: 'BUSINESS_PULSE',
+      organizationName: 'BaraTrust Internal Delivery Test (Step 2A)',
+      websiteUrl: 'https://www.baratrust.com',
+      cityState: 'New Albany, IN',
+      message:
+        '[INTERNAL EMAIL TEST — STEP 2A] Controlled production acknowledgment test from Vercel Node.js runtime. How much is Business Pulse and how do I schedule a call?',
+      privacyNoticeAccepted: true,
+    },
+    undefined,
+    { skipImmediateAutoAck: true }
+  );
+
+  const [stored] = await dbClient
+    .select()
+    .from(websiteCustomerInquiries)
+    .where(eq(websiteCustomerInquiries.id, subResult.inquiry.id))
+    .limit(1);
+
+  if (!stored) {
+    throw new Error('Failed to load stored internal test inquiry.');
+  }
+
+  if (stored.normalizedEmail !== AUTHORIZED_INTERNAL_TEST_RECIPIENT) {
+    return {
+      attempted: false,
+      blockedReason: 'RECIPIENT_NOT_ALLOWLISTED',
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  const optedOut = await isEmailOptedOutInAcquisition(dbClient, stored.normalizedEmail);
+  if (optedOut || stored.humanStatus === 'UNSUBSCRIBED_OR_SUPPRESSED') {
+    return {
+      attempted: false,
+      blockedReason: 'SUPPRESSED_OR_OPTED_OUT',
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  if (stored.ackStatus === 'UNCERTAIN_DELIVERY_LOCKED') {
+    return {
+      attempted: false,
+      blockedReason: 'UNCERTAIN_DELIVERY_LOCKED',
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  if (stored.ackStatus === 'SENT' || stored.ackStatus === 'IN_FLIGHT') {
+    return {
+      attempted: false,
+      blockedReason: `ALREADY_${stored.ackStatus}`,
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  if (stored.ackStatus === 'SKIPPED_DUPLICATE_RECENT') {
+    return {
+      attempted: false,
+      blockedReason: 'SKIPPED_DUPLICATE_RECENT',
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  const recentAckExists = await hasRecentAckForEmail(
+    dbClient,
+    stored.normalizedEmail,
+    new Date()
+  );
+  if (recentAckExists) {
+    return {
+      attempted: false,
+      blockedReason: 'RECENT_ACK_COOLDOWN_ACTIVE',
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  if (stored.ackStatus !== 'DISABLED_PENDING_APPROVAL' || !stored.ackSubject || !stored.ackBody) {
+    return {
+      attempted: false,
+      blockedReason: `NOT_ELIGIBLE_${stored.ackStatus}`,
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(stored),
+    };
+  }
+
+  // Acquire persistent IN_FLIGHT lock so concurrent workers can never send twice
+  const lockNow = new Date();
+  const [lockedRow] = await dbClient
+    .update(websiteCustomerInquiries)
+    .set({
+      ackStatus: 'IN_FLIGHT',
+      updatedAt: lockNow,
+    })
+    .where(
+      and(
+        eq(websiteCustomerInquiries.id, stored.id),
+        eq(websiteCustomerInquiries.ackStatus, 'DISABLED_PENDING_APPROVAL')
+      )
+    )
+    .returning();
+
+  if (!lockedRow) {
+    const [latest] = await dbClient
+      .select()
+      .from(websiteCustomerInquiries)
+      .where(eq(websiteCustomerInquiries.id, stored.id))
+      .limit(1);
+    return {
+      attempted: false,
+      blockedReason: 'CONCURRENT_LOCK_HELD',
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: null,
+      diagnostics: null,
+      inquiry: toInquiryDto(latest || stored),
+    };
+  }
+
+  try {
+    const delivery = await dispatchWebsiteCustomerAck(
+      {
+        inquiryId: stored.id,
+        recipientEmail: stored.customerEmail,
+        subject: stored.ackSubject,
+        bodyText: stored.ackBody,
+      },
+      { authorizedInternalTest: true }
+    );
+
+    const settledNow = new Date();
+    const nextAckStatus: WebsiteAckStatus =
+      delivery.outcome === 'SENT'
+        ? 'SENT'
+        : delivery.outcome === 'UNCERTAIN_DELIVERY_LOCKED'
+        ? 'UNCERTAIN_DELIVERY_LOCKED'
+        : delivery.outcome === 'DISABLED_PENDING_APPROVAL'
+        ? 'DISABLED_PENDING_APPROVAL'
+        : 'FAILED_RETRYABLE';
+
+    const [updated] = await dbClient
+      .update(websiteCustomerInquiries)
+      .set({
+        ackStatus: nextAckStatus,
+        ackProvider: delivery.provider,
+        ackMessageId: delivery.messageId,
+        ackSentAt: delivery.outcome === 'SENT' ? settledNow : null,
+        ackError: delivery.error,
+        updatedAt: settledNow,
+      })
+      .where(eq(websiteCustomerInquiries.id, stored.id))
+      .returning();
+
+    return {
+      attempted: true,
+      blockedReason: null,
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: delivery.outcome,
+      diagnostics: delivery.diagnostics ?? null,
+      inquiry: toInquiryDto(updated || lockedRow),
+    };
+  } catch {
+    const settledNow = new Date();
+    const [updated] = await dbClient
+      .update(websiteCustomerInquiries)
+      .set({
+        ackStatus: 'UNCERTAIN_DELIVERY_LOCKED',
+        ackError: 'Unexpected exception during internal test dispatch; automatic retry locked.',
+        updatedAt: settledNow,
+      })
+      .where(eq(websiteCustomerInquiries.id, stored.id))
+      .returning();
+
+    return {
+      attempted: true,
+      blockedReason: null,
+      deduplicatedSubmission: subResult.deduplicated,
+      globalAutoAckEnabled: isWebsiteAutoAckEnabled(),
+      deliveryOutcome: 'UNCERTAIN_DELIVERY_LOCKED',
+      diagnostics: null,
+      inquiry: toInquiryDto(updated || lockedRow),
+    };
+  }
 }

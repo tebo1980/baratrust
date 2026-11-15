@@ -44,6 +44,11 @@ test('Phase C Templates — renders approved service facts, verified calendar UR
   assert.ok(twoDay.body.includes('$99/month'));
   assert.ok(twoDay.body.includes('free ($0)'));
   assert.ok(twoDay.body.includes(VERIFIED_BARATRUST_CALENDAR_URL));
+  assert.equal(
+    twoDay.body.split(VERIFIED_BARATRUST_CALENDAR_URL).length - 1,
+    1,
+    'Business acknowledgment must include the Google Calendar booking URL strictly once (never duplicated)'
+  );
   assert.ok(twoDay.body.includes('reviewed by a real person'));
 
   const oneDay = renderPreapprovedWebsiteAck({
@@ -694,6 +699,138 @@ test('Step 2A — Operator-authenticated internal test sends at most once to teb
     assert.equal(cooldownRows.length, 1);
     assert.equal(cooldownRows[0].ack_status, 'SKIPPED_DUPLICATE_RECENT');
     assert.equal(sentPayloads.length, 1);
+  } finally {
+    harness.close();
+    resetPhaseCEnv();
+  }
+});
+
+test('Final Activation — CUSTOMER_AUTO_ACK_ENABLED=true dispatches approved Business, Consumer, and Reality Check templates with single booking link and preserves AWAITING_HUMAN_REVIEW', async () => {
+  resetPhaseCEnv();
+  process.env.CUSTOMER_AUTO_ACK_ENABLED = 'true';
+  process.env.CUSTOMER_RESPONSE_BUSINESS_DAYS = '2';
+  const harness = await createAcquisitionTestHarness();
+
+  const delivered: AckMailerInput[] = [];
+  setAckMailerTestTransport(async (input) => {
+    delivered.push(input);
+    return {
+      outcome: 'SENT',
+      provider: 'MOCK_ADAPTER',
+      messageId: `<live-ack-${delivered.length}@baratrust.com>`,
+      error: null,
+    };
+  });
+
+  try {
+    // 1. Business Contact Form path (with scheduling FAQ trigger) -> BUSINESS_INQUIRY, single booking link, SENT, AWAITING_HUMAN_REVIEW
+    const bizRes = await harness.routes.customerInquiries.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionKey: 'final_act_biz_001',
+          name: 'Rachel Meyer',
+          email: 'rachel@meyerbakery.example',
+          segment: 'BUSINESS',
+          serviceCategory: 'BUSINESS_PULSE',
+          organizationName: 'Meyer Bakery',
+          message: 'How much is Business Pulse and how can I schedule a call this week?',
+          privacyNoticeAccepted: true,
+        }),
+      })
+    );
+    assert.equal(bizRes.status, 200);
+    const bizJson = await bizRes.json();
+    assert.equal(bizJson.acknowledgmentSent, true);
+    assert.equal(delivered.length, 1);
+    assert.equal(delivered[0].subject, 'We received your business inquiry — BaraTrust');
+    assert.ok(delivered[0].bodyText.includes(TWO_BUSINESS_DAYS_COMMITMENT_TEXT));
+    assert.ok(delivered[0].bodyText.includes('free ($0)'));
+    assert.ok(delivered[0].bodyText.includes('$99/month'));
+    assert.equal(
+      delivered[0].bodyText.split(VERIFIED_BARATRUST_CALENDAR_URL).length - 1,
+      1,
+      'Business inquiry acknowledgment must contain exactly 1 Google Calendar URL'
+    );
+
+    // 2. Consumer Contact Form path -> CONSUMER_INQUIRY, single booking link, SENT, AWAITING_HUMAN_REVIEW
+    const conRes = await harness.routes.customerInquiries.POST(
+      new Request('https://www.baratrust.com/api/customer-inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionKey: 'final_act_con_001',
+          name: 'David Brooks',
+          email: 'david@personalclient.example',
+          segment: 'CONSUMER',
+          serviceCategory: 'CONSUMER_DECISION_RESEARCH',
+          message: 'Can you research two assisted-living facilities and how do I book a time?',
+          privacyNoticeAccepted: true,
+        }),
+      })
+    );
+    assert.equal(conRes.status, 200);
+    const conJson = await conRes.json();
+    assert.equal(conJson.acknowledgmentSent, true);
+    assert.equal(delivered.length, 2);
+    assert.equal(delivered[1].subject, 'We received your research request — BaraTrust');
+    assert.ok(delivered[1].bodyText.includes(TWO_BUSINESS_DAYS_COMMITMENT_TEXT));
+    assert.ok(delivered[1].bodyText.includes('provide a clear quote after reviewing the scope'));
+    assert.equal(
+      delivered[1].bodyText.split(VERIFIED_BARATRUST_CALENDAR_URL).length - 1,
+      1,
+      'Consumer inquiry acknowledgment must contain exactly 1 Google Calendar URL'
+    );
+
+    // 3. Reality Check "Discuss My Results" path -> BUSINESS_INQUIRY, single booking link, SENT, AWAITING_HUMAN_REVIEW
+    const scanRes = await harness.routes.realityCheck.POST(
+      new Request('https://www.baratrust.com/api/reality-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          website: 'https://clarksvilleplumbing.example',
+          businessName: 'Clarksville Plumbing',
+          cityState: 'Clarksville, IN',
+        }),
+      })
+    );
+    const scanJson = await scanRes.json();
+    const rcPatchRes = await harness.routes.realityCheck.PATCH(
+      new Request('https://www.baratrust.com/api/reality-check', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shareToken: scanJson.shareToken,
+          email: 'owner@clarksvilleplumbing.example',
+          ownerName: 'Mark Owner',
+          primaryHeadache: 'How do I schedule a call to discuss Business Pulse?',
+        }),
+      })
+    );
+    assert.equal(rcPatchRes.status, 200);
+    assert.equal(delivered.length, 3);
+    assert.equal(delivered[2].subject, 'We received your business inquiry — BaraTrust');
+    assert.equal(
+      delivered[2].bodyText.split(VERIFIED_BARATRUST_CALENDAR_URL).length - 1,
+      1,
+      'Reality Check inquiry acknowledgment must contain exactly 1 Google Calendar URL'
+    );
+
+    // 4. Verify all 3 inquiries recorded SENT ack status while human_status remains AWAITING_HUMAN_REVIEW (auto-ack never counts as human response)
+    const dbRows = harness.rawQuery(
+      'SELECT external_submission_key, ack_template_key, ack_status, ack_message_id, ack_sent_at, human_status FROM website_customer_inquiries ORDER BY submitted_at ASC'
+    );
+    assert.equal(dbRows.length, 3);
+    for (const r of dbRows) {
+      assert.equal(r.ack_status, 'SENT');
+      assert.ok(r.ack_message_id);
+      assert.ok(r.ack_sent_at);
+      assert.equal(r.human_status, 'AWAITING_HUMAN_REVIEW');
+    }
+    assert.equal(dbRows[0].ack_template_key, 'BUSINESS_INQUIRY');
+    assert.equal(dbRows[1].ack_template_key, 'CONSUMER_INQUIRY');
+    assert.equal(dbRows[2].ack_template_key, 'BUSINESS_INQUIRY');
   } finally {
     harness.close();
     resetPhaseCEnv();

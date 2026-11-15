@@ -162,7 +162,11 @@ export function computeBusinessDayDeadline(
 interface ApprovedFaqDefinition {
   key: string;
   patterns: RegExp[];
-  renderAnswer: (ctx: { commitmentText: string; verifiedBookingUrl: string | null }) => string;
+  renderAnswer: (ctx: {
+    commitmentText: string;
+    verifiedBookingUrl: string | null;
+    bookingSectionIncluded?: boolean;
+  }) => string;
 }
 
 export const APPROVED_WEBSITE_FAQ_ITEMS: ApprovedFaqDefinition[] = [
@@ -215,9 +219,11 @@ export const APPROVED_WEBSITE_FAQ_ITEMS: ApprovedFaqDefinition[] = [
       /\bbook\s+a\s+(?:call|conversation|meeting|time|15[- ]minute)\b/i,
       /\bcalendar\s+link\b/i,
     ],
-    renderAnswer: ({ verifiedBookingUrl }) =>
+    renderAnswer: ({ verifiedBookingUrl, bookingSectionIncluded }) =>
       verifiedBookingUrl
-        ? `Scheduling: You can choose a time directly on our free 15-minute introductory schedule at ${verifiedBookingUrl} (availability is confirmed directly on the booking page).`
+        ? bookingSectionIncluded
+          ? 'Scheduling: You can choose a time directly on our free 15-minute introductory schedule using our booking link below (availability is confirmed directly on the booking page).'
+          : `Scheduling: You can choose a time directly on our free 15-minute introductory schedule at ${verifiedBookingUrl} (availability is confirmed directly on the booking page).`
         : 'Scheduling: Reply with a couple of general days or time windows that work for you and Todd or Noelah will coordinate a time directly.',
   },
   {
@@ -425,6 +431,8 @@ export function renderPreapprovedWebsiteAck(params: {
     ? resolveVerifiedWebsiteBookingUrl(params.bookingUrlOverride)
     : null;
 
+  const bookingSectionIncluded = Boolean(tpl.includeBooking && verifiedBookingUrl);
+
   let faqBlock = '';
   if (tpl.includeFaq && params.faqMatchedKeys && params.faqMatchedKeys.length > 0) {
     const matched = APPROVED_WEBSITE_FAQ_ITEMS.filter((item) =>
@@ -432,7 +440,12 @@ export function renderPreapprovedWebsiteAck(params: {
     ).slice(0, 3);
     if (matched.length > 0) {
       const lines = matched.map(
-        (item) => `- ${item.renderAnswer({ commitmentText, verifiedBookingUrl })}`
+        (item) =>
+          `- ${item.renderAnswer({
+            commitmentText,
+            verifiedBookingUrl,
+            bookingSectionIncluded,
+          })}`
       );
       faqBlock = `\nQuick answers to common questions:\n${lines.join('\n')}\n`;
     }

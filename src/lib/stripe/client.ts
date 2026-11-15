@@ -10,32 +10,101 @@ export function sanitizeStripeEnvValue(raw?: string | null): string {
 }
 
 /**
- * Verified live Stripe Payment Link ID for BaraTrust Business Pulse ($99/month)
+ * Verified live Stripe identifiers for BaraTrust Business Pulse ($99/month)
  * at https://buy.stripe.com/8x2dR2dS8f01gm3akp5ZC1Q.
- * Scoping checkout events prevents unrelated products on a shared Stripe account
- * from creating Business Pulse customer records in BaraTrust.
+ * Strict server-side identifier matching isolates BaraTrust from other businesses
+ * sharing the same Stripe account. Customer/session metadata is never trusted.
  */
 export const DEFAULT_BUSINESS_PULSE_PAYMENT_LINK_ID = "plink_1UXxUZ1YKhQ5pWK6QriyeRid";
+export const DEFAULT_BUSINESS_PULSE_PRODUCT_ID = "prod_VZ5ffZDSRVlySp";
+export const DEFAULT_BUSINESS_PULSE_PRICE_ID = "price_1UXxU91YKhQ5pWK6SgP6Occ8";
 
+export function getApprovedBusinessPulseIds() {
+  return {
+    paymentLinkId:
+      sanitizeStripeEnvValue(process.env.STRIPE_BUSINESS_PULSE_PAYMENT_LINK_ID) ||
+      DEFAULT_BUSINESS_PULSE_PAYMENT_LINK_ID,
+    productId:
+      sanitizeStripeEnvValue(process.env.STRIPE_BUSINESS_PULSE_PRODUCT_ID) ||
+      DEFAULT_BUSINESS_PULSE_PRODUCT_ID,
+    priceId:
+      sanitizeStripeEnvValue(process.env.STRIPE_BUSINESS_PULSE_PRICE_ID) ||
+      DEFAULT_BUSINESS_PULSE_PRICE_ID,
+  };
+}
+
+/**
+ * Accepts a Checkout Session ONLY when its verified Stripe Payment Link ID
+ * (or server-populated line_items price/product IDs when no conflicting Payment Link is set)
+ * matches the approved BaraTrust Business Pulse $99/month subscription.
+ * Arbitrary metadata is never trusted as proof of product ownership.
+ */
 export function isBaraTrustBusinessPulseCheckout(session: Stripe.Checkout.Session): boolean {
-  const expectedPaymentLinkId =
-    sanitizeStripeEnvValue(process.env.STRIPE_BUSINESS_PULSE_PAYMENT_LINK_ID) ||
-    DEFAULT_BUSINESS_PULSE_PAYMENT_LINK_ID;
+  if (session.mode && session.mode !== "subscription") {
+    return false;
+  }
+
+  const { paymentLinkId, productId, priceId } = getApprovedBusinessPulseIds();
 
   const sessionPaymentLinkId =
     typeof session.payment_link === "string"
       ? session.payment_link
       : session.payment_link?.id || null;
 
-  if (sessionPaymentLinkId && sessionPaymentLinkId === expectedPaymentLinkId) {
-    return true;
+  if (sessionPaymentLinkId) {
+    return sessionPaymentLinkId === paymentLinkId;
   }
 
-  if (session.metadata?.baratrust_product === "business_pulse") {
-    return true;
+  const lineItems = session.line_items?.data;
+  if (Array.isArray(lineItems) && lineItems.length > 0) {
+    return lineItems.every((item) => {
+      const itemPriceId = item.price?.id || null;
+      const rawProduct = item.price?.product;
+      const itemProductId =
+        typeof rawProduct === "string" ? rawProduct : rawProduct?.id || null;
+      if (itemPriceId !== priceId) return false;
+      if (itemProductId && itemProductId !== productId) return false;
+      return true;
+    });
   }
 
   return false;
+}
+
+/**
+ * Inspects server-side subscription items on a Stripe Subscription payload:
+ * - 'verified_match': items explicitly match BaraTrust Business Pulse price/product
+ * - 'foreign_mismatch': items belong to a different product/price on the shared Stripe account
+ * - 'unknown_no_items': payload omitted items.data
+ */
+export function inspectBusinessPulseSubscriptionItems(
+  subscription: Stripe.Subscription
+): "verified_match" | "foreign_mismatch" | "unknown_no_items" {
+  const items = subscription.items?.data;
+  if (!Array.isArray(items) || items.length === 0) {
+    return "unknown_no_items";
+  }
+
+  const { productId, priceId } = getApprovedBusinessPulseIds();
+  let matchedPulseItem = false;
+
+  for (const item of items) {
+    const itemPriceId = item.price?.id || null;
+    const rawProduct = item.price?.product;
+    const itemProductId =
+      typeof rawProduct === "string" ? rawProduct : rawProduct?.id || null;
+
+    const priceMatches = itemPriceId === priceId;
+    const productMatches = !itemProductId || itemProductId === productId;
+
+    if (priceMatches && productMatches) {
+      matchedPulseItem = true;
+    } else {
+      return "foreign_mismatch";
+    }
+  }
+
+  return matchedPulseItem ? "verified_match" : "foreign_mismatch";
 }
 
 const getStripeKey = () => {

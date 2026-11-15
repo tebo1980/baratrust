@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 import { AgentRegistry } from "@/lib/agents/index";
 import { db } from "@/db";
 import { agentConfigs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
     // 1. Live Database Sourcing (Neon Postgres via Drizzle)
     const dbAgents = await db.select().from(agentConfigs);
@@ -47,4 +52,3 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch agents" }, { status: 500 });
   }
 }
-

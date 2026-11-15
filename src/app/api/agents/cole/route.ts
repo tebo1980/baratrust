@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { cogsLedger, bids, partsOrders } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { requireOperatorOrWebhookSecretAuth } from "@/lib/auth/operator";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+    const auth = await requireOperatorOrWebhookSecretAuth(req);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     try {
         const payload = await req.json();
         const { leadId, projectId } = payload;

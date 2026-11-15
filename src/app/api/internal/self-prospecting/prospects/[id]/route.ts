@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getProspect, updateProspect, type ProspectStatus } from '@/lib/self-prospecting/db'
+import { requireOperatorApiAuth } from '@/lib/auth/operator'
+
+export const dynamic = 'force-dynamic'
 
 const VALID_STATUSES: ProspectStatus[] = ['new', 'sent', 'replied', 'converted', 'discarded']
 
@@ -12,6 +15,11 @@ interface PatchBody {
 }
 
 export async function GET(_: Request, { params }: { params: { id: string } }) {
+  const auth = await requireOperatorApiAuth()
+  if (!auth.ok) {
+    return auth.response
+  }
+
   const id = parseInt(params.id, 10)
   if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
   try {
@@ -25,6 +33,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  const auth = await requireOperatorApiAuth()
+  if (!auth.ok) {
+    return auth.response
+  }
+
   const id = parseInt(params.id, 10)
   if (Number.isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
 

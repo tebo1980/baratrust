@@ -3,14 +3,21 @@ import { db } from "@/db";
 import { fleetVehicles, mileageLogs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireOperatorOrWebhookSecretAuth } from "@/lib/auth/operator";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+    const auth = await requireOperatorOrWebhookSecretAuth(req);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     try {
         const payload = await req.json();
         
         // Payload expects: { leadId, geographicMetadata, tradeSector }
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         
         // 1. Assign Available Fleet Vehicle (Mock selection for initial integration)
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
             if (match) {
                 estimatedMiles = parseInt(match[0], 10);
             }
-        } catch (e) {
+        } catch {
             console.log(`[FLYNN] AI Estimation Failed. Using fallback mileage.`);
         }
 

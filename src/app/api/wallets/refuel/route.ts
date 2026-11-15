@@ -2,13 +2,28 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { walletBalances, walletTransactions } from "@/db/schema";
 import { sql } from "drizzle-orm";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
+
+export const dynamic = "force-dynamic";
+
+const MAX_REFUEL_CENTS = 10_000_000;
 
 export async function POST(req: Request) {
+    const auth = await requireOperatorApiAuth();
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     try {
         const payload = await req.json();
         const { amountCents } = payload;
 
-        if (!amountCents || typeof amountCents !== 'number' || amountCents <= 0) {
+        if (
+            typeof amountCents !== 'number' ||
+            !Number.isInteger(amountCents) ||
+            amountCents <= 0 ||
+            amountCents > MAX_REFUEL_CENTS
+        ) {
             return NextResponse.json({ success: false, error: "Invalid refuel amount" }, { status: 400 });
         }
 

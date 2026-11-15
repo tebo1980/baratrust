@@ -2,26 +2,32 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { leads } from "@/db/schema";
+import {
+  sanitizeConfiguredSecret,
+  verifyWebhookBearerSecret,
+} from "@/lib/auth/operator";
+
+export const dynamic = "force-dynamic";
 
 // 1. Zod schema for incoming lead payload
 const leadPayloadSchema = z.object({
-  title: z.string().optional(),
-  price: z.string().optional(),
-  summary: z.string().optional(),
-  city: z.string().optional(),
-  source: z.string().url().optional(),
-  tradeSector: z.string(),
-  prospectContact: z.string(),
-  geographicMetadata: z.string(),
+  title: z.string().max(500).optional(),
+  price: z.string().max(100).optional(),
+  summary: z.string().max(10000).optional(),
+  city: z.string().max(200).optional(),
+  source: z.string().url().max(2048).optional(),
+  tradeSector: z.string().min(1).max(200),
+  prospectContact: z.string().min(1).max(500),
+  geographicMetadata: z.string().min(1).max(500),
 });
 
 export async function POST(req: Request) {
   try {
-    // 2. Token Guard
+    // 2. Constant-time Token Guard
     const authHeader = req.headers.get("Authorization");
-    const secretKey = process.env.WEBHOOK_SECRET_KEY;
-    
-    if (!secretKey || authHeader !== `Bearer ${secretKey}`) {
+    const secretKey = sanitizeConfiguredSecret(process.env.WEBHOOK_SECRET_KEY);
+
+    if (!verifyWebhookBearerSecret(authHeader, secretKey)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -48,7 +54,10 @@ export async function POST(req: Request) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     fetch(`${appUrl}/api/engage`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secretKey}`,
+      },
       // Mocking the required payload for Brix/Della based on typical engage input
       body: JSON.stringify({ 
         leadId: newLead.id, 
@@ -65,7 +74,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Webhook Ingestion Error:", error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid payload format", details: error.errors }, { status: 400 });
+      return NextResponse.json({ error: "Invalid payload format" }, { status: 400 });
     }
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }

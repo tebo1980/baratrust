@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getProspect, updateProspect } from '@/lib/self-prospecting/db'
+import { requireOperatorApiAuth } from '@/lib/auth/operator'
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
+  const auth = await requireOperatorApiAuth()
+  if (!auth.ok) {
+    return auth.response
+  }
+
   try {
     const body = await req.json()
     
@@ -38,8 +46,6 @@ export async function POST(req: Request) {
     // 3. Simulate outward transmission payload
     // (This represents Nova firing the text/email intake alert)
     console.log(`[NOVA DISPATCH] Transmitting message for Prospect ID: ${prospectId}`)
-    console.log(`[NOVA DISPATCH] Target URL: ${prospect.source_url}`)
-    console.log(`[NOVA DISPATCH] Message Payload: "${messageToSend}"`)
     
     // TODO: In production, integrate your actual third-party email/SMS provider (e.g. SendGrid, Twilio, Resend) here.
 
@@ -56,7 +62,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('Nova Dispatch Error:', err)
     return NextResponse.json(
-      { error: 'Internal Server Error', detail: err instanceof Error ? err.message : 'unknown' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     )
   }

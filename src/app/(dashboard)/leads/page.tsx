@@ -1,10 +1,32 @@
+import Link from "next/link";
 import { db } from "@/db";
 import { leads } from "@/db/schema";
 import { desc } from "drizzle-orm";
+import { getOperatorUser } from "@/lib/auth/operator";
 
 export const dynamic = 'force-dynamic';
 
 export default async function LeadsDashboard() {
+    const operator = await getOperatorUser();
+    if (!operator || !operator.isOperator) {
+        return (
+            <div className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center p-6 font-sans">
+                <div className="max-w-md w-full bg-gray-900 border border-red-500/30 rounded-2xl p-8 text-center space-y-4">
+                    <h1 className="text-xl font-bold text-white">Operator Authorization Required</h1>
+                    <p className="text-sm text-gray-400">
+                        This internal lead intercept workspace is restricted to verified BaraTrust operators.
+                    </p>
+                    <Link
+                        href="/"
+                        className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        Return to BaraTrust
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     // Fetch live data directly from Neon!
     const allLeads = await db.select().from(leads).orderBy(desc(leads.id));
 

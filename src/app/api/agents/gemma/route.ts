@@ -3,6 +3,12 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { partsOrders } from "@/db/schema";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import {
+    requireOperatorOrWebhookSecretAuth,
+    sanitizeConfiguredSecret,
+} from "@/lib/auth/operator";
+
+export const dynamic = "force-dynamic";
 
 async function queryLocalDistributors(materialsList: string[], geographicMetadata: string) {
     const suppliers = [
@@ -11,10 +17,12 @@ async function queryLocalDistributors(materialsList: string[], geographicMetadat
         { name: "National Supply Co.", regionMatch: [], baseMultiplier: 5200 } // Default
     ];
 
+    const geoLower = (geographicMetadata || "").toLowerCase();
+
     // Filter suppliers by region match
     let validSuppliers = suppliers.filter(s => 
         s.regionMatch.length === 0 || 
-        s.regionMatch.some(region => geographicMetadata.toLowerCase().includes(region.toLowerCase()))
+        s.regionMatch.some(region => geoLower.includes(region.toLowerCase()))
     );
 
     // If no specific match, default to National
@@ -40,8 +48,25 @@ async function queryLocalDistributors(materialsList: string[], geographicMetadat
 }
 
 export async function POST(req: Request) {
+    const auth = await requireOperatorOrWebhookSecretAuth(req);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     try {
         const payload = await req.json();
+        const forwardHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        const incomingAuth = req.headers.get("authorization");
+        const cleanSecret = sanitizeConfiguredSecret(process.env.WEBHOOK_SECRET_KEY);
+        if (incomingAuth) {
+            forwardHeaders.Authorization = incomingAuth;
+        } else if (cleanSecret.length >= 16) {
+            forwardHeaders.Authorization = `Bearer ${cleanSecret}`;
+        }
+        const cookie = req.headers.get("cookie");
+        if (cookie) {
+            forwardHeaders.cookie = cookie;
+        }
 
         // 1. Establish the Keep-Alive Stream
         const encoder = new TextEncoder();
@@ -51,7 +76,7 @@ export async function POST(req: Request) {
 
                 try {
                     // 2. Invoke Gemma (Gemini 1.5 Flash) to parse required materials
-                    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+                    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
                     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                     
                     const prompt = `Extract required materials for a ${payload.tradeSector} job: ${payload.description}. Return raw JSON array of strings. Do not include formatting blocks, just the JSON array.`;
@@ -61,7 +86,7 @@ export async function POST(req: Request) {
                         const result = await model.generateContent(prompt);
                         const textResponse = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
                         materialsList = JSON.parse(textResponse);
-                    } catch (e) {
+                    } catch {
                         console.log(`[GEMMA] Gemini API failed, using mock materials...`);
                         materialsList = ["Digital Programmable Thermostat", "Commercial AC Compressor"];
                     }
@@ -71,7 +96,7 @@ export async function POST(req: Request) {
                     console.log(`[GEMMA] Requesting internal stock check from Cole Inventory...`);
                     const invRes = await fetch(`${appUrl}/api/agents/cole/inventory`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: forwardHeaders,
                         body: JSON.stringify({ leadId: payload.leadId, requestedParts: materialsList })
                     });
                     const invData = await invRes.json();

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+export const dynamic = "force-dynamic";
 
 const schema = {
   type: SchemaType.OBJECT,
@@ -33,8 +34,14 @@ const schema = {
 const SYSTEM_PROMPT = `You are a small business investor and M&A advisor with 20 years of experience evaluation local service businesses. Generate an honest Investor Readiness Score (0-100) as JSON.`;
 
 export async function POST(request: Request) {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-pro",

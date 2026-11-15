@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
 export const maxDuration = 60; // ⚡ Injecting 60-second runtime limit to bypass Vercel timeout limits
-
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+export const dynamic = "force-dynamic";
 
 const SYSTEM_PROMPT = `You are Nova, the AI OpportunityWatch lead generation agent.
 You are tasked with scanning incoming social signals, classifieds, and community boards to find high-intent leads for home service contractors.
@@ -27,9 +26,15 @@ Return ONLY valid JSON matching this schema:
 }`;
 
 export async function POST(request: Request) {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
     const { trade, location, context } = body;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",

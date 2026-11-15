@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
 /**
@@ -219,4 +220,61 @@ export async function requireOperatorApiAuth(): Promise<
     };
   }
   return { ok: true, operator };
+}
+
+
+/**
+ * Strips literal escaped trailing CR/LF characters and surrounding whitespace
+ * from environment secret values without mutating interior characters.
+ */
+export function sanitizeConfiguredSecret(raw?: string | null): string {
+  if (!raw) return '';
+  return raw.replace(/(?:\\r|\\n)+$/g, '').trim();
+}
+
+/**
+ * Constant-time bearer secret check using fixed-length SHA-256 digests.
+ * Fails closed when the configured secret is absent or shorter than 16 characters.
+ */
+export function verifyWebhookBearerSecret(
+  authHeader?: string | null,
+  configuredSecret?: string | null
+): boolean {
+  const expected = sanitizeConfiguredSecret(configuredSecret);
+  if (expected.length < 16) return false;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return false;
+
+  const provided = authHeader.slice('Bearer '.length).trim();
+  if (!provided) return false;
+
+  const providedDigest = createHash('sha256').update(provided, 'utf8').digest();
+  const expectedDigest = createHash('sha256').update(expected, 'utf8').digest();
+  return timingSafeEqual(providedDigest, expectedDigest);
+}
+
+/**
+ * Allows either an authenticated internal webhook (`Authorization: Bearer ${WEBHOOK_SECRET_KEY}`)
+ * or a Clerk-verified BaraTrust operator session.
+ */
+export async function requireOperatorOrWebhookSecretAuth(
+  req: Request
+): Promise<
+  | { ok: true; mode: 'webhook_secret' }
+  | { ok: true; mode: 'operator'; operator: OperatorUser }
+  | { ok: false; response: NextResponse }
+> {
+  if (verifyWebhookBearerSecret(req.headers.get('authorization'), process.env.WEBHOOK_SECRET_KEY)) {
+    return { ok: true, mode: 'webhook_secret' };
+  }
+
+  const operatorCheck = await requireOperatorApiAuth();
+  if (!operatorCheck.ok) {
+    return operatorCheck;
+  }
+
+  return {
+    ok: true,
+    mode: 'operator',
+    operator: operatorCheck.operator,
+  };
 }

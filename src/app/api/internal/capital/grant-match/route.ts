@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+export const dynamic = "force-dynamic";
 
 const SYSTEM_PROMPT = `You are a grant research specialist focused on funding opportunities for small trade businesses and contractors in Kentucky and Indiana.
 
@@ -21,8 +22,14 @@ For each qualifying program provide: Name, why they qualify, realistic award amo
 End with a "Bottom Line" summary. Keep total response under 500 words. Be honest. Protect the BaraTrust brand by never overselling grant availability.`;
 
 export async function POST(request: Request) {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-pro",

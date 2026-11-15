@@ -1073,11 +1073,16 @@ test('Error Scan Regressions — Hydration-Safe Dates, Canonical Sitemap, & Stri
     );
     assert.equal(createRes.status, 201);
 
+    const stripeClientModule = require('../src/lib/stripe/client');
     const stripeWebhookRoute = loadModule<typeof import('../src/app/api/webhooks/stripe/route')>(
       'src/app/api/webhooks/stripe/route.ts',
       {
         '@/db': { db: harness.db },
-        '../../../../lib/stripe/client': {
+        '@/lib/acquisition/schema-bootstrap': {
+          ensureAcquisitionSchema: async () => {},
+        },
+        '@/lib/stripe/client': {
+          ...stripeClientModule,
           stripe: {
             webhooks: {
               constructEvent: (rawBody: string) => JSON.parse(rawBody),
@@ -1092,6 +1097,8 @@ test('Error Scan Regressions — Hydration-Safe Dates, Canonical Sitemap, & Stri
       data: {
         object: {
           id: 'cs_live_test_pulse_001',
+          payment_link: stripeClientModule.DEFAULT_BUSINESS_PULSE_PAYMENT_LINK_ID,
+          payment_status: 'paid',
           customer: 'cus_test_pulse_001',
           subscription: 'sub_test_pulse_001',
           customer_details: {

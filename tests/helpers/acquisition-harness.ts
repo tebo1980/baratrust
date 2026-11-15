@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/pg-proxy';
 import * as schema from '../../src/db/schema';
 import {
   evaluateClerkOperatorIdentity,
+  verifyWebhookBearerSecret,
   type ClerkLikeUser,
   type OperatorUser,
 } from '../../src/lib/auth/operator';
@@ -33,6 +34,20 @@ export async function createAcquisitionTestHarness() {
   const storage = new DatabaseSync(':memory:');
   const tables = [
     schema.businesses,
+    schema.agentConfigs,
+    schema.projects,
+    schema.messages,
+    schema.bids,
+    schema.leads,
+    schema.partsOrders,
+    schema.fleetVehicles,
+    schema.mileageLogs,
+    schema.cogsLedger,
+    schema.walletBalances,
+    schema.walletTransactions,
+    schema.discoveredLeads,
+    schema.shieldProjects,
+    schema.shieldSiteTelemetryProofs,
     schema.realityChecks,
     schema.scanFindings,
     schema.ownerResponses,
@@ -127,7 +142,7 @@ export async function createAcquisitionTestHarness() {
     const rows = rawRows.map((row) =>
       Object.entries(row).map(([colKey, val]) => {
         if (
-          (colKey === 'opt_out' || colKey === 'is_active' || colKey === 'privacy_notice_accepted') &&
+          (colKey === 'opt_out' || colKey === 'is_active' || colKey === 'privacy_notice_accepted' || colKey === 'margin_alert') &&
           (val === 0 || val === 1)
         ) {
           return val === 1;
@@ -178,15 +193,50 @@ export async function createAcquisitionTestHarness() {
     return { ok: true as const, operator };
   };
 
+  const requireOperatorOrWebhookSecretAuthMock = async (req: Request) => {
+    if (verifyWebhookBearerSecret(req.headers.get('authorization'), process.env.WEBHOOK_SECRET_KEY)) {
+      return { ok: true as const, mode: 'webhook_secret' as const };
+    }
+    const operatorCheck = await requireOperatorApiAuthMock();
+    if (!operatorCheck.ok) {
+      return operatorCheck;
+    }
+    return {
+      ok: true as const,
+      mode: 'operator' as const,
+      operator: operatorCheck.operator,
+    };
+  };
+
   const boundaries: Record<string, unknown> = {
     '@/db': { db },
     '@/lib/auth/operator': {
       ...require('../../src/lib/auth/operator'),
       getOperatorUser: getOperatorUserMock,
       requireOperatorApiAuth: requireOperatorApiAuthMock,
+      requireOperatorOrWebhookSecretAuth: requireOperatorOrWebhookSecretAuthMock,
     },
     '@/lib/acquisition/schema-bootstrap': {
       ensureAcquisitionSchema: async () => {},
+    },
+    '@/lib/agents': {
+      AgentRegistry: {
+        brix: { id: 'brix', systemPrompt: 'Brix test prompt', tools: [] },
+        rex: { id: 'rex', systemPrompt: 'Rex test prompt', tools: [] },
+      },
+    },
+    '@/lib/agents/index': {
+      AgentRegistry: {
+        brix: { id: 'brix', systemPrompt: 'Brix test prompt', tools: [] },
+        rex: { id: 'rex', systemPrompt: 'Rex test prompt', tools: [] },
+      },
+    },
+    '@/lib/self-prospecting/db': {
+      listProspects: async () => [],
+      getCounts: async () => ({ all: 0, new: 0, sent: 0, replied: 0, converted: 0, discarded: 0 }),
+      getProspect: async () => null,
+      updateProspect: async () => null,
+      insertProspect: async () => ({ id: 1 }),
     },
     '@/lib/scanner': {
       ...realScanner,
@@ -293,6 +343,7 @@ export async function createAcquisitionTestHarness() {
   return {
     db,
     rawQuery: (sqlQuery: string) => storage.prepare(sqlQuery).all(),
+    loadRoute: <T>(modulePath: string) => loadModule<T>(modulePath, boundaries),
     setDbFailureMode: (mode: 'none' | 'rate_limit_only' | 'all') => {
       dbFailureMode = mode;
     },

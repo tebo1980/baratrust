@@ -4,6 +4,9 @@ import { scoreProspect, scoreBand } from '@/lib/self-prospecting/scorer'
 import { draftReply } from '@/lib/self-prospecting/drafter'
 import { insertProspect } from '@/lib/self-prospecting/db'
 import type { ProspectRow } from '@/lib/self-prospecting/db';
+import { requireOperatorApiAuth } from '@/lib/auth/operator';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * Evaluates a newly inserted prospect to determine if it requires
@@ -38,6 +41,11 @@ interface IngestBody {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireOperatorApiAuth()
+  if (!auth.ok) {
+    return auth.response
+  }
+
   let body: IngestBody
   try {
     body = await req.json()
@@ -69,7 +77,7 @@ export async function POST(req: Request) {
     if (!body.postText || !body.postText.trim()) {
       return NextResponse.json(
         {
-          error: `Could not fetch the URL automatically: ${fetched.reason}`,
+          error: 'Could not fetch the URL automatically.',
           hint: 'Paste the post text into the postText field and resubmit.',
         },
         { status: 422 },
@@ -108,7 +116,7 @@ export async function POST(req: Request) {
       // Don't fail the whole request if drafting fails — the score still
       // saves and Todd can rescore later.
       console.error('drafter failed:', err)
-      subredditNote = `Draft failed: ${err instanceof Error ? err.message : 'unknown error'}`
+      subredditNote = 'Draft generation unavailable'
     }
   } else {
     subredditNote = 'Score below cold threshold — no draft generated'
@@ -134,7 +142,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error('insertProspect failed:', err)
     return NextResponse.json(
-      { error: 'Database write failed', detail: err instanceof Error ? err.message : 'unknown' },
+      { error: 'Database write failed' },
       { status: 500 },
     )
   }

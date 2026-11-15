@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+export const dynamic = "force-dynamic";
 
 const SYSTEM_PROMPT = `You are Todd Tebo, founder of BaraTrust, writing a monthly performance report for a local service business client. Your voice is warm, honest, plain spoken, and conversational. You never use marketing jargon. You explain things like you are talking to a contractor at his kitchen table, not a marketing executive in a boardroom. You are direct, encouraging, and always honest even when results are mixed.`;
 
@@ -92,8 +93,28 @@ Keep the entire report under 450 words. Write in first person as Todd. Make it f
 }
 
 export async function POST(request: Request) {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
-    const body: ReportFormData = await request.json();
+    let body: ReportFormData;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
+
+    if (!body || typeof body.clientName !== "string" || !body.clientName.trim()) {
+      return NextResponse.json({ error: "Client name is required" }, { status: 400 });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json({ error: "System Configuration Error" }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     // Use Gemini 1.5 Pro for reports to ensure maximum nuance and quality
     const model = genAI.getGenerativeModel({ 

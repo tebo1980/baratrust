@@ -1,28 +1,39 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AgentRegistry } from "@/lib/agents";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
 // Increase max duration to prevent Vercel from violently severing the connection during long DB writes
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
+const MAX_AGENT_INPUT_CHARS = 16000;
+
 export async function POST(req: Request) {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
     // 1. Robust Payload Parsing
     // The frontend sends { agent: string, input: string }
     let payload;
     try {
       payload = await req.json();
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: "Invalid or empty JSON payload" }, { status: 400 });
     }
     
     const agentId = payload.agent || payload.agentId; // Catch both variations just in case
     const input = payload.input;
 
-    if (!agentId || typeof agentId !== 'string' || !input) {
-      console.error("[ORCHESTRATOR] Malformed Payload:", payload);
+    if (!agentId || typeof agentId !== 'string' || typeof input !== 'string' || !input.trim()) {
       return NextResponse.json({ error: "Missing agent identifier or input" }, { status: 400 });
+    }
+
+    if (input.length > MAX_AGENT_INPUT_CHARS) {
+      return NextResponse.json({ error: "Agent input exceeds maximum allowed length" }, { status: 400 });
     }
 
     const agentKey = agentId.toLowerCase();
@@ -95,7 +106,7 @@ export async function POST(req: Request) {
                 result = await chat.sendMessage([{
                   functionResponse: { name: call.name, response: toolResponse }
                 }]);
-              } catch (toolErr: any) {
+              } catch (toolErr: unknown) {
                 console.error(`[ORCHESTRATOR] Tool execution failed (${call.name}):`, toolErr);
                 break;
               }
@@ -114,7 +125,7 @@ export async function POST(req: Request) {
               console.log(`[ORCHESTRATOR] Locking in database writes via onComplete for ${agentKey}...`);
               await agentConfig.onComplete(finalResponse);
               console.log(`[ORCHESTRATOR] Database writes confirmed.`);
-            } catch (dbErr: any) {
+            } catch (dbErr: unknown) {
               console.error(`[ORCHESTRATOR] FATAL: Database commit failed during onComplete:`, dbErr);
             }
           }
@@ -123,10 +134,10 @@ export async function POST(req: Request) {
           clearInterval(heartbeat);
           controller.enqueue(encoder.encode(JSON.stringify({ response: finalResponse.trim() })));
           controller.close();
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error("[ORCHESTRATOR] Stream execution error:", err);
           clearInterval(heartbeat);
-          controller.enqueue(encoder.encode(JSON.stringify({ error: err.message })));
+          controller.enqueue(encoder.encode(JSON.stringify({ error: "Agent execution failed" })));
           controller.close();
         }
       }
@@ -136,8 +147,8 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" }
     });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[ORCHESTRATOR] Live execution error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: "Agent execution failed" }, { status: 500 });
   }
-}
+}

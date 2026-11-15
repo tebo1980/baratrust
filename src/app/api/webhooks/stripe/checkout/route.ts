@@ -1,27 +1,21 @@
 import { NextResponse } from 'next/server';
-import { stripe } from '../../../../../lib/stripe/client';
 
-export async function POST(req: Request) {
-  try {
-    // We create a Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'subscription', // Change to 'payment' if it is a one-time fee
-      line_items: [
-        {
-          // TODO: Replace this with your actual Price ID from the Stripe Dashboard
-          price: 'price_1TTZGT1YKhQ5pWK6SaZzOu4d', 
-          quantity: 1,
-        },
-      ],
-      // Where Stripe sends them after the payment succeeds or fails
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/dashboard?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/pricing?canceled=true`,
-    });
+export const dynamic = 'force-dynamic';
 
-    return NextResponse.json({ url: session.url });
-  } catch (err: any) {
-    console.error('Checkout error:', err);
-    return new NextResponse('Internal Error', { status: 500 });
-  }
+/**
+ * Retired legacy prototype checkout endpoint containing placeholder price configuration (F-01 maintenance).
+ * Active BaraTrust Business Pulse checkout uses the verified Stripe Payment Link on /pricing.
+ */
+export async function POST() {
+  return NextResponse.json(
+    { error: 'This legacy prototype checkout endpoint has been retired.' },
+    { status: 410 }
+  );
+}
+
+export async function GET() {
+  return NextResponse.json(
+    { error: 'This legacy prototype checkout endpoint has been retired.' },
+    { status: 410 }
+  );
 }

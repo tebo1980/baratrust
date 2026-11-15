@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server'
 import { listProspects, getCounts, type ProspectStatus } from '@/lib/self-prospecting/db'
+import { requireOperatorApiAuth } from '@/lib/auth/operator'
+
+export const dynamic = 'force-dynamic'
 
 const VALID_STATUSES = new Set(['new', 'sent', 'replied', 'converted', 'discarded', 'all'])
 const VALID_BANDS = new Set(['hot', 'warm', 'cold', 'all'])
 
 export async function GET(req: Request) {
+  const auth = await requireOperatorApiAuth()
+  if (!auth.ok) {
+    return auth.response
+  }
+
   const { searchParams } = new URL(req.url)
   const statusRaw = searchParams.get('status') ?? 'all'
   const bandRaw = searchParams.get('band') ?? 'all'
@@ -25,7 +33,7 @@ export async function GET(req: Request) {
   } catch (err) {
     console.error('list prospects failed:', err)
     return NextResponse.json(
-      { error: 'Database read failed', detail: err instanceof Error ? err.message : 'unknown' },
+      { error: 'Database read failed' },
       { status: 500 },
     )
   }

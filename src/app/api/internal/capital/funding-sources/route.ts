@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { requireOperatorApiAuth } from "@/lib/auth/operator";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+export const dynamic = "force-dynamic";
 
 const SYSTEM_PROMPT = `You are a capital markets advisor specializing in small local service businesses in Kentucky and Indiana.
 
@@ -30,8 +31,14 @@ ALTERNATIVE FUNDING:
 For each relevant source provide: name/type, realistic amount, eligibility, contact info, and an honest fit assessment. End with a clear "Start Here" recommendation. Keep under 400 words. Be specific to KY and IN.`;
 
 export async function POST(request: Request) {
+  const auth = await requireOperatorApiAuth();
+  if (!auth.ok) {
+    return auth.response;
+  }
+
   try {
     const body = await request.json();
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-pro",

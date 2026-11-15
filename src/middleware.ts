@@ -2,9 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // 1. Define the VIP area (customer dashboard, operator workspace, and internal APIs)
 const isProtectedRoute = createRouteMatcher([
-  "/dashboard(.*)", 
-  "/internal(.*)", 
-  "/api/internal(.*)"
+  "/dashboard(.*)",
+  "/internal(.*)",
+  "/api/internal(.*)",
+  "/leads(.*)",
+  "/agents(.*)",
+  "/pioneer(.*)",
 ]);
 
 const clerkHandler = clerkMiddleware(

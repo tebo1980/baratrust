@@ -5,13 +5,38 @@ import { bids, leads, projects } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { sendTechnicianDispatchSMS } from "@/lib/notifications";
+import {
+    requireOperatorOrWebhookSecretAuth,
+    sanitizeConfiguredSecret,
+} from "@/lib/auth/operator";
 
-// Initialize the Gemini Brain for Brix
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+export const dynamic = "force-dynamic";
+
+function buildInternalForwardHeaders(req: Request): Record<string, string> {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const incomingAuth = req.headers.get("authorization");
+    const cleanWebhookSecret = sanitizeConfiguredSecret(process.env.WEBHOOK_SECRET_KEY);
+    if (incomingAuth) {
+        headers.Authorization = incomingAuth;
+    } else if (cleanWebhookSecret.length >= 16) {
+        headers.Authorization = `Bearer ${cleanWebhookSecret}`;
+    }
+    const cookie = req.headers.get("cookie");
+    if (cookie) {
+        headers.cookie = cookie;
+    }
+    return headers;
+}
 
 export async function POST(req: Request) {
+    const auth = await requireOperatorOrWebhookSecretAuth(req);
+    if (!auth.ok) {
+        return auth.response;
+    }
+
     try {
         const lead = await req.json();
+        const forwardHeaders = buildInternalForwardHeaders(req);
 
         // 1. WAKE UP BRIX AND STREAM TO PREVENT EDGE TIMEOUT
         const encoder = new TextEncoder();
@@ -22,10 +47,12 @@ export async function POST(req: Request) {
                 }, 3000);
 
                 try {
+                    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
                     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-                    console.log(`[DELLA] Evaluating geographic metadata: ${lead.region}`);
-                    const isKentuckiana = /louisville|new albany|indiana|kentucky|kentuckiana/i.test(lead.region);
+                    const regionStr = typeof lead?.region === "string" ? lead.region : "";
+                    console.log(`[DELLA] Evaluating geographic metadata: ${regionStr}`);
+                    const isKentuckiana = /louisville|new albany|indiana|kentucky|kentuckiana/i.test(regionStr);
                     if (!isKentuckiana) {
                         console.log(`[DELLA] Rejecting lead outside service radius.`);
                         clearInterval(heartbeat);
@@ -42,7 +69,7 @@ export async function POST(req: Request) {
       
       Job Title: ${lead.title}
       Description: ${lead.description}
-      Region: ${lead.region}
+      Region: ${regionStr}
       
       Output exactly this JSON structure:
       {
@@ -60,7 +87,7 @@ export async function POST(req: Request) {
                         const result = await model.generateContent(prompt);
                         const textResponse = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
                         estimate = JSON.parse(textResponse);
-                    } catch (e) {
+                    } catch {
                         console.log(`[BRIX] Gemini API failed, using mock estimate...`);
                         estimate = {
                             laborCost: 15000,
@@ -72,7 +99,7 @@ export async function POST(req: Request) {
                     }
 
                     // Insert mock project to satisfy bids foreign key
-                    const [newProject] = await db.insert(projects).values({ name: lead.title || "Emergency Job", address: lead.region || "Local" }).returning();
+                    const [newProject] = await db.insert(projects).values({ name: lead.title || "Emergency Job", address: regionStr || "Local" }).returning();
 
                     // 2. INSERT INTO YOUR DATABASE
                     const [newBid] = await db.insert(bids).values({
@@ -93,12 +120,12 @@ export async function POST(req: Request) {
                     // We trigger Gemma and await it in this orchestration loop to complete the cascade
                     const gemmaResponse = await fetch(`${appUrl}/api/agents/gemma`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: forwardHeaders,
                         body: JSON.stringify({
                             leadId: lead.leadId,
                             tradeSector: lead.title, // Title holds trade sector in our mock
                             description: lead.description,
-                            geographicMetadata: lead.region
+                            geographicMetadata: regionStr
                         })
                     });
                     
@@ -115,7 +142,7 @@ export async function POST(req: Request) {
                         toPhone: process.env.TECHNICIAN_PHONE_NUMBER || "+15550000000",
                         tradeSector: lead.tradeSector || lead.title,
                         urgency: "CRITICAL",
-                        location: lead.region,
+                        location: regionStr,
                         scopeSummary: estimate.notes,
                         supplierName: supplier
                     }).catch(err => console.error("[ORCHESTRATOR] SMS Dispatch Failed:", err));
@@ -123,10 +150,10 @@ export async function POST(req: Request) {
                     // 6. FIRE FLYNN (FLEET LOGISTICS & MILEAGE TRACKER)
                     fetch(`${appUrl}/api/agents/flynn`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: forwardHeaders,
                         body: JSON.stringify({
                             leadId: lead.leadId,
-                            geographicMetadata: lead.region,
+                            geographicMetadata: regionStr,
                             tradeSector: lead.tradeSector || lead.title
                         })
                     }).catch(err => console.error("[ORCHESTRATOR] Flynn Dispatch Failed:", err));
@@ -134,7 +161,7 @@ export async function POST(req: Request) {
                     // 7. FIRE COLE (COGS & INVENTORY ANALYST)
                     fetch(`${appUrl}/api/agents/cole`, {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
+                        headers: forwardHeaders,
                         body: JSON.stringify({
                             leadId: lead.leadId,
                             projectId: newProject.id
@@ -147,7 +174,7 @@ export async function POST(req: Request) {
                     clearInterval(heartbeat);
                     controller.enqueue(encoder.encode(JSON.stringify({ success: true, bid: newBid, agentNotes: estimate.notes })));
                     controller.close();
-                } catch (error: any) {
+                } catch (error: unknown) {
                     console.error("Brix Agent Error:", error);
                     clearInterval(heartbeat);
                     controller.enqueue(encoder.encode(JSON.stringify({ success: false, error: "Failed to engage agent" })));

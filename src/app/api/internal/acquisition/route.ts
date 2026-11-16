@@ -17,12 +17,20 @@ import {
   sanitizePublicSourceUrl,
 } from '@/lib/acquisition/service';
 import { computeAcquisitionMeasurements } from '@/lib/acquisition/metrics';
+import {
+  inspectDurableOperatorAlertGaps,
+  recoverFailedOperatorAlertsFromDb,
+} from '@/lib/notifications/operator-alerts';
 import { sanitizePlainText } from '@/lib/security/public-guard';
 
 export const dynamic = 'force-dynamic';
 
 const ImportRealityCheckSchema = z.object({
   importFromRealityCheckId: z.string().uuid(),
+});
+
+const RecoverFailedAlertsSchema = z.object({
+  action: z.literal('RECOVER_FAILED_OPERATOR_ALERTS'),
 });
 
 export async function GET() {
@@ -79,6 +87,8 @@ export async function GET() {
       conversionEvents,
     });
 
+    const operatorAlertHealth = await inspectDurableOperatorAlertGaps(db);
+
     const logsByProspect = new Map<string, typeof logs>();
     for (const log of logs) {
       const list = logsByProspect.get(log.prospectId) || [];
@@ -126,6 +136,7 @@ export async function GET() {
         name: auth.operator.name,
       },
       measurements,
+      operatorAlertHealth,
       unimportedDiscussLeads,
       prospects: prospects.map((p) => ({
         ...p,
@@ -153,6 +164,18 @@ export async function POST(req: Request) {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    // Mode 0: Explicit operator recovery of missed/failed alerts from Neon after a Vercel cold start
+    const recoverParsed = RecoverFailedAlertsSchema.safeParse(body);
+    if (recoverParsed.success) {
+      const recovery = await recoverFailedOperatorAlertsFromDb(db);
+      const operatorAlertHealth = await inspectDurableOperatorAlertGaps(db);
+      return NextResponse.json({
+        success: true,
+        recovery,
+        operatorAlertHealth,
+      });
     }
 
     // Mode 1: 1-click import from an inbound "Discuss My Results" Reality Check record

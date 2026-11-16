@@ -4,6 +4,12 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { realityChecks, ownerResponses, OwnerQuestionnaireAnswers } from '@/db/schema';
 import {
+  claimQuestionnaireOperatorAlertForRecovery,
+  computeQuestionnaireAnswersHash,
+  notifyOperatorsOfRealityCheckQuestionnaire,
+  questionnaireStateTagForStatus,
+} from '@/lib/notifications/operator-alerts';
+import {
   enforcePublicRateLimit,
   FOLLOWUP_CLAIM_COOKIE_NAME,
   getClientIpKey,
@@ -93,6 +99,16 @@ export async function GET(req: Request) {
         expectedEmail: check.email,
       });
 
+    const sanitizePublicQuestionnaireResponses = (raw: unknown): OwnerQuestionnaireAnswers | null => {
+      if (!raw) return null;
+      const obj =
+        typeof raw === 'string'
+          ? (JSON.parse(raw) as OwnerQuestionnaireAnswers)
+          : (raw as OwnerQuestionnaireAnswers);
+      const { operatorAlertMeta: _internalMeta, ...publicFields } = obj;
+      return publicFields;
+    };
+
     return NextResponse.json({
       success: true,
       business: {
@@ -106,7 +122,7 @@ export async function GET(req: Request) {
         questionnaireLocked: LOCKED_QUESTIONNAIRE_STATUSES.has(check.status),
         questionnaireSubmitted: Boolean(existing),
       },
-      responses: isVerifiedClaimant && existing ? existing.responses : null,
+      responses: isVerifiedClaimant && existing ? sanitizePublicQuestionnaireResponses(existing.responses) : null,
     });
   } catch (err: any) {
     console.error('[QUESTIONNAIRE_GET_ERROR]', err);
@@ -226,23 +242,54 @@ export async function POST(req: Request) {
       .where(eq(ownerResponses.realityCheckId, check.id))
       .limit(1);
 
+    const existingParsed: OwnerQuestionnaireAnswers | null = existing
+      ? typeof existing.responses === 'string'
+        ? (JSON.parse(existing.responses) as OwnerQuestionnaireAnswers)
+        : (existing.responses as OwnerQuestionnaireAnswers)
+      : null;
+
+    const prevAnswersHash = existingParsed
+      ? computeQuestionnaireAnswersHash(existingParsed)
+      : null;
+    const nextAnswersHash = computeQuestionnaireAnswersHash(questionnairePayload);
+    const isUnchangedRetry = Boolean(existingParsed && prevAnswersHash === nextAnswersHash);
+    const persistedAlertStatus =
+      isUnchangedRetry && existingParsed?.operatorAlertMeta?.answersHash === nextAnswersHash
+        ? existingParsed.operatorAlertMeta.status
+        : isUnchangedRetry
+        ? 'FAILED_RETRYABLE'
+        : null;
+
+    let targetOwnerResponseId: string;
     if (existing) {
+      targetOwnerResponseId = existing.id;
       await db
         .update(ownerResponses)
         .set({
-          responses: questionnairePayload,
+          responses: persistedAlertStatus
+            ? {
+                ...questionnairePayload,
+                operatorAlertMeta: existingParsed?.operatorAlertMeta,
+              }
+            : questionnairePayload,
           updatedAt: new Date(),
         })
         .where(eq(ownerResponses.id, existing.id));
     } else {
-      await db.insert(ownerResponses).values({
-        realityCheckId: check.id,
-        responses: questionnairePayload,
-      });
+      const [insertedResp] = await db
+        .insert(ownerResponses)
+        .values({
+          realityCheckId: check.id,
+          responses: questionnairePayload,
+        })
+        .returning({ id: ownerResponses.id });
+      targetOwnerResponseId = insertedResp.id;
     }
 
     // 4. Update reality check status if it's currently in an early automated state
+    let effectiveReviewStatus = check.status;
     if (check.status === 'NEW' || check.status === 'AUTO_SCAN_COMPLETE' || check.status === 'pending_review') {
+      effectiveReviewStatus = 'NEEDS_HUMAN_REVIEW';
       await db
         .update(realityChecks)
         .set({
@@ -250,6 +297,68 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         })
         .where(eq(realityChecks.id, check.id));
+    }
+
+    // 5. Internal operator alert (durably persisted in owner_responses.responses across Vercel cold starts)
+    try {
+      let mayDispatch = true;
+      if (
+        isUnchangedRetry &&
+        persistedAlertStatus === 'FAILED_RETRYABLE' &&
+        existingParsed?.operatorAlertMeta?.stateTag === 'OP_Q_ALERT_FAILED_RETRYABLE'
+      ) {
+        const claim = await claimQuestionnaireOperatorAlertForRecovery(
+          db,
+          targetOwnerResponseId
+        );
+        mayDispatch = claim === 'CLAIMED';
+      }
+
+      if (mayDispatch) {
+        const alertRes = await notifyOperatorsOfRealityCheckQuestionnaire(
+          {
+            realityCheckId: check.id,
+            businessName: check.businessName,
+            website: check.website,
+            cityState: check.cityState,
+            ownerName: check.ownerName,
+            email: check.email,
+            reviewStatus: effectiveReviewStatus,
+            isUpdate: Boolean(existing && !isUnchangedRetry),
+            answersHash: nextAnswersHash,
+            responses: questionnairePayload,
+          },
+          {
+            isRetrySubmission: isUnchangedRetry,
+            persistedStatus: persistedAlertStatus,
+          }
+        );
+
+        if (
+          alertRes.status === 'SENT' ||
+          alertRes.status === 'FAILED_RETRYABLE' ||
+          alertRes.status === 'UNCERTAIN_DELIVERY_LOCKED'
+        ) {
+          await db
+            .update(ownerResponses)
+            .set({
+              responses: {
+                ...questionnairePayload,
+                operatorAlertMeta: {
+                  status: alertRes.status,
+                  stateTag: questionnaireStateTagForStatus(alertRes.status),
+                  inFlightSinceMs: null,
+                  answersHash: nextAnswersHash,
+                  updatedAt: new Date().toISOString(),
+                  lastError: alertRes.error,
+                },
+              },
+            })
+            .where(eq(ownerResponses.id, targetOwnerResponseId));
+        }
+      }
+    } catch {
+      // Never lose recorded owner questionnaire response on alert tracking error
     }
 
     return NextResponse.json({

@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { and, asc, desc, eq, gt, gte, inArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, gte, inArray, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { acquisitionProspects } from '@/db/schema/acquisition';
 import {
@@ -354,7 +354,9 @@ function toInquiryDto(row: typeof websiteCustomerInquiries.$inferSelect): Websit
       : null,
     realityCheckShareToken: row.realityCheckShareToken ?? null,
     faqMatchedKeys: parseJsonArray(row.faqMatchedKeys),
-    securityFlags: parseJsonArray(row.securityFlags),
+    securityFlags: parseJsonArray(row.securityFlags).filter(
+      (flag) => !flag.startsWith('OP_ALERT_')
+    ),
     commitmentBusinessDays: Number(row.commitmentBusinessDays || 2),
     followUpDueAt: row.followUpDueAt ? parseRowTimestamp(row.followUpDueAt).toISOString() : null,
     ackTemplateKey: row.ackTemplateKey ?? null,
@@ -1245,4 +1247,154 @@ export async function runAuthorizedInternalAckTest(
       inquiry: toInquiryDto(updated || lockedRow),
     };
   }
+}
+
+export type DurableOperatorAlertStatus =
+  | 'IN_FLIGHT'
+  | 'SENT'
+  | 'FAILED_RETRYABLE'
+  | 'UNCERTAIN_DELIVERY_LOCKED';
+
+export const OPERATOR_ALERT_STALE_LOCK_MS = 90_000;
+
+function parseRawFlagStrings(rawFlags: unknown): string[] {
+  if (Array.isArray(rawFlags)) return rawFlags.map(String);
+  if (typeof rawFlags === 'string') {
+    try {
+      const parsed = JSON.parse(rawFlags);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export function extractOperatorAlertStatusFromFlags(
+  rawFlags: unknown
+): DurableOperatorAlertStatus | null {
+  const arr = parseRawFlagStrings(rawFlags);
+  if (arr.includes('OP_ALERT_SENT')) return 'SENT';
+  if (arr.includes('OP_ALERT_UNCERTAIN_LOCKED')) return 'UNCERTAIN_DELIVERY_LOCKED';
+  if (arr.some((f) => f === 'OP_ALERT_IN_FLIGHT' || f.startsWith('OP_ALERT_IN_FLIGHT:'))) {
+    return 'IN_FLIGHT';
+  }
+  if (arr.includes('OP_ALERT_FAILED_RETRYABLE')) return 'FAILED_RETRYABLE';
+  return null;
+}
+
+export function extractInFlightTimestampFromFlags(rawFlags: unknown): number | null {
+  const arr = parseRawFlagStrings(rawFlags);
+  for (const item of arr) {
+    if (item.startsWith('OP_ALERT_IN_FLIGHT:')) {
+      const parsed = Number(item.slice('OP_ALERT_IN_FLIGHT:'.length));
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+  }
+  return null;
+}
+
+export async function readInquiryOperatorAlertStatus(
+  dbClient: any,
+  inquiryId: string
+): Promise<DurableOperatorAlertStatus | null> {
+  const [row] = await dbClient
+    .select({ securityFlags: websiteCustomerInquiries.securityFlags })
+    .from(websiteCustomerInquiries)
+    .where(eq(websiteCustomerInquiries.id, inquiryId))
+    .limit(1);
+  if (!row) return null;
+  return extractOperatorAlertStatusFromFlags(row.securityFlags);
+}
+
+/**
+ * Atomically claims a `FAILED_RETRYABLE` inquiry operator alert (`FAILED_RETRYABLE` -> `IN_FLIGHT:<nowMs>`)
+ * so concurrent serverless instances can never both win the same alert recovery.
+ * - Active `IN_FLIGHT` locks `< 90s` are left untouched (`ACTIVE_IN_FLIGHT`) so another instance
+ *   never sends while an original 9s SMTP / 30s serverless operation could still be active.
+ * - Interrupted `IN_FLIGHT` locks `>= 90s` are safely quarantined as `UNCERTAIN_DELIVERY_LOCKED`
+ *   (`QUARANTINED_STALE_LOCK`) rather than blindly re-sent.
+ */
+export async function claimInquiryOperatorAlertForRecovery(
+  dbClient: any,
+  inquiryId: string,
+  nowMs = Date.now()
+): Promise<'CLAIMED' | 'ALREADY_HANDLED' | 'ACTIVE_IN_FLIGHT' | 'QUARANTINED_STALE_LOCK'> {
+  const [row] = await dbClient
+    .select({ securityFlags: websiteCustomerInquiries.securityFlags })
+    .from(websiteCustomerInquiries)
+    .where(eq(websiteCustomerInquiries.id, inquiryId))
+    .limit(1);
+  if (!row) return 'ALREADY_HANDLED';
+
+  const flags = parseRawFlagStrings(row.securityFlags);
+  const currentStatus = extractOperatorAlertStatusFromFlags(flags);
+
+  if (currentStatus === 'IN_FLIGHT') {
+    const startedMs = extractInFlightTimestampFromFlags(flags);
+    if (startedMs !== null && nowMs - startedMs < OPERATOR_ALERT_STALE_LOCK_MS) {
+      return 'ACTIVE_IN_FLIGHT';
+    }
+    const baseFlags = flags.filter((f) => !f.startsWith('OP_ALERT_'));
+    await dbClient
+      .update(websiteCustomerInquiries)
+      .set({ securityFlags: [...baseFlags, 'OP_ALERT_UNCERTAIN_LOCKED'] })
+      .where(
+        and(
+          eq(websiteCustomerInquiries.id, inquiryId),
+          sql`CAST(${websiteCustomerInquiries.securityFlags} AS text) LIKE ${'%OP_ALERT_IN_FLIGHT%'}`
+        )
+      );
+    return 'QUARANTINED_STALE_LOCK';
+  }
+
+  if (currentStatus !== 'FAILED_RETRYABLE') {
+    return 'ALREADY_HANDLED';
+  }
+
+  const baseFlags = flags.filter((f) => !f.startsWith('OP_ALERT_'));
+  const claimed = await dbClient
+    .update(websiteCustomerInquiries)
+    .set({
+      securityFlags: [...baseFlags, `OP_ALERT_IN_FLIGHT:${nowMs}`],
+    })
+    .where(
+      and(
+        eq(websiteCustomerInquiries.id, inquiryId),
+        sql`CAST(${websiteCustomerInquiries.securityFlags} AS text) LIKE ${'%OP_ALERT_FAILED_RETRYABLE%'}`
+      )
+    )
+    .returning({ id: websiteCustomerInquiries.id });
+
+  return claimed.length > 0 ? 'CLAIMED' : 'ALREADY_HANDLED';
+}
+
+export async function writeInquiryOperatorAlertStatus(
+  dbClient: any,
+  inquiryId: string,
+  status: Exclude<DurableOperatorAlertStatus, 'IN_FLIGHT'>
+): Promise<void> {
+  const [row] = await dbClient
+    .select({ securityFlags: websiteCustomerInquiries.securityFlags })
+    .from(websiteCustomerInquiries)
+    .where(eq(websiteCustomerInquiries.id, inquiryId))
+    .limit(1);
+  if (!row) return;
+
+  const baseFlags = parseRawFlagStrings(row.securityFlags).filter(
+    (f) => !f.startsWith('OP_ALERT_')
+  );
+  const tag =
+    status === 'SENT'
+      ? 'OP_ALERT_SENT'
+      : status === 'UNCERTAIN_DELIVERY_LOCKED'
+      ? 'OP_ALERT_UNCERTAIN_LOCKED'
+      : 'OP_ALERT_FAILED_RETRYABLE';
+
+  await dbClient
+    .update(websiteCustomerInquiries)
+    .set({
+      securityFlags: [...baseFlags, tag],
+    })
+    .where(eq(websiteCustomerInquiries.id, inquiryId));
 }

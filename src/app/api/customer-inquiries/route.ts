@@ -3,8 +3,12 @@ import { db } from '@/db';
 import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
 import {
   SubmitWebsiteInquirySchema,
+  claimInquiryOperatorAlertForRecovery,
+  readInquiryOperatorAlertStatus,
   submitWebsiteCustomerInquiry,
+  writeInquiryOperatorAlertStatus,
 } from '@/lib/customer-intake/service';
+import { notifyOperatorsOfContactInquiry } from '@/lib/notifications/operator-alerts';
 import {
   enforcePublicRateLimit,
   getClientIpKey,
@@ -70,6 +74,32 @@ export async function POST(req: Request) {
     }
 
     const result = await submitWebsiteCustomerInquiry(db, validation.data);
+
+    // Internal operator notification: durably tracks alert delivery state in Neon so
+    // duplicate suppression never hides a failed alert across Vercel cold starts.
+    try {
+      const persistedStatus = await readInquiryOperatorAlertStatus(db, result.inquiry.id);
+      let mayDispatch = true;
+      if (result.deduplicated && persistedStatus === 'FAILED_RETRYABLE') {
+        const claim = await claimInquiryOperatorAlertForRecovery(db, result.inquiry.id);
+        mayDispatch = claim === 'CLAIMED';
+      }
+      if (mayDispatch) {
+        const alertRes = await notifyOperatorsOfContactInquiry(result.inquiry, {
+          isRetrySubmission: result.deduplicated,
+          persistedStatus,
+        });
+        if (
+          alertRes.status === 'SENT' ||
+          alertRes.status === 'FAILED_RETRYABLE' ||
+          alertRes.status === 'UNCERTAIN_DELIVERY_LOCKED'
+        ) {
+          await writeInquiryOperatorAlertStatus(db, result.inquiry.id, alertRes.status);
+        }
+      }
+    } catch {
+      // Never fail customer submission if internal operator notification tracking throws
+    }
 
     return NextResponse.json(
       {

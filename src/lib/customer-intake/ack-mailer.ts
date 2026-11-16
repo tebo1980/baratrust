@@ -77,30 +77,46 @@ function encodeMimeHeaderIfNonAscii(value: string): string {
   return `=?UTF-8?B?${Buffer.from(clean, 'utf8').toString('base64')}?=`;
 }
 
-function redactMailerError(rawError: unknown): string {
+export function redactSensitiveMailError(rawError: unknown): string {
   const raw =
     rawError instanceof Error
       ? rawError.message
       : typeof rawError === 'string'
       ? rawError
-      : 'Outbound acknowledgment transport error';
+      : 'Outbound mail transport error';
 
   let safe = raw;
   const sensitiveValues = [
     process.env.RESEND_API_KEY,
     process.env.CPANEL_SMTP_PASS,
     process.env.HUNTER_INQUIRY_SYNC_SECRET,
+    process.env.STRIPE_SECRET_KEY,
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.WEBHOOK_SECRET_KEY,
+    process.env.CLERK_SECRET_KEY,
+    process.env.CLERK_WEBHOOK_SECRET,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_PASSWORD,
+    process.env.POSTGRES_URL,
   ].filter((v): v is string => Boolean(v && v.trim().length >= 4));
 
   for (const secret of sensitiveValues) {
+    const trimmed = secret.trim();
     safe = safe.split(secret).join('[REDACTED]');
-    const b64 = Buffer.from(secret, 'utf8').toString('base64');
+    if (trimmed !== secret) {
+      safe = safe.split(trimmed).join('[REDACTED]');
+    }
+    const b64 = Buffer.from(trimmed, 'utf8').toString('base64');
     if (b64.length >= 6) {
       safe = safe.split(b64).join('[REDACTED]');
     }
   }
 
   return safe.slice(0, 280);
+}
+
+function redactMailerError(rawError: unknown): string {
+  return redactSensitiveMailError(rawError);
 }
 
 /**
@@ -187,45 +203,90 @@ async function sendViaResendHttps(
   }
 }
 
+export interface InternalCpanelAlertInput {
+  referenceId: string;
+  recipients: string[];
+  replyToEmail?: string | null;
+  subject: string;
+  bodyText: string;
+}
+
+interface CpanelImplicitTlsMessageParams {
+  messageIdPrefix: string;
+  referenceId: string;
+  recipients: string[];
+  replyToEmail?: string | null;
+  fromDisplayName: string;
+  subject: string;
+  bodyText: string;
+  includeAutoReplyHeaders: boolean;
+}
+
 /**
  * Minimal, dependency-free implicit-TLS SMTP client (`server221.web-hosting.com:465`)
- * for Node.js serverless runtime when Resend is not configured.
+ * for Node.js serverless runtime.
  * Strictly separates pre-DATA errors (`FAILED_RETRYABLE`) from post-DATA ambiguity (`UNCERTAIN_DELIVERY_LOCKED`).
  */
-async function sendViaCpanelImplicitTlsSmtp(
+async function sendCpanelImplicitTlsMessage(
   cfg: { host: string; port: number; user: string; pass: string },
-  input: AckMailerInput
+  params: CpanelImplicitTlsMessageParams
 ): Promise<AckMailerOutcome> {
-  const cleanRecipient = stripHeaderCrlf(input.recipientEmail);
+  const cleanRecipients = Array.from(
+    new Set(
+      params.recipients
+        .map((r) => stripHeaderCrlf(r).toLowerCase())
+        .filter((r) => /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(r))
+    )
+  );
+  if (cleanRecipients.length === 0) {
+    return {
+      outcome: 'FAILED_RETRYABLE',
+      provider: 'UNCONFIGURED',
+      messageId: null,
+      error: 'No valid SMTP recipient addresses provided.',
+    };
+  }
+
   const cleanUser = stripHeaderCrlf(cfg.user);
   const cleanSender = stripHeaderCrlf(process.env.CUSTOMER_ACK_FROM_EMAIL || cleanUser);
-  const encodedSubject = encodeMimeHeaderIfNonAscii(input.subject);
-  const generatedMessageId = `<ack-${input.inquiryId}-${crypto.randomBytes(6).toString('hex')}@baratrust.com>`;
+  const cleanReplyTo = params.replyToEmail
+    ? stripHeaderCrlf(params.replyToEmail)
+    : cleanSender;
+  const effectiveReplyTo = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(cleanReplyTo)
+    ? cleanReplyTo
+    : cleanSender;
+
+  const safeRef = params.referenceId.replace(/[^A-Za-z0-9_-]/g, '').slice(0, 48) || 'msg';
+  const encodedSubject = encodeMimeHeaderIfNonAscii(params.subject);
+  const generatedMessageId = `<${params.messageIdPrefix}-${safeRef}-${crypto.randomBytes(6).toString('hex')}@baratrust.com>`;
 
   // Dot-stuff body lines per RFC 5321 Section 4.5.2
-  const normalizedLines = input.bodyText.replace(/\r?\n/g, '\r\n').split('\r\n');
+  const normalizedLines = params.bodyText.replace(/\r?\n/g, '\r\n').split('\r\n');
   const dotStuffedBody = normalizedLines
     .map((line) => (line.startsWith('.') ? `.${line}` : line))
     .join('\r\n');
 
-  const mimeMessage = [
-    `From: "Todd & Noelah - BaraTrust" <${cleanSender}>`,
-    `To: <${cleanRecipient}>`,
-    `Reply-To: <${cleanSender}>`,
+  const headerLines = [
+    `From: "${stripHeaderCrlf(params.fromDisplayName)}" <${cleanSender}>`,
+    `To: ${cleanRecipients.map((r) => `<${r}>`).join(', ')}`,
+    `Reply-To: <${effectiveReplyTo}>`,
     `Subject: ${encodedSubject}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: ${generatedMessageId}`,
     `MIME-Version: 1.0`,
     `Content-Type: text/plain; charset="utf-8"`,
     `Content-Transfer-Encoding: 8bit`,
-    `Auto-Submitted: auto-replied`,
-    `X-Auto-Response-Suppress: All`,
-    `Precedence: auto_reply`,
-    ``,
-    dotStuffedBody,
-    `.`,
-    ``,
-  ].join('\r\n');
+  ];
+
+  if (params.includeAutoReplyHeaders) {
+    headerLines.push(
+      `Auto-Submitted: auto-replied`,
+      `X-Auto-Response-Suppress: All`,
+      `Precedence: auto_reply`
+    );
+  }
+
+  const mimeMessage = [...headerLines, ``, dotStuffedBody, `.`, ``].join('\r\n');
 
   let transmittedDataPayload = false;
   let tcpConnected = false;
@@ -413,7 +474,11 @@ async function sendViaCpanelImplicitTlsSmtp(
         smtpAuthenticated = true;
 
         await sendCommand(`MAIL FROM:<${cleanSender}>`, 2);
-        await sendCommand(`RCPT TO:<${cleanRecipient}>`, 2);
+        // Require every configured recipient's RCPT TO to succeed before DATA so a partial
+        // recipient failure can never be falsely marked as SENT.
+        for (const rcpt of cleanRecipients) {
+          await sendCommand(`RCPT TO:<${rcpt}>`, 2);
+        }
         await sendCommand('DATA', 354);
 
         transmittedDataPayload = true;
@@ -465,6 +530,72 @@ async function sendViaCpanelImplicitTlsSmtp(
       }
     })();
   });
+}
+
+async function sendViaCpanelImplicitTlsSmtp(
+  cfg: { host: string; port: number; user: string; pass: string },
+  input: AckMailerInput
+): Promise<AckMailerOutcome> {
+  return sendCpanelImplicitTlsMessage(cfg, {
+    messageIdPrefix: 'ack',
+    referenceId: input.inquiryId,
+    recipients: [input.recipientEmail],
+    replyToEmail: null,
+    fromDisplayName: 'Todd & Noelah - BaraTrust',
+    subject: input.subject,
+    bodyText: input.bodyText,
+    includeAutoReplyHeaders: true,
+  });
+}
+
+/**
+ * Reuses the verified cPanel implicit-TLS SMTP transport (`server221.web-hosting.com:465`)
+ * to send internal operator notifications to Todd & Noelah without introducing paid providers.
+ */
+export async function sendInternalCpanelSmtpAlert(
+  input: InternalCpanelAlertInput
+): Promise<AckMailerOutcome> {
+  if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV === 'true') {
+    return {
+      outcome: 'FAILED_RETRYABLE',
+      provider: 'UNCONFIGURED',
+      messageId: null,
+      error: 'Live operator alert SMTP blocked in test environment without explicit mock adapter.',
+    };
+  }
+
+  const smtpHost = (process.env.CPANEL_SMTP_HOST || '').trim();
+  const smtpPort = Number(process.env.CPANEL_SMTP_PORT || '465');
+  const smtpUser = (process.env.CPANEL_SMTP_USER || '').trim();
+  const smtpPass = process.env.CPANEL_SMTP_PASS || '';
+
+  if (!smtpHost || !smtpUser || !smtpPass || !Number.isFinite(smtpPort)) {
+    return {
+      outcome: 'FAILED_RETRYABLE',
+      provider: 'UNCONFIGURED',
+      messageId: null,
+      error: 'CPANEL_SMTP_* credentials are not configured for internal operator alerts.',
+    };
+  }
+
+  return sendCpanelImplicitTlsMessage(
+    {
+      host: smtpHost,
+      port: smtpPort,
+      user: smtpUser,
+      pass: smtpPass,
+    },
+    {
+      messageIdPrefix: 'op-alert',
+      referenceId: input.referenceId,
+      recipients: input.recipients,
+      replyToEmail: input.replyToEmail,
+      fromDisplayName: 'BaraTrust Operator Alerts',
+      subject: input.subject,
+      bodyText: input.bodyText,
+      includeAutoReplyHeaders: false,
+    }
+  );
 }
 
 /**

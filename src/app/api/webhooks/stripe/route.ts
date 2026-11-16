@@ -14,6 +14,15 @@ import {
   acquisitionContactLogs,
 } from '@/db/schema';
 import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
+import { redactSensitiveMailError } from '@/lib/customer-intake/ack-mailer';
+import type { DurableOperatorAlertStatus } from '@/lib/customer-intake/service';
+import {
+  applyStripeAlertStatusMarker,
+  claimStripeOperatorAlertForRecovery,
+  extractStripeAlertStatusFromSummary,
+  getOperatorAlertLedgerEntry,
+  notifyOperatorsOfBusinessPulsePurchase,
+} from '@/lib/notifications/operator-alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +33,9 @@ interface SubscriptionLogState {
   alreadyProcessedSession: boolean;
   latestSubscriptionEventTs: number | null;
   canceledAtLatestTs: boolean;
+  checkoutLogRowId: string | null;
+  checkoutLogSummary: string | null;
+  checkoutAlertStatus: DurableOperatorAlertStatus | null;
 }
 
 async function getSubscriptionLogState(params: {
@@ -57,11 +69,15 @@ async function getSubscriptionLogState(params: {
       alreadyProcessedSession: false,
       latestSubscriptionEventTs: null,
       canceledAtLatestTs: false,
+      checkoutLogRowId: null,
+      checkoutLogSummary: null,
+      checkoutAlertStatus: null,
     };
   }
 
   const rows = await db
     .select({
+      id: acquisitionContactLogs.id,
       actionType: acquisitionContactLogs.actionType,
       summary: acquisitionContactLogs.summary,
     })
@@ -77,6 +93,9 @@ async function getSubscriptionLogState(params: {
   let alreadyProcessedSession = false;
   let latestSubscriptionEventTs: number | null = null;
   let canceledAtLatestTs = false;
+  let checkoutLogRowId: string | null = null;
+  let checkoutLogSummary: string | null = null;
+  let checkoutAlertStatus: DurableOperatorAlertStatus | null = null;
 
   const eventToken = cleanEventId ? `[event:${cleanEventId}]` : null;
   const sessionToken = sessionId ? `[session:${sessionId}]` : null;
@@ -89,6 +108,15 @@ async function getSubscriptionLogState(params: {
     }
     if (sessionToken && summary.includes(sessionToken)) {
       alreadyProcessedSession = true;
+    }
+    if (
+      row.actionType === 'STRIPE_CHECKOUT_COMPLETED' &&
+      ((sessionToken && summary.includes(sessionToken)) ||
+        (eventToken && summary.includes(eventToken)))
+    ) {
+      checkoutLogRowId = row.id;
+      checkoutLogSummary = summary;
+      checkoutAlertStatus = extractStripeAlertStatusFromSummary(summary);
     }
     if (subToken && summary.includes(subToken)) {
       const tsMatch = /\[event_ts:(\d+)\]/.exec(summary);
@@ -114,6 +142,9 @@ async function getSubscriptionLogState(params: {
     alreadyProcessedSession,
     latestSubscriptionEventTs,
     canceledAtLatestTs,
+    checkoutLogRowId,
+    checkoutLogSummary,
+    checkoutAlertStatus,
   };
 }
 
@@ -287,6 +318,66 @@ export async function POST(req: Request) {
           });
 
           if (logState.alreadyProcessedEvent || logState.alreadyProcessedSession) {
+            const warmAlert = session.id
+              ? getOperatorAlertLedgerEntry(`stripe_pulse_checkout:${session.id}`)
+              : undefined;
+            const effectiveAlertStatus =
+              logState.checkoutAlertStatus ?? warmAlert?.status ?? null;
+
+            if (session.id && effectiveAlertStatus === 'FAILED_RETRYABLE') {
+              try {
+                let mayDispatch = true;
+                if (logState.checkoutLogRowId && logState.checkoutAlertStatus === 'FAILED_RETRYABLE') {
+                  const claim = await claimStripeOperatorAlertForRecovery(
+                    db,
+                    logState.checkoutLogRowId
+                  );
+                  mayDispatch = claim === 'CLAIMED';
+                }
+
+                if (mayDispatch) {
+                  const recoveredProspect = await findMatchingProspect({
+                    subscriptionId,
+                    customerId,
+                    customerEmail,
+                  });
+                  if (recoveredProspect) {
+                    const alertRes = await notifyOperatorsOfBusinessPulsePurchase(
+                      {
+                        sessionId: session.id,
+                        prospectId: recoveredProspect.id,
+                        businessName: recoveredProspect.businessName || customerName,
+                        customerName,
+                        customerEmail,
+                        location: null,
+                        subscriptionId,
+                        recordedAtIso: new Date().toISOString(),
+                      },
+                      { isRetrySubmission: true, persistedStatus: 'FAILED_RETRYABLE' }
+                    );
+                    if (
+                      logState.checkoutLogRowId &&
+                      logState.checkoutLogSummary &&
+                      (alertRes.status === 'SENT' ||
+                        alertRes.status === 'FAILED_RETRYABLE' ||
+                        alertRes.status === 'UNCERTAIN_DELIVERY_LOCKED')
+                    ) {
+                      await db
+                        .update(acquisitionContactLogs)
+                        .set({
+                          summary: applyStripeAlertStatusMarker(
+                            logState.checkoutLogSummary,
+                            alertRes.status
+                          ),
+                        })
+                        .where(eq(acquisitionContactLogs.id, logState.checkoutLogRowId));
+                    }
+                  }
+                }
+              } catch {
+                // Non-blocking on duplicate webhook retry
+              }
+            }
             return NextResponse.json(
               { received: true, duplicate: true },
               { status: 200 }
@@ -451,16 +542,63 @@ export async function POST(req: Request) {
             .filter(Boolean)
             .join(' ');
 
-          await db.insert(acquisitionContactLogs).values({
-            prospectId: targetProspectId,
-            actorEmail: STRIPE_WEBHOOK_ACTOR,
-            channel: 'SYSTEM',
-            direction: 'INBOUND',
-            actionType: 'STRIPE_CHECKOUT_COMPLETED',
-            summary: `Business Pulse ($99/mo) Stripe checkout completed — queued for human onboarding ${markers}.`,
-          });
+          const baseSummary = `Business Pulse ($99/mo) Stripe checkout completed — queued for human onboarding ${markers}.`;
+          const [insertedLog] = await db
+            .insert(acquisitionContactLogs)
+            .values({
+              prospectId: targetProspectId,
+              actorEmail: STRIPE_WEBHOOK_ACTOR,
+              channel: 'SYSTEM',
+              direction: 'INBOUND',
+              actionType: 'STRIPE_CHECKOUT_COMPLETED',
+              summary: baseSummary,
+            })
+            .returning({ id: acquisitionContactLogs.id });
+
+          // 4. Non-blocking internal operator onboarding alert (durably persisted across cold starts; never invalidates recorded Stripe payment)
+          if (session.id) {
+            try {
+              const city = session.customer_details?.address?.city?.trim();
+              const state = session.customer_details?.address?.state?.trim();
+              const alertLocation =
+                city && state ? `${city}, ${state}` : city || state || null;
+
+              const alertRes = await notifyOperatorsOfBusinessPulsePurchase(
+                {
+                  sessionId: session.id,
+                  prospectId: targetProspectId,
+                  businessName: derivedBusinessName,
+                  customerName,
+                  customerEmail,
+                  location: alertLocation,
+                  subscriptionId,
+                  recordedAtIso: now.toISOString(),
+                },
+                { isRetrySubmission: false, persistedStatus: null }
+              );
+
+              if (
+                insertedLog?.id &&
+                (alertRes.status === 'SENT' ||
+                  alertRes.status === 'FAILED_RETRYABLE' ||
+                  alertRes.status === 'UNCERTAIN_DELIVERY_LOCKED')
+              ) {
+                await db
+                  .update(acquisitionContactLogs)
+                  .set({
+                    summary: applyStripeAlertStatusMarker(baseSummary, alertRes.status),
+                  })
+                  .where(eq(acquisitionContactLogs.id, insertedLog.id));
+              }
+            } catch {
+              // Never fail recorded Stripe payment if alert tracking throws
+            }
+          }
         } catch (dbError) {
-          console.error('Database update failed in Stripe checkout webhook:', dbError);
+          console.error(
+            'Database update failed in Stripe checkout webhook:',
+            redactSensitiveMailError(dbError)
+          );
           return NextResponse.json(
             { error: 'Database update failed.' },
             { status: 500 }
@@ -630,7 +768,10 @@ export async function POST(req: Request) {
           });
         }
       } catch (subError) {
-        console.error('Database update failed on subscription lifecycle webhook:', subError);
+        console.error(
+          'Database update failed on subscription lifecycle webhook:',
+          redactSensitiveMailError(subError)
+        );
         return NextResponse.json(
           { error: 'Database update failed.' },
           { status: 500 }

@@ -3,7 +3,13 @@ import crypto from 'crypto';
 import { and, eq, isNull, desc } from 'drizzle-orm';
 import { db } from '@/db';
 import { ensureAcquisitionSchema } from '@/lib/acquisition/schema-bootstrap';
-import { recordRealityCheckInquiryInNeon } from '@/lib/customer-intake/service';
+import {
+  claimInquiryOperatorAlertForRecovery,
+  readInquiryOperatorAlertStatus,
+  recordRealityCheckInquiryInNeon,
+  writeInquiryOperatorAlertStatus,
+} from '@/lib/customer-intake/service';
+import { notifyOperatorsOfRealityCheckDiscuss } from '@/lib/notifications/operator-alerts';
 import { realityChecks, scanFindings, ownerResponses } from '@/db/schema';
 import {
   executeDeterministicScan,
@@ -505,10 +511,13 @@ export async function POST(req: Request) {
     pruneExpiredScreenshotsInDb().catch(() => {});
 
     // 5c. Phase C unified customer inquiry hook (idempotent by rc_<shareToken>, non-disruptive)
+    let rcInquiryId: string | null = null;
+    let rcFollowUpDueAt: string | null = null;
+    let rcInquiryDeduplicated = false;
     if (cleanEmail) {
       try {
         await ensureAcquisitionSchema();
-        await recordRealityCheckInquiryInNeon(db, {
+        const rcInq = await recordRealityCheckInquiryInNeon(db, {
           realityCheckId: record.id,
           shareToken,
           email: cleanEmail,
@@ -520,27 +529,49 @@ export async function POST(req: Request) {
           primaryHeadache: cleanHeadache,
           overallScore: scanResult.overallScore,
         });
+        rcInquiryId = rcInq.inquiry.id;
+        rcFollowUpDueAt = rcInq.inquiry.followUpDueAt;
+        rcInquiryDeduplicated = rcInq.deduplicated;
       } catch (intakeErr) {
         console.warn('[REALITY CHECK UNIFIED INQUIRY WARNING]', intakeErr);
       }
     }
 
-    // 6. Operator Notification (only when human follow-up is requested with an email)
+    // 6. Operator Notification via verified cPanel SMTP (durably tracked in Neon across cold starts)
     if (cleanEmail) {
-      await sendOperatorNotification({
-        businessName: effectiveBusinessName || data.website.trim(),
-        ownerName: cleanOwnerName || 'Not provided',
-        email: cleanEmail,
-        phone: cleanPhone || 'None provided',
-        website: data.website.trim(),
-        cityState: effectiveCityState || 'Not specified',
-        primaryHeadache: cleanHeadache || 'None noted',
-        overallScore: scanResult.overallScore,
-        scanStatus: scanResult.scanStatus,
-        shareToken,
-      }).catch((notifErr) => {
-        console.warn('[OPERATOR NOTIFICATION WARNING]', notifErr.message);
-      });
+      try {
+        const persistedStatus = rcInquiryId
+          ? await readInquiryOperatorAlertStatus(db, rcInquiryId)
+          : null;
+        const alertRes = await notifyOperatorsOfRealityCheckDiscuss(
+          {
+            realityCheckId: record.id,
+            businessName: effectiveBusinessName,
+            ownerName: cleanOwnerName,
+            email: cleanEmail,
+            phone: cleanPhone,
+            website: data.website.trim(),
+            cityState: effectiveCityState,
+            primaryHeadache: cleanHeadache,
+            overallScore: scanResult.overallScore,
+            scanStatus: scanResult.scanStatus,
+            reviewStatus: nextStatus,
+            submittedAtIso: scanResult.scannedAt,
+            followUpDueAtIso: rcFollowUpDueAt,
+          },
+          { isRetrySubmission: rcInquiryDeduplicated, persistedStatus }
+        );
+        if (
+          rcInquiryId &&
+          (alertRes.status === 'SENT' ||
+            alertRes.status === 'FAILED_RETRYABLE' ||
+            alertRes.status === 'UNCERTAIN_DELIVERY_LOCKED')
+        ) {
+          await writeInquiryOperatorAlertStatus(db, rcInquiryId, alertRes.status);
+        }
+      } catch {
+        // Non-blocking for customer scan response
+      }
     }
 
     const fallbackPlatform = classifySubmittedUrl(
@@ -741,9 +772,11 @@ export async function PATCH(req: Request) {
     }
 
     // Phase C unified customer inquiry hook (idempotent by rc_<shareToken>; never duplicates on retries)
+    let patchInquiryId: string | null = null;
+    let patchFollowUpDueAt: string | null = null;
     try {
       await ensureAcquisitionSchema();
-      await recordRealityCheckInquiryInNeon(db, {
+      const rcInq = await recordRealityCheckInquiryInNeon(db, {
         realityCheckId: existing.id,
         shareToken: existing.shareToken,
         email: claim.email,
@@ -755,26 +788,51 @@ export async function PATCH(req: Request) {
         primaryHeadache: finalHeadache,
         overallScore: existing.overallScore,
       });
+      patchInquiryId = rcInq.inquiry.id;
+      patchFollowUpDueAt = rcInq.inquiry.followUpDueAt;
     } catch (intakeErr) {
       console.warn('[REALITY CHECK FOLLOWUP UNIFIED INQUIRY WARNING]', intakeErr);
     }
 
-    // Strictly dispatch operator notification once on the winning initial transition
-    if (wonInitialClaim) {
-      await sendOperatorNotification({
-        businessName: finalBusinessName || existing.website,
-        ownerName: finalOwnerName || 'Not provided',
-        email: claim.email,
-        phone: finalPhone || 'None provided',
-        website: existing.website,
-        cityState: finalCityState || 'Not specified',
-        primaryHeadache: finalHeadache || 'Requested follow-up via Discuss My Results',
-        overallScore: existing.overallScore,
-        scanStatus: existing.scanStatus,
-        shareToken: existing.shareToken,
-      }).catch((notifErr) => {
-        console.warn('[OPERATOR NOTIFICATION WARNING]', notifErr.message);
-      });
+    // Dispatch internal operator notification once on winning initial claim, or recover after pre-DATA SMTP failure across cold starts
+    try {
+      const persistedStatus = patchInquiryId
+        ? await readInquiryOperatorAlertStatus(db, patchInquiryId)
+        : null;
+      let mayDispatch = true;
+      if (!wonInitialClaim && patchInquiryId && persistedStatus === 'FAILED_RETRYABLE') {
+        const claim = await claimInquiryOperatorAlertForRecovery(db, patchInquiryId);
+        mayDispatch = claim === 'CLAIMED';
+      }
+      if (mayDispatch) {
+        const alertRes = await notifyOperatorsOfRealityCheckDiscuss(
+          {
+            realityCheckId: existing.id,
+            businessName: finalBusinessName,
+            ownerName: finalOwnerName,
+            email: claim.email,
+            phone: finalPhone,
+            website: existing.website,
+            cityState: finalCityState,
+            primaryHeadache: finalHeadache,
+            overallScore: existing.overallScore,
+            scanStatus: existing.scanStatus,
+            reviewStatus: finalStatus,
+            followUpDueAtIso: patchFollowUpDueAt,
+          },
+          { isRetrySubmission: !wonInitialClaim, persistedStatus }
+        );
+        if (
+          patchInquiryId &&
+          (alertRes.status === 'SENT' ||
+            alertRes.status === 'FAILED_RETRYABLE' ||
+            alertRes.status === 'UNCERTAIN_DELIVERY_LOCKED')
+        ) {
+          await writeInquiryOperatorAlertStatus(db, patchInquiryId, alertRes.status);
+        }
+      }
+    } catch {
+      // Non-blocking for claimant response
     }
 
     const res = NextResponse.json({
@@ -795,98 +853,5 @@ export async function PATCH(req: Request) {
       { error: 'Service temporarily unavailable. Please try again shortly.' },
       { status: 503, headers: { 'Retry-After': '30' } }
     );
-  }
-}
-
-/**
- * Sends notification email to Todd and Noelah about the new human follow-up request.
- * Non-blocking, fails gracefully.
- */
-async function sendOperatorNotification(info: {
-  businessName: string;
-  ownerName: string;
-  email: string;
-  phone: string;
-  website: string;
-  cityState: string;
-  primaryHeadache: string;
-  overallScore: number | null;
-  scanStatus: string;
-  shareToken: string;
-}) {
-  if (process.env.NODE_ENV === 'test' || process.env.TEST_ENV === 'true') {
-    return;
-  }
-
-  const subject = `[Discuss Results / Reality Check] ${info.businessName} (${info.cityState}) — Score: ${info.overallScore !== null ? info.overallScore : 'Pending Review'}`;
-  const message = [
-    `New Reality Check follow-up ("Discuss My Results") requested:`,
-    ``,
-    `Business: ${info.businessName}`,
-    `Location: ${info.cityState}`,
-    `Owner: ${info.ownerName}`,
-    `Email: ${info.email}`,
-    `Phone: ${info.phone}`,
-    `Website: ${info.website}`,
-    `Scan Status: ${info.scanStatus}`,
-    `Automated Score: ${info.overallScore !== null ? `${info.overallScore} / 100` : 'Scan Deferred (Human Review Required)'}`,
-    `Follow-Up Note / Preference: ${info.primaryHeadache}`,
-    ``,
-    `Internal Review Token: ${info.shareToken}`,
-  ].join('\n');
-
-  const resendApiKey = process.env.RESEND_API_KEY;
-  if (resendApiKey) {
-    try {
-      const fromEmail = process.env.TRANSACTIONAL_FROM_EMAIL || 'Todd & Noelah <todd@baratrust.com>';
-      const toEmail = process.env.OPERATOR_NOTIFICATION_EMAIL || 'todd@baratrust.com';
-      const resp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: toEmail,
-          reply_to: info.email,
-          subject,
-          text: message,
-        }),
-      });
-      if (resp.ok) {
-        console.log(`[OPERATOR NOTIFICATION SENT VIA RESEND] ${subject}`);
-        return;
-      }
-      console.warn(`[OPERATOR NOTIFICATION RESEND FAILED] HTTP ${resp.status}`);
-    } catch (e: any) {
-      console.warn(`[OPERATOR NOTIFICATION RESEND ERROR] ${e.message}`);
-    }
-  }
-
-  const endpoint = process.env.FORMSPREE_OPERATOR_ENDPOINT || 'https://formspree.io/f/xzdkqaap';
-  try {
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        Origin: 'https://www.baratrust.com',
-        Referer: 'https://www.baratrust.com/reality-check',
-      },
-      body: JSON.stringify({
-        _subject: subject,
-        name: info.ownerName,
-        email: info.email,
-        message,
-      }),
-    });
-    if (resp.ok) {
-      console.log(`[OPERATOR NOTIFICATION SENT] ${subject}`);
-    } else {
-      console.warn(`[OPERATOR NOTIFICATION FAILED] Formspree HTTP ${resp.status} for ${subject}`);
-    }
-  } catch (e: any) {
-    console.log(`[OPERATOR NOTIFICATION LOGGED ONLY] ${subject}: ${e.message}`);
   }
 }

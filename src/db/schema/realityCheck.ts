@@ -55,6 +55,14 @@ export interface OwnerQuestionnaireAnswers {
   additionalNotes?: string;       // Anything else you want us to know?
   evidenceLabel?: EvidenceLabel;  // 'OWNER_PROVIDED'
   submittedAt?: string;
+  operatorAlertMeta?: {
+    status: 'IN_FLIGHT' | 'SENT' | 'FAILED_RETRYABLE' | 'UNCERTAIN_DELIVERY_LOCKED';
+    stateTag?: string;
+    inFlightSinceMs?: number | null;
+    answersHash: string;
+    updatedAt: string;
+    lastError?: string | null;
+  };
 }
 
 export interface HumanEvidenceCitation {

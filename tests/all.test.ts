@@ -10,3 +10,4 @@ import './browser-evidence.test';
 import './acquisition-engine.test';
 import './customer-receptionist-phase-c.test';
 import './security-and-stripe-maintenance.test';
+import './operator-notifications-phase-1a.test';
